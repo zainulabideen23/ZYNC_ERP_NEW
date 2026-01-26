@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+out/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Database
+*.sql.backup
+
+# Electron
+release/
+
+# Test coverage
+coverage/
+
+# Temporary files
+tmp/
+temp/
+
+# Documentation & Testing Artifacts
+APPLICATION_TEST_STATUS.md
+EXECUTIVE_SUMMARY.md
+FEATURE_IMPLEMENTATION_STATUS.md
+FINAL_VERIFICATION.md
+FIXES_REPORT.md
+IMPLEMENTATION_GUIDE.md
+QUICK_START_TESTING.md
+README_NEW.md
+README_TESTING.md
+SETUP.md
+TESTING_INDEX.md
+TESTING_VERIFICATION_GUIDE.md
+TEST_EXECUTION_REPORT.md
+UI_OVERHAUL_NOTES.md
+VERIFICATION_CHECKLIST.md
+VISUAL_TESTING_GUIDE.md
+backend/backups/

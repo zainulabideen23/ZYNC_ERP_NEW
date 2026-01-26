@@ -1,22 +1,66 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'react-hot-toast'
 import { useAuthStore } from '../store/auth.store'
-import { customersAPI, suppliersAPI } from '../services/api'
+import { customersAPI, suppliersAPI, backupAPI } from '../services/api'
 
 function Settings() {
     const { user } = useAuthStore()
     const [activeTab, setActiveTab] = useState('company') // 'company', 'balances', 'backup'
     const [customers, setCustomers] = useState([])
     const [suppliers, setSuppliers] = useState([])
+    const [backups, setBackups] = useState([])
     const [loading, setLoading] = useState(false)
+    const [backupLoading, setBackupLoading] = useState(false)
     const [editingBalance, setEditingBalance] = useState(null)
     const [balanceValue, setBalanceValue] = useState('')
 
     useEffect(() => {
         if (activeTab === 'balances') {
             loadData()
+        } else if (activeTab === 'backup') {
+            loadBackups()
         }
     }, [activeTab])
+
+    const loadBackups = async () => {
+        try {
+            setBackupLoading(true)
+            const res = await backupAPI.list()
+            setBackups(res.data)
+        } catch (error) {
+            toast.error('Failed to load backups')
+        } finally {
+            setBackupLoading(false)
+        }
+    }
+
+    const handleCreateBackup = async () => {
+        try {
+            setBackupLoading(true)
+            await backupAPI.create()
+            toast.success('Backup created successfully')
+            loadBackups()
+        } catch (error) {
+            toast.error(`Backup failed: ${error.message}`)
+        } finally {
+            setBackupLoading(false)
+        }
+    }
+
+    const handleDeleteBackup = async (filename) => {
+        if (!window.confirm(`Are you sure you want to delete ${filename}?`)) return
+        try {
+            await backupAPI.delete(filename)
+            toast.success('Backup deleted')
+            loadBackups()
+        } catch (error) {
+            toast.error('Failed to delete backup')
+        }
+    }
+
+    const handleDownloadBackup = (filename) => {
+        backupAPI.download(filename)
+    }
 
     const loadData = async () => {
         try {
@@ -342,33 +386,52 @@ function Settings() {
                 <div className="card">
                     <h3 className="card-title" style={{ marginBottom: 'var(--space-4)' }}>💾 Backup & Restore</h3>
                     <p style={{ marginBottom: 'var(--space-4)', color: '#666' }}>
-                        Create a backup of your database or restore from a previous backup.
+                        Create a backup of your database. Note: This assumes <code>pg_dump</code> is available on the server.
                     </p>
                     <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-                        <button className="btn btn-primary">Create Backup</button>
-                        <button className="btn btn-secondary">Restore from Backup</button>
+                        <button
+                            className="btn btn-primary"
+                            onClick={handleCreateBackup}
+                            disabled={backupLoading}
+                        >
+                            {backupLoading ? '⏳ Creating...' : 'Create Backup'}
+                        </button>
                     </div>
 
                     <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-4)', borderTop: '1px solid #eee' }}>
                         <h4 style={{ marginBottom: 'var(--space-2)', fontWeight: 'bold', color: '#1e3c72' }}>
                             📋 Recent Backups
                         </h4>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                            <div style={{ padding: 'var(--space-2)', background: '#f9f9f9', borderRadius: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem' }}>
-                                <div>
-                                    <div style={{ fontWeight: 'bold' }}>🗂️ backup_2025_01_18_120000.zip</div>
-                                    <div style={{ fontSize: '0.85rem', color: '#999' }}>Size: 12.5 MB • Created: Today at 12:00 PM</div>
-                                </div>
-                                <button className="btn btn-ghost" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>⬇️ Download</button>
+                        {backupLoading && backups.length === 0 ? (
+                            <div className="text-center p-4">Loading backups...</div>
+                        ) : backups.length === 0 ? (
+                            <div className="text-center p-4 text-muted">No backups found</div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                                {backups.map(backup => (
+                                    <div key={backup.filename} style={{ padding: 'var(--space-2)', background: '#f9f9f9', borderRadius: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem' }}>
+                                        <div>
+                                            <div style={{ fontWeight: 'bold' }}>🗂️ {backup.filename}</div>
+                                            <div style={{ fontSize: '0.85rem', color: '#999' }}>
+                                                Size: {(backup.size / 1024 / 1024).toFixed(2)} MB • Created: {new Date(backup.createdAt).toLocaleString()}
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button
+                                                className="btn btn-ghost"
+                                                style={{ padding: '6px 12px', fontSize: '0.85rem' }}
+                                                onClick={() => handleDownloadBackup(backup.filename)}
+                                            >⬇️ Download</button>
+                                            <button
+                                                className="btn btn-ghost"
+                                                style={{ padding: '6px 12px', fontSize: '0.85rem', color: 'var(--color-danger)' }}
+                                                onClick={() => handleDeleteBackup(backup.filename)}
+                                            >🗑️</button>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
-                            <div style={{ padding: 'var(--space-2)', background: '#f9f9f9', borderRadius: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem' }}>
-                                <div>
-                                    <div style={{ fontWeight: 'bold' }}>🗂️ backup_2025_01_17_120000.zip</div>
-                                    <div style={{ fontSize: '0.85rem', color: '#999' }}>Size: 12.3 MB • Created: Yesterday at 12:00 PM</div>
-                                </div>
-                                <button className="btn btn-ghost" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>⬇️ Download</button>
-                            </div>
-                        </div>
+                        )}
                     </div>
                 </div>
             )}

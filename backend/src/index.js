@@ -22,6 +22,9 @@ const reportRoutes = require('./routes/report.routes');
 const expenseRoutes = require('./routes/expense.routes');
 const journalRoutes = require('./routes/journal.routes');
 const userRoutes = require('./routes/user.routes');
+const backupRoutes = require('./routes/backup.routes');
+const stockRoutes = require('./routes/stock.routes');
+const quotationRoutes = require('./routes/quotation.routes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -68,6 +71,9 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/journals', journalRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/backups', backupRoutes);
+app.use('/api/stock', stockRoutes);
+app.use('/api/quotations', quotationRoutes);
 
 // 404 handler
 app.use((req, res) => {

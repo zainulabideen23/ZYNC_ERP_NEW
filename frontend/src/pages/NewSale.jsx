@@ -1,14 +1,19 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
-import { productsAPI, customersAPI, salesAPI } from '../services/api'
+import { productsAPI, customersAPI, salesAPI, quotationsAPI } from '../services/api'
+import { format } from 'date-fns'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 function NewSale() {
     const navigate = useNavigate()
+    const location = useLocation()
     const [products, setProducts] = useState([])
     const [customers, setCustomers] = useState([])
     const [cart, setCart] = useState([])
     const [customerId, setCustomerId] = useState('')
+    const [selectedCustomer, setSelectedCustomer] = useState(null)
+    const [quotationId, setQuotationId] = useState(null)
+    const [notes, setNotes] = useState('')
     const [globalDiscount, setGlobalDiscount] = useState(0)
     const [globalDiscountType, setGlobalDiscountType] = useState('amount') // 'amount' or 'percent'
     const [taxRate, setTaxRate] = useState(0)
@@ -20,7 +25,37 @@ function NewSale() {
 
     useEffect(() => {
         loadData()
+        if (location.state?.quotationId) {
+            loadQuotation(location.state.quotationId)
+        }
     }, [])
+
+    const loadQuotation = async (id) => {
+        try {
+            const res = await quotationsAPI.get(id)
+            const quote = res.data
+            setQuotationId(id)
+            setSelectedCustomer(customers.find(c => c.id === quote.customer_id) || { id: quote.customer_id, name: quote.customer_name })
+            setCart(quote.items.map(item => ({
+                product_id: item.product_id,
+                name: item.product_name,
+                code: item.product_code,
+                unit_price: item.unit_price,
+                quantity: item.quantity,
+                discount_percent: item.discount_percent || 0,
+                discount_amount: item.discount_amount || 0,
+                tax_percent: item.tax_percent || 0
+            })))
+            setNotes(`Converted from Quotation ${quote.quotation_number}. ${quote.notes || ''}`)
+            setCustomerId(quote.customer_id)
+            setGlobalDiscount(quote.discount_amount)
+            setGlobalDiscountType(quote.discount_type || 'amount')
+            setTaxRate(quote.tax_rate)
+        } catch (error) {
+            toast.error('Failed to load quotation')
+            console.error('Load quotation error:', error)
+        }
+    }
 
     const loadData = async () => {
         try {
@@ -154,6 +189,9 @@ function NewSale() {
             const response = await salesAPI.create(saleData)
 
             if (response.data?.invoice_number) {
+                if (quotationId) {
+                    await quotationsAPI.updateStatus(quotationId, 'converted')
+                }
                 toast.success(`✓ Sale completed! Invoice: ${response.data.invoice_number}`)
                 // Reset form
                 setCart([])
@@ -161,7 +199,7 @@ function NewSale() {
                 setGlobalDiscount(0)
                 setPaidAmount(0)
                 setTaxRate(0)
-                setTimeout(() => navigate('/sales'), 1500)
+                navigate('/sales')
             }
         } catch (error) {
             toast.error(`❌ ${error.message}`)

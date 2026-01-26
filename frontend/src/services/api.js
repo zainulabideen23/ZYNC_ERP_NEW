@@ -147,4 +147,28 @@ export const usersAPI = {
     resetPassword: (id, newPassword) => api.post(`/users/${id}/reset-password`, { newPassword })
 }
 
+// Backups
+export const backupAPI = {
+    list: () => api.get('/backups'),
+    create: () => api.post('/backups'),
+    delete: (filename) => api.delete(`/backups/${filename}`),
+    download: (filename) => {
+        const token = useAuthStore.getState().token;
+        window.open(`${api.defaults.baseURL}/backups/${filename}/download?token=${token}`, '_blank');
+    }
+}
+
+// Stock
+export const stockAPI = {
+    adjust: (data) => api.post('/stock/adjust', data)
+}
+
+// Quotations
+export const quotationsAPI = {
+    list: (params) => api.get('/quotations', { params }),
+    get: (id) => api.get(`/quotations/${id}`),
+    create: (data) => api.post('/quotations', data),
+    updateStatus: (id, status) => api.patch(`/quotations/${id}/status`, { status })
+}
+
 export default api

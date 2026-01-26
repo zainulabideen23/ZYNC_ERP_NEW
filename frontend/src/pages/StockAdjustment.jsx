@@ -80,16 +80,10 @@ function StockAdjustment() {
 
         setSubmitting(true)
         try {
-            // For now, we'll simulate submission
-            // In real app, this would call a backend API
-            const payload = {
-                adjustments: adjustments.map(({ id, current_stock, ...rest }) => rest),
-                submitted_at: new Date().toISOString(),
+            await stockAPI.adjust({
+                adjustments: adjustments.map(({ id, current_stock, product_name, ...rest }) => rest),
                 notes: `Batch adjustment - ${adjustments.length} items`
-            }
-
-            // Simulate API call (replace with real API when backend endpoint is ready)
-            await new Promise(resolve => setTimeout(resolve, 1000))
+            })
 
             toast.success(`✓ ${adjustments.length} stock adjustment(s) submitted`)
             setAdjustments([])

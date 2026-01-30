@@ -66,9 +66,13 @@ class SaleService {
             }
 
             const totalAmount = subtotal - discount_amount + tax_amount;
-            const paymentStatus = paid_amount >= totalAmount ? 'paid' : paid_amount > 0 ? 'partial' : 'unpaid';
+            
+            // Calculate change_amount for overpayments and ensure amount_due is never negative
+            const changeAmount = paid_amount > totalAmount ? paid_amount - totalAmount : 0;
+            const effectivePaidAmount = Math.min(paid_amount, totalAmount);
+            const paymentStatus = effectivePaidAmount >= totalAmount ? 'paid' : effectivePaidAmount > 0 ? 'partial' : 'unpaid';
 
-            if (!customer_id && paid_amount < totalAmount) {
+            if (!customer_id && effectivePaidAmount < totalAmount) {
                 throw new Error('Walk-in customers cannot have credit sales');
             }
 
@@ -80,7 +84,7 @@ class SaleService {
                 }
 
                 // Balance after this sale = Current balance + New outstanding amount
-                const balanceAfterSale = (customer.opening_balance || 0) + (totalAmount - paid_amount);
+                const balanceAfterSale = (customer.opening_balance || 0) + (totalAmount - effectivePaidAmount);
                 
                 if (balanceAfterSale > customer.credit_limit) {
                     throw new Error(
@@ -100,7 +104,8 @@ class SaleService {
                     discount_amount,
                     tax_amount,
                     total_amount: totalAmount,
-                    paid_amount,
+                    paid_amount: effectivePaidAmount,
+                    change_amount: changeAmount,
                     payment_status: paymentStatus,
                     notes,
                     created_by
@@ -145,12 +150,12 @@ class SaleService {
                 .returning('*');
 
             // Debit Cash/Receivable, Credit Sales
-            if (paid_amount > 0) {
+            if (effectivePaidAmount > 0) {
                 await this.ledgerService.createEntry({
                     entry_date: invoice_date,
                     account_id: cashAccountId,
                     entry_type: 'debit',
-                    amount: paid_amount,
+                    amount: effectivePaidAmount,
                     reference_type: 'sale',
                     reference_id: sale.id,
                     narration: `Cash received - ${invoiceNumber}`,
@@ -159,14 +164,14 @@ class SaleService {
                 }, trx);
             }
 
-            if (paid_amount < totalAmount && customer_id) {
+            if (effectivePaidAmount < totalAmount && customer_id) {
                 const customer = await trx('customers').where('id', customer_id).first();
                 if (customer?.account_id) {
                     await this.ledgerService.createEntry({
                         entry_date: invoice_date,
                         account_id: customer.account_id,
                         entry_type: 'debit',
-                        amount: totalAmount - paid_amount,
+                        amount: totalAmount - effectivePaidAmount,
                         reference_type: 'sale',
                         reference_id: sale.id,
                         narration: `Credit sale - ${invoiceNumber}`,
@@ -216,19 +221,20 @@ class SaleService {
             }
 
             // 7. Create payment record if paid
-            if (paid_amount > 0) {
+            if (effectivePaidAmount > 0) {
                 await trx('payments').insert({
                     payment_type: 'receipt',
                     payment_method: payment_method,
                     reference_type: 'sale',
                     reference_id: sale.id,
-                    amount: paid_amount,
+                    amount: effectivePaidAmount,
                     payment_date: invoice_date,
                     created_by
                 });
             }
 
-            return sale;
+            // Return sale with change_amount for frontend display
+            return { ...sale, change_amount: changeAmount };
         });
     }
 

@@ -181,6 +181,13 @@ router.put('/:id', authenticate, authorize('admin', 'manager'), async (req, res,
             retail_price, wholesale_price, cost_price, min_stock_level, track_stock, image_path, is_active
         } = req.body;
 
+        // Sanitize numeric fields - convert empty strings to null
+        const sanitizeNumeric = (value) => {
+            if (value === '' || value === null || value === undefined) return null;
+            const parsed = parseFloat(value);
+            return isNaN(parsed) ? null : parsed;
+        };
+
         const [product] = await db('products')
             .where({ id: req.params.id })
             .update({
@@ -190,10 +197,11 @@ router.put('/:id', authenticate, authorize('admin', 'manager'), async (req, res,
                 category_id: category_id || null,
                 company_id: company_id || null,
                 unit_id: unit_id || null,
-                retail_price,
-                wholesale_price: wholesale_price || null,
-                cost_price: cost_price || null,
-                min_stock_level, track_stock,
+                retail_price: sanitizeNumeric(retail_price),
+                wholesale_price: sanitizeNumeric(wholesale_price),
+                cost_price: sanitizeNumeric(cost_price),
+                min_stock_level: sanitizeNumeric(min_stock_level) || 0,
+                track_stock,
                 image_path, is_active, updated_at: new Date()
             })
             .returning('*');

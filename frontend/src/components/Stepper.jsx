@@ -1,5 +1,3 @@
-import { useState } from 'react'
-
 /**
  * Custom Stepper Component - Pill-shaped with +/- buttons
  * No browser default number arrows
@@ -57,13 +55,8 @@ function Stepper({ value, onChange, min = 1, max = 999, disabled = false }) {
                     background: 'transparent',
                     fontSize: '1rem',
                     fontWeight: 600,
-                    outline: 'none',
-                    // Hide number input arrows
-                    MozAppearance: 'textfield',
-                    WebkitAppearance: 'none',
-                    appearance: 'textfield'
+                    outline: 'none'
                 }}
-                // Hide arrows in webkit browsers
                 className="no-spinner"
             />
             <button

@@ -133,7 +133,7 @@ function Products() {
                                     <td style={{ textAlign: 'right' }}>{formatCurrency(product.cost_price)}</td>
                                     <td style={{ textAlign: 'right' }}>
                                         <span className={product.current_stock < product.min_stock_level ? 'badge badge-danger' : ''}>
-                                            {product.current_stock ? Math.round(product.current_stock) : '-'}
+                                            {product.current_stock != null ? Math.round(product.current_stock) : '-'}
                                         </span>
                                     </td>
                                     <td>

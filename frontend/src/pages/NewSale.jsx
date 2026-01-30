@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { toast } from 'react-hot-toast'
 import { productsAPI, customersAPI, salesAPI, quotationsAPI } from '../services/api'
 import { format } from 'date-fns'
@@ -10,6 +10,7 @@ import StatusBadge from '../components/StatusBadge'
 function NewSale() {
     const navigate = useNavigate()
     const location = useLocation()
+    const searchInputRef = useRef(null)
     const [products, setProducts] = useState([])
     const [customers, setCustomers] = useState([])
     const [cart, setCart] = useState([])
@@ -34,10 +35,14 @@ function NewSale() {
         
         // Add keyboard shortcut for search (/)
         const handleKeyPress = (e) => {
-            if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+            if (e.key === '/' && 
+                document.activeElement.tagName !== 'INPUT' && 
+                document.activeElement.tagName !== 'TEXTAREA' &&
+                !document.activeElement.isContentEditable) {
                 e.preventDefault()
-                const searchInput = document.querySelector('.search-bar-glow')
-                if (searchInput) searchInput.focus()
+                if (searchInputRef.current) {
+                    searchInputRef.current.focus()
+                }
             }
         }
         
@@ -214,10 +219,13 @@ function NewSale() {
                 // Show change amount if overpaid
                 const saleChangeAmount = response.data.change_amount || 0
                 if (saleChangeAmount > 0) {
-                    toast.success(
-                        `✓ Sale completed! Invoice: ${response.data.invoice_number}\n💰 Return to Customer: Rs. ${saleChangeAmount.toLocaleString()}`,
-                        { duration: 6000 }
-                    )
+                    toast.success((t) => (
+                        <div>
+                            <div style={{ fontWeight: 'bold' }}>✓ Sale completed!</div>
+                            <div>Invoice: {response.data.invoice_number}</div>
+                            <div style={{ color: '#22c55e', marginTop: '4px' }}>💰 Return to Customer: Rs. {saleChangeAmount.toLocaleString()}</div>
+                        </div>
+                    ), { duration: 6000 })
                 } else {
                     toast.success(`✓ Sale completed! Invoice: ${response.data.invoice_number}`)
                 }
@@ -307,6 +315,7 @@ function NewSale() {
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                 <div style={{ position: 'relative', marginBottom: 'var(--space-4)' }}>
                     <input
+                        ref={searchInputRef}
                         type="text"
                         className="form-input search-bar-glow"
                         placeholder="🔍 Search by product name or code... (Press / to focus)"
@@ -641,7 +650,7 @@ function NewSale() {
                                     )}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', fontWeight: 700, paddingTop: '8px', borderTop: '2px solid var(--color-border)', color: 'var(--color-accent)' }}>
                                         <span>Total:</span>
-                                        <span style={{ fontFamily: 'var(--font-mono)' }}>Rs. {total.toFixed(2).toLocaleString()}</span>
+                                        <span style={{ fontFamily: 'var(--font-mono)' }}>Rs. {total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                                     </div>
                                 </div>
 
@@ -681,7 +690,7 @@ function NewSale() {
                                             💰 Return to Customer:
                                         </span>
                                         <span style={{ fontWeight: 700, fontSize: '1.2rem', color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
-                                            Rs. {changeAmount.toFixed(2).toLocaleString()}
+                                            Rs. {changeAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                                         </span>
                                     </div>
                                 )}
@@ -701,7 +710,7 @@ function NewSale() {
                                             💳 Credit Balance:
                                         </span>
                                         <span style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--color-warning)', fontFamily: 'var(--font-mono)' }}>
-                                            Rs. {balance.toFixed(2).toLocaleString()}
+                                            Rs. {balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                                         </span>
                                     </div>
                                 )}

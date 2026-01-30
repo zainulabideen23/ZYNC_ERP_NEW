@@ -153,4 +153,32 @@ describe('Sales Module', () => {
         expect(res.statusCode).toBe(400);
         expect(res.body.error).toBe('At least one item is required');
     });
+
+    it('SALE-006: Should handle overpayment and return change_amount', async () => {
+        const saleData = {
+            items: [{ product_id: 1, quantity: 1, unit_price: 100 }],
+            paid_amount: 150, // Overpayment
+            payment_method: 'cash'
+        };
+
+        const expectedResponse = {
+            id: 3,
+            invoice_number: 'INV-000003',
+            total_amount: 100,
+            paid_amount: 100,
+            change_amount: 50, // The change
+            payment_status: 'paid'
+        };
+
+        mockSaleServiceInstance.createSale.mockResolvedValue(expectedResponse);
+
+        const res = await request(app)
+            .post('/api/sales')
+            .send(saleData);
+
+        expect(res.statusCode).toBe(201);
+        expect(res.body.success).toBe(true);
+        expect(res.body.data.change_amount).toBe(50);
+        expect(res.body.data.payment_status).toBe('paid');
+    });
 });

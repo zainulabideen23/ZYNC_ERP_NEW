@@ -1,4 +1,7 @@
 /* CSS Variables - Design System */
+/* Import JetBrains Mono for monospaced elements */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
 :root {
   /* Colors - Dark Theme */
   --color-bg-primary: #0f172a;
@@ -360,3 +363,31 @@ a:hover {
 .text-muted { color: var(--color-text-muted); }
 .text-right { text-align: right; }
 .font-mono { font-family: var(--font-mono); }
+
+/* Hide number input spinners */
+input[type="number"].no-spinner::-webkit-outer-spin-button,
+input[type="number"].no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"].no-spinner {
+  -moz-appearance: textfield;
+}
+
+/* Custom focus glow for search bars */
+.search-bar-glow:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 
+              0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+/* Button size utilities */
+.btn-sm {
+  padding: var(--space-1) var(--space-3);
+  font-size: 0.75rem;
+}
+
+.btn-lg {
+  padding: var(--space-3) var(--space-6);
+  font-size: 1rem;
+}

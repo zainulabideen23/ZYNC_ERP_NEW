@@ -3,6 +3,9 @@ import { toast } from 'react-hot-toast'
 import { productsAPI, customersAPI, salesAPI, quotationsAPI } from '../services/api'
 import { format } from 'date-fns'
 import { useNavigate, useLocation } from 'react-router-dom'
+import Stepper from '../components/Stepper'
+import PaymentSelector from '../components/PaymentSelector'
+import StatusBadge from '../components/StatusBadge'
 
 function NewSale() {
     const navigate = useNavigate()
@@ -28,6 +31,18 @@ function NewSale() {
         if (location.state?.quotationId) {
             loadQuotation(location.state.quotationId)
         }
+        
+        // Add keyboard shortcut for search (/)
+        const handleKeyPress = (e) => {
+            if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+                e.preventDefault()
+                const searchInput = document.querySelector('.search-bar-glow')
+                if (searchInput) searchInput.focus()
+            }
+        }
+        
+        window.addEventListener('keydown', handleKeyPress)
+        return () => window.removeEventListener('keydown', handleKeyPress)
     }, [])
 
     const loadQuotation = async (id) => {
@@ -142,6 +157,9 @@ function NewSale() {
     const afterDiscount = cartSubtotal - discountAmount
     const taxAmount = afterDiscount * (taxRate / 100)
     const total = afterDiscount + taxAmount
+    
+    // Handle overpayment - calculate change amount
+    const changeAmount = paidAmount > total ? paidAmount - total : 0
     const balance = total - paidAmount
 
     const handleSubmit = async () => {
@@ -192,7 +210,18 @@ function NewSale() {
                 if (quotationId) {
                     await quotationsAPI.updateStatus(quotationId, 'converted')
                 }
-                toast.success(`✓ Sale completed! Invoice: ${response.data.invoice_number}`)
+                
+                // Show change amount if overpaid
+                const saleChangeAmount = response.data.change_amount || 0
+                if (saleChangeAmount > 0) {
+                    toast.success(
+                        `✓ Sale completed! Invoice: ${response.data.invoice_number}\n💰 Return to Customer: Rs. ${saleChangeAmount.toLocaleString()}`,
+                        { duration: 6000 }
+                    )
+                } else {
+                    toast.success(`✓ Sale completed! Invoice: ${response.data.invoice_number}`)
+                }
+                
                 // Reset form
                 setCart([])
                 setCustomerId('')
@@ -276,21 +305,48 @@ function NewSale() {
 
             {/* Products Grid */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <input
-                    type="text"
-                    className="form-input"
-                    placeholder="🔍 Search by product name or code..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    style={{ marginBottom: 'var(--space-4)' }}
-                />
+                <div style={{ position: 'relative', marginBottom: 'var(--space-4)' }}>
+                    <input
+                        type="text"
+                        className="form-input search-bar-glow"
+                        placeholder="🔍 Search by product name or code... (Press / to focus)"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        style={{
+                            paddingRight: '40px',
+                            background: 'var(--color-bg-secondary)',
+                            border: '2px solid var(--color-border)'
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Escape') {
+                                setSearch('')
+                                e.target.blur()
+                            }
+                        }}
+                    />
+                    <span style={{
+                        position: 'absolute',
+                        right: '12px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        fontSize: '0.75rem',
+                        color: 'var(--color-text-muted)',
+                        padding: '2px 6px',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: '4px',
+                        fontFamily: 'var(--font-mono)'
+                    }}>
+                        /
+                    </span>
+                </div>
                 <div className="card" style={{ flex: 1, overflow: 'auto', padding: 'var(--space-4)' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 'var(--space-4)' }}>
                         {filteredProducts.length > 0 ? (
                             filteredProducts.map(product => {
                                 const inCart = cart.find(item => item.product_id === product.id)
-                                const stockAvailable = product.current_stock || 0
+                                const stockAvailable = Math.round(product.current_stock || 0)
                                 const outOfStock = stockAvailable <= 0
+                                const lowStock = stockAvailable > 0 && stockAvailable <= product.min_stock_level
                                 return (
                                     <button
                                         key={product.id}
@@ -299,7 +355,9 @@ function NewSale() {
                                         style={{
                                             padding: 'var(--space-4)',
                                             background: inCart ? 'rgba(34, 197, 94, 0.15)' : 'var(--color-bg-tertiary)',
-                                            border: inCart ? '3px solid var(--color-success)' : outOfStock ? '2px solid var(--color-danger)' : '2px solid transparent',
+                                            border: inCart 
+                                                ? '3px solid var(--color-success)' 
+                                                : '0.5px solid rgba(59, 130, 246, 0.3)',
                                             borderRadius: 'var(--radius-md)',
                                             cursor: outOfStock ? 'not-allowed' : 'pointer',
                                             color: outOfStock ? 'var(--color-text-muted)' : 'inherit',
@@ -308,37 +366,45 @@ function NewSale() {
                                             opacity: outOfStock ? 0.5 : 1
                                         }}
                                         onMouseEnter={(e) => !outOfStock && (e.currentTarget.style.borderColor = 'var(--color-accent)')}
-                                        onMouseLeave={(e) => !outOfStock && (e.currentTarget.style.borderColor = inCart ? 'var(--color-success)' : 'transparent')}
+                                        onMouseLeave={(e) => !outOfStock && (e.currentTarget.style.borderColor = inCart ? 'var(--color-success)' : 'rgba(59, 130, 246, 0.3)')}
                                     >
                                         <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '4px' }}>
                                             {product.name}
                                         </div>
-                                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
+                                        <div style={{ 
+                                            fontSize: '0.75rem', 
+                                            color: 'var(--color-text-muted)', 
+                                            marginBottom: '8px',
+                                            fontFamily: 'var(--font-mono)'
+                                        }}>
                                             {product.code}
                                         </div>
                                         <div style={{
                                             fontSize: '0.75rem',
-                                            padding: '4px 6px',
-                                            borderRadius: '4px',
-                                            background: outOfStock ? 'rgba(239, 68, 68, 0.2)' : stockAvailable > product.min_stock_level ? 'rgba(34, 197, 94, 0.2)' : 'rgba(251, 191, 36, 0.2)',
-                                            color: outOfStock ? 'var(--color-danger)' : stockAvailable > product.min_stock_level ? 'var(--color-success)' : 'var(--color-warning)',
+                                            padding: '4px 8px',
+                                            borderRadius: '6px',
+                                            background: 'transparent',
+                                            border: `1px solid ${outOfStock ? 'var(--color-danger)' : lowStock ? 'var(--color-warning)' : 'var(--color-success)'}`,
+                                            color: outOfStock ? 'var(--color-danger)' : lowStock ? 'var(--color-warning)' : 'var(--color-success)',
                                             marginBottom: '8px',
                                             fontWeight: 500,
-                                            textAlign: 'center'
+                                            textAlign: 'center',
+                                            fontFamily: 'var(--font-mono)',
+                                            letterSpacing: '0.05em'
                                         }}>
-                                            Stock: {stockAvailable}
+                                            {outOfStock ? 'OUT OF STOCK' : `Stock: ${stockAvailable}`}
                                         </div>
-                                        <div style={{ fontWeight: 700, color: 'var(--color-accent)', fontSize: '1rem' }}>
+                                        <div style={{ 
+                                            fontWeight: 700, 
+                                            color: 'var(--color-accent)', 
+                                            fontSize: '1rem',
+                                            fontFamily: 'var(--font-mono)'
+                                        }}>
                                             Rs. {Number(product.retail_price).toLocaleString()}
                                         </div>
                                         {inCart && (
                                             <div style={{ fontSize: '0.7rem', color: 'var(--color-success)', fontWeight: 600, marginTop: '6px' }}>
                                                 ✓ Added
-                                            </div>
-                                        )}
-                                        {outOfStock && (
-                                            <div style={{ fontSize: '0.7rem', color: 'var(--color-danger)', fontWeight: 600, marginTop: '6px' }}>
-                                                ✕ Out of Stock
                                             </div>
                                         )}
                                     </button>
@@ -397,7 +463,7 @@ function NewSale() {
                             </button>
                         </div>
 
-                        {/* Modal Content */}
+                        {/* Modal Content - List-Row Layout */}
                         <div style={{ flex: 1, overflow: 'auto', padding: 'var(--space-4)' }}>
                             {cart.length === 0 ? (
                                 <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: 'var(--space-8)' }}>
@@ -406,60 +472,106 @@ function NewSale() {
                                     <div style={{ fontSize: '0.9rem', marginTop: 'var(--space-2)' }}>Add products to get started</div>
                                 </div>
                             ) : (
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 'var(--space-4)' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                                     {cart.map(item => (
-                                        <div key={item.product_id} style={{
-                                            padding: 'var(--space-3)',
-                                            background: 'var(--color-bg-tertiary)',
-                                            borderRadius: 'var(--radius-md)',
-                                            border: '1px solid var(--color-border)'
-                                        }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-                                                <div>
-                                                    <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '2px' }}>{item.name}</div>
-                                                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{item.code}</div>
-                                                </div>
-                                                <button
-                                                    className="btn btn-ghost btn-sm"
-                                                    onClick={() => removeFromCart(item.product_id)}
-                                                    title="Remove from cart"
-                                                    style={{ padding: '2px 6px', fontSize: '1rem' }}
-                                                >
-                                                    ✕
-                                                </button>
+                                        <div 
+                                            key={item.product_id} 
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 'var(--space-3)',
+                                                padding: 'var(--space-3)',
+                                                background: 'var(--color-bg-tertiary)',
+                                                borderBottom: '1px solid #2D3748',
+                                                transition: 'all 0.2s',
+                                                position: 'relative'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.background = 'var(--color-bg-hover)'
+                                                const deleteBtn = e.currentTarget.querySelector('.delete-btn')
+                                                if (deleteBtn) deleteBtn.style.opacity = '1'
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.background = 'var(--color-bg-tertiary)'
+                                                const deleteBtn = e.currentTarget.querySelector('.delete-btn')
+                                                if (deleteBtn) deleteBtn.style.opacity = '0'
+                                            }}
+                                        >
+                                            {/* Thumbnail Placeholder */}
+                                            <div style={{
+                                                width: '40px',
+                                                height: '40px',
+                                                background: 'var(--color-bg-secondary)',
+                                                borderRadius: '6px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                fontSize: '1.2rem',
+                                                flexShrink: 0
+                                            }}>
+                                                📦
                                             </div>
 
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)', marginBottom: 'var(--space-2)', fontSize: '0.85rem' }}>
-                                                <div>
-                                                    <label style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>Price</label>
-                                                    <input
-                                                        type="number"
-                                                        className="form-input"
-                                                        value={item.unit_price}
-                                                        onChange={(e) => updateCartItem(item.product_id, 'unit_price', Number(e.target.value))}
-                                                        style={{ padding: '6px 8px', fontSize: '0.85rem' }}
-                                                    />
+                                            {/* Product Info */}
+                                            <div style={{ flex: '0 0 250px', minWidth: 0 }}>
+                                                <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                    {item.name}
                                                 </div>
-                                                <div>
-                                                    <label style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>Qty</label>
-                                                    <div style={{ display: 'flex', gap: '4px' }}>
-                                                        <button className="btn btn-ghost btn-sm" onClick={() => updateQuantity(item.product_id, item.quantity - 1)} style={{ flex: 1 }}>−</button>
-                                                        <input
-                                                            type="number"
-                                                            className="form-input"
-                                                            value={item.quantity}
-                                                            onChange={(e) => updateQuantity(item.product_id, Math.max(1, Number(e.target.value)))}
-                                                            style={{ textAlign: 'center', padding: '6px', flex: 1, fontSize: '0.85rem' }}
-                                                        />
-                                                        <button className="btn btn-ghost btn-sm" onClick={() => updateQuantity(item.product_id, item.quantity + 1)} style={{ flex: 1 }}>+</button>
-                                                    </div>
+                                                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
+                                                    {item.code}
                                                 </div>
                                             </div>
 
-                                            <div style={{ fontSize: '0.9rem', fontWeight: 600, textAlign: 'right', paddingTop: 'var(--space-2)', borderTop: '1px solid var(--color-border)' }}>
-                                                <div style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', marginBottom: '4px' }}>Line Total</div>
-                                                <div style={{ fontSize: '1rem', color: 'var(--color-accent)' }}>Rs. {(item.unit_price * item.quantity).toLocaleString()}</div>
+                                            {/* Price */}
+                                            <div style={{ flex: '0 0 120px', fontSize: '0.9rem', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>
+                                                Rs. {Number(item.unit_price).toLocaleString()}
                                             </div>
+
+                                            {/* Quantity Stepper */}
+                                            <div style={{ flex: '0 0 auto' }}>
+                                                <Stepper 
+                                                    value={item.quantity}
+                                                    onChange={(qty) => updateQuantity(item.product_id, qty)}
+                                                    min={1}
+                                                />
+                                            </div>
+
+                                            {/* Line Total */}
+                                            <div style={{ 
+                                                flex: '0 0 120px', 
+                                                fontSize: '1rem', 
+                                                fontWeight: 700, 
+                                                color: 'var(--color-accent)',
+                                                textAlign: 'right',
+                                                fontFamily: 'var(--font-mono)'
+                                            }}>
+                                                Rs. {(item.unit_price * item.quantity).toLocaleString()}
+                                            </div>
+
+                                            {/* Delete Button (visible on hover) */}
+                                            <button
+                                                className="delete-btn"
+                                                onClick={() => removeFromCart(item.product_id)}
+                                                style={{
+                                                    position: 'absolute',
+                                                    right: '12px',
+                                                    width: '32px',
+                                                    height: '32px',
+                                                    borderRadius: '50%',
+                                                    border: 'none',
+                                                    background: 'var(--color-danger)',
+                                                    color: '#fff',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontSize: '1.2rem',
+                                                    opacity: 0,
+                                                    transition: 'opacity 0.2s'
+                                                }}
+                                            >
+                                                🗑️
+                                            </button>
                                         </div>
                                     ))}
                                 </div>
@@ -468,7 +580,11 @@ function NewSale() {
 
                         {/* Modal Footer - Calculations & Checkout */}
                         {cart.length > 0 && (
-                            <div style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-bg-secondary)', padding: 'var(--space-4)' }}>
+                            <div style={{ 
+                                borderTop: '1px solid var(--color-border)', 
+                                background: '#1A202C', 
+                                padding: 'var(--space-4)' 
+                            }}>
                                 {/* Adjustments */}
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
                                     <div>
@@ -509,69 +625,83 @@ function NewSale() {
                                 <div style={{ background: 'var(--color-bg-tertiary)', padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-4)' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid var(--color-border)' }}>
                                         <span>Subtotal:</span>
-                                        <span style={{ fontWeight: 600 }}>Rs. {cartSubtotal.toLocaleString()}</span>
+                                        <span style={{ fontWeight: 600, fontFamily: 'var(--font-mono)' }}>Rs. {cartSubtotal.toLocaleString()}</span>
                                     </div>
                                     {discountAmount > 0 && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', marginBottom: '8px', color: 'var(--color-danger)' }}>
                                             <span>Discount ({globalDiscountType === 'percent' ? globalDiscount + '%' : 'Rs'}):</span>
-                                            <span style={{ fontWeight: 600 }}>- Rs. {discountAmount.toLocaleString()}</span>
+                                            <span style={{ fontWeight: 600, fontFamily: 'var(--font-mono)' }}>- Rs. {discountAmount.toLocaleString()}</span>
                                         </div>
                                     )}
                                     {taxAmount > 0 && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', marginBottom: '8px', color: 'var(--color-warning)' }}>
                                             <span>Tax ({taxRate}%):</span>
-                                            <span style={{ fontWeight: 600 }}>+ Rs. {taxAmount.toLocaleString()}</span>
+                                            <span style={{ fontWeight: 600, fontFamily: 'var(--font-mono)' }}>+ Rs. {taxAmount.toLocaleString()}</span>
                                         </div>
                                     )}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', fontWeight: 700, paddingTop: '8px', borderTop: '2px solid var(--color-border)', color: 'var(--color-accent)' }}>
                                         <span>Total:</span>
-                                        <span>Rs. {total.toLocaleString()}</span>
+                                        <span style={{ fontFamily: 'var(--font-mono)' }}>Rs. {total.toFixed(2).toLocaleString()}</span>
                                     </div>
                                 </div>
 
                                 {/* Payment Info */}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
-                                    <div>
-                                        <label className="form-label" style={{ fontSize: '0.75rem' }}>Paid Amount (Rs)</label>
-                                        <input
-                                            type="number"
-                                            className="form-input"
-                                            value={paidAmount}
-                                            onChange={(e) => setPaidAmount(Number(e.target.value))}
-                                            style={{ padding: '10px', fontSize: '1rem', fontWeight: 600, textAlign: 'right' }}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="form-label" style={{ fontSize: '0.75rem' }}>Payment Method</label>
-                                        <select
-                                            className="form-select"
-                                            value={paymentMethod}
-                                            onChange={(e) => setPaymentMethod(e.target.value)}
-                                            style={{ padding: '10px', fontSize: '0.95rem' }}
-                                        >
-                                            <option value="cash">💵 Cash</option>
-                                            <option value="bank">🏦 Bank Transfer</option>
-                                            <option value="cheque">🎫 Cheque</option>
-                                        </select>
-                                    </div>
+                                <div style={{ marginBottom: 'var(--space-4)' }}>
+                                    <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '8px' }}>Payment Method</label>
+                                    <PaymentSelector 
+                                        value={paymentMethod}
+                                        onChange={setPaymentMethod}
+                                    />
                                 </div>
 
-                                {/* Balance Display */}
-                                {balance !== 0 && (
+                                <div style={{ marginBottom: 'var(--space-4)' }}>
+                                    <label className="form-label" style={{ fontSize: '0.75rem' }}>Paid Amount (Rs)</label>
+                                    <input
+                                        type="number"
+                                        className="form-input"
+                                        value={paidAmount}
+                                        onChange={(e) => setPaidAmount(Number(e.target.value))}
+                                        style={{ padding: '10px', fontSize: '1rem', fontWeight: 600, textAlign: 'right', fontFamily: 'var(--font-mono)' }}
+                                    />
+                                </div>
+
+                                {/* Change/Balance Display */}
+                                {changeAmount > 0 && (
                                     <div style={{
                                         padding: 'var(--space-3)',
                                         marginBottom: 'var(--space-4)',
                                         borderRadius: 'var(--radius-md)',
-                                        background: balance > 0 ? 'rgba(251, 191, 36, 0.15)' : 'rgba(34, 197, 94, 0.15)',
+                                        background: 'rgba(34, 197, 94, 0.15)',
+                                        border: '1px solid var(--color-success)',
                                         display: 'flex',
                                         justifyContent: 'space-between',
                                         alignItems: 'center'
                                     }}>
                                         <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>
-                                            {balance > 0 ? '💳 Credit Balance:' : '💰 Change:'}
+                                            💰 Return to Customer:
                                         </span>
-                                        <span style={{ fontWeight: 700, fontSize: '1.1rem', color: balance > 0 ? 'var(--color-warning)' : 'var(--color-success)' }}>
-                                            Rs. {Math.abs(balance).toLocaleString()}
+                                        <span style={{ fontWeight: 700, fontSize: '1.2rem', color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
+                                            Rs. {changeAmount.toFixed(2).toLocaleString()}
+                                        </span>
+                                    </div>
+                                )}
+                                
+                                {balance > 0 && (
+                                    <div style={{
+                                        padding: 'var(--space-3)',
+                                        marginBottom: 'var(--space-4)',
+                                        borderRadius: 'var(--radius-md)',
+                                        background: 'rgba(251, 191, 36, 0.15)',
+                                        border: '1px solid var(--color-warning)',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center'
+                                    }}>
+                                        <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>
+                                            💳 Credit Balance:
+                                        </span>
+                                        <span style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--color-warning)', fontFamily: 'var(--font-mono)' }}>
+                                            Rs. {balance.toFixed(2).toLocaleString()}
                                         </span>
                                     </div>
                                 )}

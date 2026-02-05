@@ -3,6 +3,8 @@
  * Allows components to notify others when data changes
  */
 
+import { useEffect } from 'react'
+
 const listeners = new Map()
 
 export const DataSyncEvents = {
@@ -59,8 +61,6 @@ export function emit(event, data = null) {
  * Automatically unsubscribes on unmount
  */
 export function useDataSync(event, callback) {
-    const { useEffect } = require('react')
-    
     useEffect(() => {
         const unsubscribe = subscribe(event, callback)
         return unsubscribe

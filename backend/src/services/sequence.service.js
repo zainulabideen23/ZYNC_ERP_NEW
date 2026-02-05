@@ -1,3 +1,5 @@
+const logger = require('../utils/logger');
+
 class SequenceService {
     constructor(db) {
         this.db = db;
@@ -11,12 +13,16 @@ class SequenceService {
         const query = trx || this.db;
 
         // Get and lock the sequence row to prevent race conditions
+        // Get and lock the sequence row to prevent race conditions
         const sequence = await query('sequences')
             .where('name', sequenceName)
             .forUpdate()
             .first();
 
+        logger.debug(`[SequenceService] Requesting '${sequenceName}', Found: ${sequence ? sequence.id : 'NULL'}`);
+
         if (!sequence) {
+            logger.error(`[SequenceService] Sequence '${sequenceName}' NOT FOUND in DB!`);
             throw new Error(`Sequence '${sequenceName}' not found`);
         }
 

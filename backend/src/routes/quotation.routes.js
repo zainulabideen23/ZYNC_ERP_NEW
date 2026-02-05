@@ -10,33 +10,21 @@ const quotationService = new QuotationService(db);
 // Get all quotations
 router.get('/', authenticate, async (req, res, next) => {
     try {
-        const { status, customer_id } = req.query;
-        let query = db('quotations as q')
-            .leftJoin('customers as c', 'q.customer_id', 'c.id')
-            .leftJoin('users as u', 'q.created_by', 'u.id')
-            .select('q.*', 'c.name as customer_name', 'u.full_name as created_by_name');
-
-        if (status && status !== 'all') {
-            query = query.where('q.status', status);
-        }
-        if (customer_id) {
-            query = query.where('q.customer_id', customer_id);
-        }
-
-        const quotations = await query.orderBy('q.created_at', 'desc');
-        res.json({ success: true, data: quotations });
+        const result = await quotationService.list(req.query);
+        res.json({ success: true, ...result });
     } catch (error) {
         next(error);
     }
 });
 
-// Get single quotation with items
+// Get single quotation
 router.get('/:id', authenticate, async (req, res, next) => {
     try {
         const quotation = await db('quotations as q')
             .leftJoin('customers as c', 'q.customer_id', 'c.id')
-            .select('q.*', 'c.name as customer_name', 'c.phone as customer_phone', 'c.address as customer_address')
+            .select('q.*', 'c.name as customer_name', 'c.phone_number as customer_phone', 'c.address_line1 as customer_address')
             .where('q.id', req.params.id)
+            .where('q.is_deleted', false)
             .first();
 
         if (!quotation) throw new AppError('Quotation not found', 404);
@@ -55,48 +43,30 @@ router.get('/:id', authenticate, async (req, res, next) => {
 // Create quotation
 router.post('/', authenticate, authorize('admin', 'manager', 'cashier'), async (req, res, next) => {
     try {
-        const { customer_id, quote_date, valid_until, items, notes } = req.body;
-
-        if (!items || !items.length) {
-            throw new AppError('At least one item is required', 400);
-        }
-
-        const quotation = await quotationService.createQuotation({
-            customer_id,
-            quote_date,
-            valid_until,
-            items,
-            notes,
-            created_by: req.user.id
-        });
-
+        const quotation = await quotationService.create(req.body, req.user.id);
         res.status(201).json({ success: true, data: quotation });
     } catch (error) {
         next(error);
     }
 });
 
-// Update quotation status
+// Update status
 router.patch('/:id/status', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { status } = req.body;
-        const validStatuses = ['draft', 'sent', 'accepted', 'rejected', 'converted'];
-
-        if (!validStatuses.includes(status)) {
-            throw new AppError('Invalid status', 400);
-        }
-
         const [quotation] = await db('quotations')
-            .where('id', req.params.id)
-            .update({ status, updated_at: new Date() })
+            .where({ id: req.params.id, is_deleted: false })
+            .update({ status, updated_at: new Date(), updated_by: req.user.id })
             .returning('*');
 
         if (!quotation) throw new AppError('Quotation not found', 404);
-
         res.json({ success: true, data: quotation });
     } catch (error) {
         next(error);
     }
 });
+
+module.exports = router;
+
 
 module.exports = router;

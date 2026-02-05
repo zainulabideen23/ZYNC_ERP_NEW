@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { purchasesAPI } from '../services/api'
 import { format } from 'date-fns'
+import { useDataSync, DataSyncEvents } from '../utils/dataSync'
 
 function Purchases() {
     const navigate = useNavigate()
@@ -12,11 +13,16 @@ function Purchases() {
     const [returnItems, setReturnItems] = useState([])
 
     useEffect(() => { loadData() }, [])
+    
+    // Subscribe to data sync events to refresh list when purchases change
+    useDataSync(DataSyncEvents.PURCHASE_CREATED, () => {
+        loadData()
+    })
 
     const loadData = async () => {
         try {
             const response = await purchasesAPI.list({ limit: 100 })
-            setPurchases(response.data)
+            setPurchases(response.data || [])
         } catch (error) {
             console.error('Failed to load purchases:', error)
         } finally {
@@ -78,11 +84,11 @@ function Purchases() {
                         {purchases.map((p) => (
                             <tr key={p.id}>
                                 <td className="font-mono">{p.bill_number}</td>
-                                <td>{format(new Date(p.bill_date), 'dd/MM/yyyy')}</td>
+                                <td>{format(new Date(p.purchase_date), 'dd/MM/yyyy')}</td>
                                 <td>{p.supplier_name || '-'}</td>
                                 <td style={{ textAlign: 'right' }}>Rs. {Number(p.total_amount).toLocaleString()}</td>
-                                <td style={{ textAlign: 'right' }}>Rs. {Number(p.paid_amount).toLocaleString()}</td>
-                                <td><span className={`badge ${p.payment_status === 'paid' ? 'badge-success' : p.payment_status === 'returned' ? 'badge-danger' : 'badge-warning'}`}>{p.payment_status}</span></td>
+                                <td style={{ textAlign: 'right' }}>Rs. {Number(p.amount_paid).toLocaleString()}</td>
+                                <td><span className={`badge ${p.status === 'paid' ? 'badge-success' : p.status === 'returned' ? 'badge-danger' : 'badge-warning'}`}>{p.status === 'paid' ? 'PAID' : p.status.toUpperCase()}</span></td>
                                 <td>
                                     <button className="btn btn-ghost btn-sm" onClick={() => handleViewPurchase(p)}>View & Return</button>
                                 </td>

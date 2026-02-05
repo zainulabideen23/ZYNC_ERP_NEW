@@ -25,6 +25,7 @@ const userRoutes = require('./routes/user.routes');
 const backupRoutes = require('./routes/backup.routes');
 const stockRoutes = require('./routes/stock.routes');
 const quotationRoutes = require('./routes/quotation.routes');
+const unitRoutes = require('./routes/unit.routes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -74,6 +75,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/backups', backupRoutes);
 app.use('/api/stock', stockRoutes);
 app.use('/api/quotations', quotationRoutes);
+app.use('/api/units', unitRoutes);
 
 // 404 handler
 app.use((req, res) => {

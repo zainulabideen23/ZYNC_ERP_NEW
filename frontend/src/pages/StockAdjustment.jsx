@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'react-hot-toast'
-import { productsAPI } from '../services/api'
+import { productsAPI, stockAPI } from '../services/api'
 
 function StockAdjustment() {
     const [products, setProducts] = useState([])
@@ -20,7 +20,7 @@ function StockAdjustment() {
     const loadProducts = async () => {
         try {
             const response = await productsAPI.list({ limit: 500 })
-            setProducts(response.data)
+            setProducts(response.data || [])
         } catch (error) {
             toast.error('Failed to load products')
         }

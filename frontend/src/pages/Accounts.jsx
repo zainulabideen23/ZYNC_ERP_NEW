@@ -57,7 +57,7 @@ function Accounts() {
                                 alignItems: 'center'
                             }}>
                                 <h3 style={{ margin: 0, color: 'var(--color-primary)', fontSize: '1rem' }}>{group.name}</h3>
-                                <span className="badge badge-secondary">{group.type.toUpperCase()}</span>
+                                <span className="badge badge-secondary">{(group.account_type || group.type || 'N/A').toUpperCase()}</span>
                             </div>
                             <div className="table-container">
                                 <table className="table">

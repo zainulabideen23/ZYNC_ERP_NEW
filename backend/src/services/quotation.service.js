@@ -1,51 +1,72 @@
+const { AppError } = require('../middleware/errorHandler');
+
 class QuotationService {
     constructor(db) {
         this.db = db;
     }
 
-    async createQuotation(data) {
-        const { customer_id, quote_date, valid_until, items, notes, created_by } = data;
+    /**
+     * Create a new quotation
+     */
+    async create(data, userId) {
+        const {
+            customer_id,
+            quotation_date,
+            valid_until,
+            expiry_date, // Accept both for compatibility
+            items,
+            discount_amount = 0,
+            tax_amount = 0,
+            notes
+        } = data;
+
+        // Use valid_until or expiry_date (fallback)
+        const validUntilDate = valid_until || expiry_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
         return await this.db.transaction(async (trx) => {
-            // 1. Generate quotation number
-            const quoteNumber = await this.generateQuotationNumber(trx);
+            // 1. Generate Quotation Number
+            const quotationNumber = await this.generateQuotationNumber(trx);
 
-            // 2. Calculate totals
-            let totalAmount = 0;
+            // 2. Process Items
+            let subtotal = 0;
             const processedItems = [];
 
             for (const item of items) {
-                const lineTotal = item.quantity * item.unit_price;
-                totalAmount += lineTotal;
+                const product = await trx('products').where('id', item.product_id).first();
+                if (!product) throw new AppError(`Product not found: ${item.product_id}`, 404);
+
+                const lineTotal = (item.quantity * item.unit_price) - (item.line_discount || 0);
+                subtotal += (item.quantity * item.unit_price);
+
                 processedItems.push({
                     product_id: item.product_id,
                     quantity: item.quantity,
                     unit_price: item.unit_price,
-                    line_total: lineTotal
+                    line_discount: item.line_discount || 0,
+                    tax_rate: item.tax_rate || 0,
+                    line_total: lineTotal,
+                    created_by: userId
                 });
             }
 
-            // 3. Create quotation record
-            const [quotation] = await trx('quotations')
-                .insert({
-                    quotation_number: quoteNumber,
-                    quotation_date: quote_date || new Date().toISOString().split('T')[0],
-                    customer_id,
-                    valid_until: valid_until || null,
-                    total_amount: totalAmount,
-                    notes,
-                    status: 'draft',
-                    created_by
-                })
-                .returning('*');
+            const totalAmount = (subtotal - discount_amount) + tax_amount;
 
-            // 4. Create items
+            // 3. Create Quotation Record
+            const [quotation] = await trx('quotations').insert({
+                quotation_number: quotationNumber,
+                customer_id,
+                quotation_date: quotation_date || new Date(),
+                valid_until: validUntilDate,
+                subtotal,
+                discount_amount,
+                tax_amount,
+                total_amount: totalAmount,
+                status: 'draft',
+                created_by: userId
+            }).returning('*');
+
+            // 4. Create Quotation Items
             for (const item of processedItems) {
-                // Assuming a quotation_items table exists, or we use a JSONB/generic item table.
-                // In initial_schema.sql, let's verify if there is a quotation_items table.
-                // If not, I'll need to create a migration or a separate table.
-                // Checking previous view_file of 001_initial_schema.sql... I only saw 'delivery_challans'.
-                // Let's re-verify the table name for items.
                 await trx('quotation_items').insert({
                     quotation_id: quotation.id,
                     ...item
@@ -56,17 +77,44 @@ class QuotationService {
         });
     }
 
+    /**
+     * Generate next quotation number
+     */
     async generateQuotationNumber(trx) {
-        const sequence = await trx('sequences').where('name', 'quotation_number').forUpdate().first();
-        if (!sequence) throw new Error('Quotation sequence not found');
+        const sequence = await trx('sequences').where('name', 'quotation').forUpdate().first();
+        if (!sequence) throw new AppError('Quotation sequence not found', 500);
 
-        const newValue = parseInt(sequence.current_value) + 1;
-        await trx('sequences').where('name', 'quotation').update({ current_value: newValue });
+        const nextVal = sequence.current_value + 1;
+        await trx('sequences').where('name', 'quotation').update({ current_value: nextVal });
 
-        const prefix = sequence.prefix || 'QTN-';
-        const padLength = sequence.pad_length || 6;
-        return prefix + String(newValue).padStart(padLength, '0');
+        return `${sequence.prefix}${nextVal.toString().padStart(sequence.pad_length || 6, '0')}`;
+    }
+
+    /**
+     * List quotations
+     */
+    async list(params) {
+        const { page = 1, limit = 50, customer_id, status } = params;
+        const offset = (page - 1) * limit;
+
+        let query = this.db('quotations as q')
+            .leftJoin('customers as c', 'q.customer_id', 'c.id')
+            .select('q.*', 'c.name as customer_name')
+            .where('q.is_deleted', false);
+
+        if (customer_id) query = query.where('q.customer_id', customer_id);
+        // Only apply status filter if it's not 'all'
+        if (status && status !== 'all') query = query.where('q.status', status);
+
+        const [{ count }] = await this.db('quotations').where('is_deleted', false).count();
+        const quotations = await query.orderBy('q.quotation_date', 'desc').limit(limit).offset(offset);
+
+        return {
+            data: quotations,
+            pagination: { page, limit, total: parseInt(count), pages: Math.ceil(count / limit) }
+        };
     }
 }
 
 module.exports = QuotationService;
+

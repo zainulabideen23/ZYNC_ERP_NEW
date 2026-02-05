@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { reportsAPI } from '../services/api'
 import { format } from 'date-fns'
+import { useDataSync, DataSyncEvents } from '../utils/dataSync'
 import './Dashboard.css'
 
 function Dashboard() {
@@ -11,6 +12,15 @@ function Dashboard() {
     useEffect(() => {
         loadDashboard()
     }, [])
+
+    // Subscribe to data sync events to refresh dashboard when sales/purchases change
+    useDataSync(DataSyncEvents.SALE_CREATED, () => {
+        loadDashboard()
+    })
+    
+    useDataSync(DataSyncEvents.PURCHASE_CREATED, () => {
+        loadDashboard()
+    })
 
     const loadDashboard = async () => {
         try {

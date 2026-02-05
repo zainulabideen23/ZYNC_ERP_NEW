@@ -205,7 +205,7 @@ function Expenses() {
                                         onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
                                     >
                                         <option value="cash">Cash</option>
-                                        <option value="bank">Bank Transfer</option>
+                                        <option value="bank_transfer">Bank Transfer</option>
                                         <option value="cheque">Cheque</option>
                                     </select>
                                 </div>

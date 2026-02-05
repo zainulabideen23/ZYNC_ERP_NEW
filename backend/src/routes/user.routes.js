@@ -12,7 +12,7 @@ router.use(authenticate, authorize('admin'));
 router.get('/', async (req, res, next) => {
     try {
         const users = await db('users')
-            .select('id', 'username', 'full_name', 'email', 'phone', 'role', 'is_active', 'last_login', 'created_at')
+            .select('id', 'username', 'full_name', 'email', 'phone_number', 'role', 'is_active', 'last_login', 'created_at')
             .orderBy('created_at', 'desc');
 
         res.json({ success: true, data: users });
@@ -43,7 +43,7 @@ router.post('/', async (req, res, next) => {
             password_hash,
             full_name,
             email,
-            phone,
+            phone_number: phone,
             role,
             is_active: true
         }).returning(['id', 'username', 'full_name', 'role']);
@@ -66,7 +66,7 @@ router.put('/:id', async (req, res, next) => {
             .update({
                 full_name,
                 email,
-                phone,
+                phone_number: phone,
                 role,
                 is_active,
                 updated_at: new Date()

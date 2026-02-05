@@ -18,9 +18,12 @@ function Quotations() {
     const [products, setProducts] = useState([])
     const [formData, setFormData] = useState({
         customer_id: '',
-        quotation_date: format(new Date(), 'yyyy-MM-dd'),
-        valid_until: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
-        items: [{ product_id: '', quantity: 1, unit_price: 0 }],
+        quotation_date: new Date().toISOString().split('T')[0],
+        valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        items: [{ product_id: '', quantity: 1, unit_price: 0, line_discount: 0, tax_rate: 0 }],
+        discount_amount: 0,
+        discount_percentage: 0,
+        tax_amount: 0,
         notes: ''
     })
 
@@ -46,7 +49,7 @@ function Quotations() {
         try {
             setLoading(true)
             const response = await quotationsAPI.list({ status: statusFilter })
-            setQuotations(response.data)
+            setQuotations(response.data || [])
         } catch (error) {
             toast.error('Failed to load quotations')
         } finally {
@@ -85,7 +88,8 @@ function Quotations() {
             sent: { bg: '#e3f2fd', color: '#1e3c72', icon: '📧' },
             accepted: { bg: '#e8f5e9', color: '#388e3c', icon: '✅' },
             rejected: { bg: '#ffebee', color: '#d32f2f', icon: '❌' },
-            converted: { bg: '#fff3e0', color: '#f57c00', icon: '💰' }
+            converted: { bg: '#fff3e0', color: '#f57c00', icon: '💰' },
+            expired: { bg: '#fafafa', color: '#9e9e9e', icon: '⏰' }
         }
         const config = statusConfig[status] || statusConfig.draft
         return (
@@ -110,14 +114,25 @@ function Quotations() {
     const handleCreateSubmit = async (e) => {
         e.preventDefault()
         try {
-            await quotationsAPI.create(formData)
+            // Calculate totals before sending
+            const subtotal = formData.items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
+            const totalAmount = (subtotal - formData.discount_amount) + formData.tax_amount;
+
+            await quotationsAPI.create({
+                ...formData,
+                subtotal,
+                total_amount: totalAmount
+            })
             toast.success('Quotation created successfully')
             setShowCreateModal(false)
             setFormData({
                 customer_id: '',
                 quotation_date: format(new Date(), 'yyyy-MM-dd'),
                 valid_until: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
-                items: [{ product_id: '', quantity: 1, unit_price: 0 }],
+                items: [{ product_id: '', quantity: 1, unit_price: 0, line_discount: 0, tax_rate: 0 }],
+                discount_amount: 0,
+                discount_percentage: 0,
+                tax_amount: 0,
                 notes: ''
             })
             loadQuotations()
@@ -503,8 +518,9 @@ function CreateQuotationModal({ show, onClose, customers, products, formData, se
                             <thead>
                                 <tr>
                                     <th>Product</th>
-                                    <th style={{ width: '100px' }}>Qty</th>
-                                    <th style={{ width: '150px' }}>Price</th>
+                                    <th style={{ width: '80px' }}>Qty</th>
+                                    <th style={{ width: '120px' }}>Price</th>
+                                    <th style={{ width: '100px' }}>Disc %</th>
                                     <th style={{ width: '150px' }}>Total</th>
                                     <th style={{ width: '50px' }}></th>
                                 </tr>
@@ -524,6 +540,9 @@ function CreateQuotationModal({ show, onClose, customers, products, formData, se
                                         <td>
                                             <input type="number" className="form-input" value={item.unit_price} onChange={e => onItemChange(idx, 'unit_price', e.target.value)} required />
                                         </td>
+                                        <td>
+                                            <input type="number" className="form-input" value={item.tax_rate} onChange={e => onItemChange(idx, 'tax_rate', e.target.value)} placeholder="0" />
+                                        </td>
                                         <td className="text-right font-bold">
                                             Rs. {(item.quantity * item.unit_price).toLocaleString()}
                                         </td>
@@ -536,19 +555,31 @@ function CreateQuotationModal({ show, onClose, customers, products, formData, se
                         </table>
                     </div>
 
-                    <button type="button" className="btn btn-secondary btn-sm mb-6" onClick={onAddItem}>+ Add Item</button>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-6)' }}>
+                        <button type="button" className="btn btn-secondary btn-sm" onClick={onAddItem}>+ Add Item</button>
 
-                    <div className="flex justify-between items-center p-4 bg-tertiary rounded-lg mb-6">
-                        <span className="font-bold">Estimated Total Amount:</span>
-                        <span className="text-xl font-bold text-accent">Rs. {total.toLocaleString()}</span>
+                        <div style={{ width: '300px', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                            <div className="form-group flex justify-between items-center">
+                                <label className="form-label" style={{ marginBottom: 0 }}>Global Discount (Rs.)</label>
+                                <input type="number" className="form-input" style={{ width: '120px' }} value={formData.discount_amount} onChange={e => setFormData({ ...formData, discount_amount: parseFloat(e.target.value) || 0 })} />
+                            </div>
+                            <div className="form-group flex justify-between items-center">
+                                <label className="form-label" style={{ marginBottom: 0 }}>Tax Amount (Rs.)</label>
+                                <input type="number" className="form-input" style={{ width: '120px' }} value={formData.tax_amount} onChange={e => setFormData({ ...formData, tax_amount: parseFloat(e.target.value) || 0 })} />
+                            </div>
+                            <div className="flex justify-between items-center p-3 bg-tertiary rounded-lg mt-2">
+                                <span className="font-bold">Total:</span>
+                                <span className="text-xl font-bold text-accent">Rs. {(total - formData.discount_amount + formData.tax_amount).toLocaleString()}</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="form-group">
+                    <div className="form-group mt-6">
                         <label className="form-label">Notes</label>
                         <textarea className="form-input" value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} rows="2" placeholder="Terms, conditions, or specific notes..." />
                     </div>
 
-                    <div className="flex gap-4 mt-6">
+                    <div className="flex gap-4 mt-8">
                         <button type="submit" className="btn btn-primary">Create Quotation</button>
                         <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
                     </div>

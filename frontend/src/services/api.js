@@ -50,7 +50,8 @@ export const productsAPI = {
     create: (data) => api.post('/products', data),
     update: (id, data) => api.put(`/products/${id}`, data),
     delete: (id) => api.delete(`/products/${id}`),
-    getStock: (id) => api.get(`/products/${id}/stock`)
+    getStock: (id) => api.get(`/products/${id}/stock`),
+    validateSku: (sku, excludeId) => api.post('/products/validate-sku', { sku, excludeId })
 }
 
 // Customers
@@ -137,6 +138,12 @@ export const reportsAPI = {
     salesByCustomer: (params) => api.get('/reports/sales-by-customer', { params }),
     purchaseBySupplier: (params) => api.get('/reports/purchase-by-supplier', { params }),
     expenseSummary: (params) => api.get('/reports/expense-summary', { params })
+}
+
+// Units
+export const unitsAPI = {
+    list: () => api.get('/units'),
+    create: (data) => api.post('/units', data)
 }
 
 // Users

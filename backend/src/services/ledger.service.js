@@ -1,3 +1,5 @@
+const { AppError } = require('../middleware/errorHandler');
+
 class LedgerService {
     constructor(db) {
         this.db = db;
@@ -15,9 +17,9 @@ class LedgerService {
             .insert({
                 entry_date,
                 account_id,
-                entry_type,
+                entry_type, // 'debit' or 'credit'
                 amount,
-                reference_type,
+                reference_type: reference_type || 'journal',
                 reference_id,
                 narration,
                 journal_id,
@@ -37,7 +39,7 @@ class LedgerService {
      */
     async createJournalEntry(data, trx = null) {
         const query = trx || this.db;
-        const { journal_date, journal_type, narration, entries, created_by } = data;
+        const { journal_date, transaction_type, narration, entries, created_by } = data;
 
         // Validate balance
         const totalDebits = entries
@@ -48,167 +50,198 @@ class LedgerService {
             .filter(e => e.entry_type === 'credit')
             .reduce((sum, e) => sum + parseFloat(e.amount), 0);
 
-        if (Math.abs(totalDebits - totalCredits) > 0.01) {
-            throw new Error(`Journal entry not balanced. Debits: ${totalDebits}, Credits: ${totalCredits}`);
+        if (Math.abs(totalDebits - totalCredits) > 0.001) {
+            throw new AppError(`Journal entry not balanced. Debits: ${totalDebits.toFixed(2)}, Credits: ${totalCredits.toFixed(2)}`, 400);
         }
 
         // Create journal
+        const journalNumber = await this.generateJournalNumber(query);
         const [journal] = await query('journals')
             .insert({
+                journal_number: journalNumber,
                 journal_date,
-                journal_type,
-                narration,
+                reference_type: transaction_type || 'journal',
+                description: narration,
+                total_debit: totalDebits,
+                total_credit: totalCredits,
+                is_balanced: true,
                 created_by
             })
             .returning('*');
 
         // Create ledger entries
         for (const entry of entries) {
-            await this.createEntry({
-                entry_date: journal_date,
+            await query('ledger_entries').insert({
+                journal_id: journal.id,
                 account_id: entry.account_id,
                 entry_type: entry.entry_type,
                 amount: entry.amount,
-                reference_type: 'journal',
-                reference_id: journal.id,
-                narration: entry.narration || narration,
-                journal_id: journal.id,
+                description: entry.narration || narration,
                 created_by
-            }, query);
+            });
+
+            // Update account's current balance
+            await this.updateAccountBalance(entry.account_id, entry.entry_type, entry.amount, query);
         }
 
         return journal;
     }
 
     /**
-     * Update account's current balance (cached for performance)
+     * Generate next Journal Number
+     */
+    async generateJournalNumber(trx) {
+        const sequence = await trx('sequences').where('name', 'journal').forUpdate().first();
+        if (!sequence) throw new AppError('Journal sequence not found', 500);
+
+        const nextVal = parseInt(sequence.current_value) + 1;
+        await trx('sequences').where('name', 'journal').update({ current_value: nextVal });
+
+        return `${sequence.prefix}${nextVal.toString().padStart(sequence.pad_length, '0')}`;
+    }
+
+    /**
+     * Update account's current balance
      */
     async updateAccountBalance(accountId, entryType, amount, trx = null) {
         const query = trx || this.db;
         const account = await query('accounts').where('id', accountId).first();
 
-        if (!account) return;
+        if (!account) throw new AppError(`Account not found: ${accountId}`, 404);
 
         let newBalance = parseFloat(account.current_balance);
+        const amt = parseFloat(amount);
 
-        // For Asset and Expense accounts: Debit increases, Credit decreases
-        // For Liability, Capital, and Income accounts: Credit increases, Debit decreases
+        // Account Types: asset, liability, equity, income, expense
+        // Asset & Expense: Debit increases (+), Credit decreases (-)
+        // Liability, Equity, Income: Credit increases (+), Debit decreases (-)
         if (['asset', 'expense'].includes(account.account_type)) {
-            newBalance = entryType === 'debit'
-                ? newBalance + parseFloat(amount)
-                : newBalance - parseFloat(amount);
+            newBalance = entryType === 'debit' ? newBalance + amt : newBalance - amt;
         } else {
-            newBalance = entryType === 'credit'
-                ? newBalance + parseFloat(amount)
-                : newBalance - parseFloat(amount);
+            newBalance = entryType === 'credit' ? newBalance + amt : newBalance - amt;
         }
 
         await query('accounts')
             .where('id', accountId)
-            .update({ current_balance: newBalance });
+            .update({
+                current_balance: newBalance,
+                updated_at: new Date()
+            });
     }
 
     /**
-     * Get account balance as of a date
+     * Get account ledger items with running balance
      */
-    async getAccountBalance(accountId, asOfDate = null, trx = null) {
-        const query = trx || this.db;
+    async getAccountLedger(accountId, options = {}) {
+        const { from_date, to_date } = options;
 
-        let ledgerQuery = query('ledger_entries')
+        const account = await this.db('accounts').where('id', accountId).first();
+        if (!account) throw new AppError('Account not found', 404);
+
+        let query = this.db('ledger_entries')
             .where('account_id', accountId)
-            .select(
-                query.raw('SUM(CASE WHEN entry_type = \'debit\' THEN amount ELSE 0 END) as debits'),
-                query.raw('SUM(CASE WHEN entry_type = \'credit\' THEN amount ELSE 0 END) as credits')
-            );
+            .orderBy('entry_date', 'asc')
+            .orderBy('created_at', 'asc');
 
-        if (asOfDate) {
-            ledgerQuery = ledgerQuery.where('entry_date', '<=', asOfDate);
+        if (from_date) query = query.where('entry_date', '>=', from_date);
+        if (to_date) query = query.where('entry_date', '<=', to_date);
+
+        const entries = await query;
+
+        // Calculate opening balance for the period
+        let runningBalance = parseFloat(account.opening_balance);
+        if (from_date) {
+            const beforeEntries = await this.db('ledger_entries')
+                .where('account_id', accountId)
+                .where('entry_date', '<', from_date)
+                .select('entry_type', 'amount');
+
+            for (const entry of beforeEntries) {
+                const amt = parseFloat(entry.amount);
+                if (['asset', 'expense'].includes(account.account_type)) {
+                    runningBalance = entry.entry_type === 'debit' ? runningBalance + amt : runningBalance - amt;
+                } else {
+                    runningBalance = entry.entry_type === 'credit' ? runningBalance + amt : runningBalance - amt;
+                }
+            }
         }
 
-        const result = await ledgerQuery.first();
-        const account = await query('accounts').where('id', accountId).first();
-
-        const debits = parseFloat(result.debits) || 0;
-        const credits = parseFloat(result.credits) || 0;
-        const opening = parseFloat(account?.opening_balance) || 0;
-
-        // Calculate balance based on account type
-        let balance;
-        if (['asset', 'expense'].includes(account?.account_type)) {
-            balance = opening + debits - credits;
-        } else {
-            balance = opening + credits - debits;
-        }
+        const openingBalance = runningBalance;
+        const ledger = entries.map(entry => {
+            const amt = parseFloat(entry.amount);
+            if (['asset', 'expense'].includes(account.account_type)) {
+                runningBalance = entry.entry_type === 'debit' ? runningBalance + amt : runningBalance - amt;
+            } else {
+                runningBalance = entry.entry_type === 'credit' ? runningBalance + amt : runningBalance - amt;
+            }
+            return { ...entry, running_balance: runningBalance };
+        });
 
         return {
-            account_id: accountId,
-            opening_balance: opening,
-            total_debits: debits,
-            total_credits: credits,
-            closing_balance: balance
+            account,
+            opening_balance: openingBalance,
+            closing_balance: runningBalance,
+            entries: ledger
         };
     }
 
     /**
      * Get Trial Balance
      */
-    async getTrialBalance(asOfDate = null, trx = null) {
-        const query = trx || this.db;
-
-        let ledgerQuery = query('ledger_entries as le')
-            .join('accounts as a', 'le.account_id', 'a.id')
-            .join('account_groups as g', 'a.group_id', 'g.id')
+    async getTrialBalance(asOfDate = null) {
+        let query = this.db('accounts as a')
+            .leftJoin('account_groups as g', 'a.group_id', 'g.id')
             .select(
                 'a.id',
                 'a.code',
                 'a.name',
                 'a.account_type',
                 'a.opening_balance',
-                'g.name as group_name',
-                query.raw('SUM(CASE WHEN le.entry_type = \'debit\' THEN le.amount ELSE 0 END) as debits'),
-                query.raw('SUM(CASE WHEN le.entry_type = \'credit\' THEN le.amount ELSE 0 END) as credits')
+                'a.current_balance',
+                'g.name as group_name'
             )
-            .groupBy('a.id', 'a.code', 'a.name', 'a.account_type', 'a.opening_balance', 'g.name')
+            .where('a.is_active', true)
             .orderBy('a.code');
 
-        if (asOfDate) {
-            ledgerQuery = ledgerQuery.where('le.entry_date', '<=', asOfDate);
-        }
+        const accounts = await query;
 
-        const accounts = await ledgerQuery;
+        let totalDebit = 0;
+        let totalCredit = 0;
 
-        // Calculate balances
-        const result = accounts.map(acc => {
-            const debits = parseFloat(acc.debits) || 0;
-            const credits = parseFloat(acc.credits) || 0;
-            const opening = parseFloat(acc.opening_balance) || 0;
+        const report = accounts.map(acc => {
+            const balance = parseFloat(acc.current_balance);
+            let debit = 0;
+            let credit = 0;
 
-            let balance;
             if (['asset', 'expense'].includes(acc.account_type)) {
-                balance = opening + debits - credits;
+                if (balance >= 0) debit = balance;
+                else credit = Math.abs(balance);
             } else {
-                balance = opening + credits - debits;
+                if (balance >= 0) credit = balance;
+                else debit = Math.abs(balance);
             }
+
+            totalDebit += debit;
+            totalCredit += credit;
 
             return {
                 ...acc,
-                balance,
-                debit_balance: balance > 0 ? Math.abs(balance) : 0,
-                credit_balance: balance < 0 ? Math.abs(balance) : 0
+                debit,
+                credit
             };
         });
 
-        const totals = result.reduce((sum, acc) => ({
-            debit_balance: sum.debit_balance + acc.debit_balance,
-            credit_balance: sum.credit_balance + acc.credit_balance
-        }), { debit_balance: 0, credit_balance: 0 });
-
         return {
-            accounts: result,
-            totals,
-            is_balanced: Math.abs(totals.debit_balance - totals.credit_balance) < 0.01
+            date: asOfDate || new Date(),
+            accounts: report,
+            totals: {
+                debit: totalDebit,
+                credit: totalCredit
+            },
+            is_balanced: Math.abs(totalDebit - totalCredit) < 0.01
         };
     }
 }
 
 module.exports = LedgerService;
+

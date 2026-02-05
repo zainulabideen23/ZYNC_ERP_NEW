@@ -400,12 +400,14 @@ exports.seed = async function (knex) {
     // 11. CREATE SEQUENCES FOR AUTO-NUMBERING
     // =====================================================
     await knex('sequences').insert([
-        { name: 'invoice_number', prefix: 'INV', current_value: 0, pad_length: 6, reset_yearly: true },
-        { name: 'bill_number', prefix: 'BILL', current_value: 0, pad_length: 6, reset_yearly: true },
-        { name: 'journal_number', prefix: 'JNL', current_value: 0, pad_length: 6, reset_yearly: false },
-        { name: 'quotation_number', prefix: 'QT', current_value: 0, pad_length: 6, reset_yearly: false },
-        { name: 'challan_number', prefix: 'CH', current_value: 0, pad_length: 6, reset_yearly: false },
-        { name: 'expense_number', prefix: 'EXP', current_value: 0, pad_length: 6, reset_yearly: false }
+        { name: 'invoice', prefix: 'INV-', current_value: 0, pad_length: 6, reset_yearly: true },
+        { name: 'purchase', prefix: 'PUR-', current_value: 0, pad_length: 6, reset_yearly: true },
+        { name: 'journal', prefix: 'JRN-', current_value: 0, pad_length: 6, reset_yearly: false },
+        { name: 'quotation', prefix: 'QT-', current_value: 0, pad_length: 6, reset_yearly: false },
+        { name: 'expense', prefix: 'EXP-', current_value: 0, pad_length: 6, reset_yearly: false },
+        { name: 'challan', prefix: 'CH-', current_value: 0, pad_length: 6, reset_yearly: false },
+        { name: 'supplier', prefix: 'SUP-', current_value: 0, pad_length: 4, reset_yearly: false },
+        { name: 'customer', prefix: 'CUST-', current_value: 0, pad_length: 4, reset_yearly: false }
     ]);
 
     // =====================================================

@@ -62,7 +62,7 @@ router.get('/me', authenticate, async (req, res, next) => {
     try {
         const user = await db('users')
             .where({ id: req.user.id })
-            .select('id', 'username', 'full_name', 'email', 'phone', 'role', 'last_login')
+            .select('id', 'username', 'full_name', 'email', 'phone_number', 'role', 'last_login')
             .first();
 
         res.json({

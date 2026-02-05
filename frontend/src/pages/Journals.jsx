@@ -122,9 +122,9 @@ function Journals() {
                                 <tr key={j.id}>
                                     <td>{format(new Date(j.journal_date), 'dd/MM/yyyy')}</td>
                                     <td className="font-mono">{j.journal_number || '-'}</td>
-                                    <td>{j.narration}</td>
-                                    <td><span className="badge badge-secondary">{j.journal_type.toUpperCase()}</span></td>
-                                    <td><span className="badge badge-success">POSTED</span></td>
+                                    <td>{j.description || j.narration || '-'}</td>
+                                    <td><span className="badge badge-secondary">{(j.reference_type || j.journal_type || 'GENERAL').toUpperCase()}</span></td>
+                                    <td><span className="badge badge-success">{j.is_balanced !== false ? 'POSTED' : 'DRAFT'}</span></td>
                                     <td>
                                         <button className="btn btn-ghost btn-sm" onClick={() => handleViewJournal(j.id)}>View Details</button>
                                     </td>

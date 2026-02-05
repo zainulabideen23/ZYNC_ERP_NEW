@@ -3,86 +3,28 @@ const router = express.Router();
 const db = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
 const { AppError } = require('../middleware/errorHandler');
+const CustomerService = require('../services/customer.service');
+
+const customerService = new CustomerService(db);
 
 // Get all customers
 router.get('/', authenticate, async (req, res, next) => {
     try {
-        const { page = 1, limit = 50, search, active_only = true } = req.query;
-        const offset = (page - 1) * limit;
-
-        let query = db('customers').select('*');
-
-        if (active_only === 'true') {
-            query = query.where('is_active', true);
-        }
-
-        if (search) {
-            query = query.where((builder) => {
-                builder
-                    .whereILike('name', `%${search}%`)
-                    .orWhereILike('phone', `%${search}%`)
-                    .orWhereILike('code', `%${search}%`);
-            });
-        }
-
-        const [{ count }] = await db('customers').where(active_only === 'true' ? { is_active: true } : {}).count();
-        const customers = await query.orderBy('name').limit(limit).offset(offset);
-
-        res.json({
-            success: true,
-            data: customers,
-            pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
-                total: parseInt(count),
-                pages: Math.ceil(count / limit)
-            }
-        });
+        const result = await customerService.list(req.query);
+        res.json({ success: true, ...result });
     } catch (error) {
         next(error);
     }
 });
 
-// Search by phone (for quick lookup)
-router.get('/search/phone/:phone', authenticate, async (req, res, next) => {
-    try {
-        const customers = await db('customers')
-            .whereILike('phone', `%${req.params.phone}%`)
-            .orWhereILike('phone_alt', `%${req.params.phone}%`)
-            .where('is_active', true)
-            .limit(10);
-
-        res.json({ success: true, data: customers });
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Get single customer with balance
+// Get single customer
 router.get('/:id', authenticate, async (req, res, next) => {
     try {
         const customer = await db('customers')
-            .where('id', req.params.id)
+            .where({ id: req.params.id, is_deleted: false })
             .first();
 
-        if (!customer) {
-            throw new AppError('Customer not found', 404);
-        }
-
-        // Calculate current balance from ledger
-        if (customer.account_id) {
-            const balance = await db('ledger_entries')
-                .where('account_id', customer.account_id)
-                .select(
-                    db.raw('SUM(CASE WHEN entry_type = \'debit\' THEN amount ELSE 0 END) as debits'),
-                    db.raw('SUM(CASE WHEN entry_type = \'credit\' THEN amount ELSE 0 END) as credits')
-                )
-                .first();
-
-            customer.current_balance = (parseFloat(balance.debits) || 0) - (parseFloat(balance.credits) || 0);
-        } else {
-            customer.current_balance = customer.opening_balance;
-        }
+        if (!customer) throw new AppError('Customer not found', 404);
 
         res.json({ success: true, data: customer });
     } catch (error) {
@@ -90,35 +32,10 @@ router.get('/:id', authenticate, async (req, res, next) => {
     }
 });
 
-const SequenceService = require('../services/sequence.service');
-const sequenceService = new SequenceService(db);
-
 // Create customer
 router.post('/', authenticate, authorize('admin', 'manager', 'cashier'), async (req, res, next) => {
     try {
-        const { code, name, phone, phone_alt, email, address, city, cnic, credit_limit, opening_balance } = req.body;
-
-        if (!name) {
-            throw new AppError('Name is required', 400);
-        }
-
-        // Generate code if not provided
-        let customerCode = code;
-        if (!customerCode) {
-            customerCode = await db.transaction(async (trx) => {
-                return await sequenceService.getNextSequenceValue('customer', trx);
-            });
-        }
-
-        const [customer] = await db('customers')
-            .insert({
-                code: customerCode,
-                name, phone, phone_alt, email, address, city, cnic,
-                credit_limit: credit_limit || 0,
-                opening_balance: opening_balance || 0
-            })
-            .returning('*');
-
+        const customer = await customerService.create(req.body, req.user.id);
         res.status(201).json({ success: true, data: customer });
     } catch (error) {
         if (error.code === '23505') {
@@ -131,63 +48,41 @@ router.post('/', authenticate, authorize('admin', 'manager', 'cashier'), async (
 // Update customer
 router.put('/:id', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
     try {
-        const { code, name, phone, phone_alt, email, address, city, cnic, credit_limit, is_active } = req.body;
-
-        const [customer] = await db('customers')
-            .where({ id: req.params.id })
-            .update({
-                code, name, phone, phone_alt, email, address, city, cnic,
-                credit_limit, is_active, updated_at: new Date()
-            })
-            .returning('*');
-
-        if (!customer) {
-            throw new AppError('Customer not found', 404);
-        }
-
+        const customer = await customerService.update(req.params.id, req.body, req.user.id);
         res.json({ success: true, data: customer });
     } catch (error) {
         next(error);
     }
 });
 
-// Get customer ledger (Khata)
+// Get customer ledger
 router.get('/:id/ledger', authenticate, async (req, res, next) => {
     try {
         const { from_date, to_date } = req.query;
         const customer = await db('customers').where('id', req.params.id).first();
 
-        if (!customer) {
-            throw new AppError('Customer not found', 404);
-        }
+        if (!customer) throw new AppError('Customer not found', 404);
 
         let query = db('ledger_entries as le')
-            .join('accounts as a', 'le.account_id', 'a.id')
-            .where('a.id', customer.account_id)
+            .join('journals as j', 'le.journal_id', 'j.id')
             .select(
-                'le.id',
-                'le.entry_date',
-                'le.entry_type',
-                'le.amount',
-                'le.reference_type',
-                'le.reference_id',
-                'le.narration',
-                'le.created_at'
+                'le.*',
+                'j.journal_date as entry_date',
+                'j.journal_number',
+                'j.reference_type',
+                'j.reference_id',
+                'j.description as narration'
             )
-            .orderBy('le.entry_date', 'asc')
+            .where('le.account_id', customer.account_id)
+            .orderBy('j.journal_date', 'asc')
             .orderBy('le.created_at', 'asc');
 
-        if (from_date) {
-            query = query.where('le.entry_date', '>=', from_date);
-        }
-        if (to_date) {
-            query = query.where('le.entry_date', '<=', to_date);
-        }
+        if (from_date) query = query.where('j.journal_date', '>=', from_date);
+        if (to_date) query = query.where('j.journal_date', '<=', to_date);
 
         const entries = await query;
 
-        // Calculate running balance
-        let balance = customer.opening_balance;
+        let balance = parseFloat(customer.opening_balance) || 0;
         const ledger = entries.map(entry => {
             if (entry.entry_type === 'debit') {
                 balance += parseFloat(entry.amount);

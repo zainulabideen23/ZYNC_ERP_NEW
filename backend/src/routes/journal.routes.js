@@ -10,13 +10,23 @@ const ledgerService = new LedgerService(db);
 router.get('/', authenticate, async (req, res, next) => {
     try {
         const { limit = 50, offset = 0 } = req.query;
+        const [{ count }] = await db('journals').count();
         const journals = await db('journals')
             .orderBy('journal_date', 'desc')
             .orderBy('created_at', 'desc')
             .limit(limit)
             .offset(offset);
 
-        res.json({ success: true, data: journals });
+        res.json({
+            success: true,
+            data: journals,
+            pagination: {
+                total: parseInt(count),
+                page: Math.floor(offset / limit) + 1,
+                limit: parseInt(limit),
+                pages: Math.ceil(count / limit)
+            }
+        });
     } catch (error) {
         next(error);
     }

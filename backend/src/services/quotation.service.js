@@ -23,58 +23,81 @@ class QuotationService {
         // Use valid_until or expiry_date (fallback)
         const validUntilDate = valid_until || expiry_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-        return await this.db.transaction(async (trx) => {
-            // 1. Generate Quotation Number
-            const quotationNumber = await this.generateQuotationNumber(trx);
+        // Retry loop for unique constraint violations
+        let attempts = 0;
+        const maxAttempts = 3;
 
-            // 2. Process Items
-            let subtotal = 0;
-            const processedItems = [];
+        while (attempts < maxAttempts) {
+            try {
+                return await this.db.transaction(async (trx) => {
+                    // 1. Generate Quotation Number
+                    const quotationNumber = await this.generateQuotationNumber(trx);
 
-            for (const item of items) {
-                const product = await trx('products').where('id', item.product_id).first();
-                if (!product) throw new AppError(`Product not found: ${item.product_id}`, 404);
+                    // 2. Process Items
+                    let subtotal = 0;
+                    const processedItems = [];
 
-                const lineTotal = (item.quantity * item.unit_price) - (item.line_discount || 0);
-                subtotal += (item.quantity * item.unit_price);
+                    for (const item of items) {
+                        const product = await trx('products').where('id', item.product_id).first();
+                        if (!product) throw new AppError(`Product not found: ${item.product_id}`, 404);
 
-                processedItems.push({
-                    product_id: item.product_id,
-                    quantity: item.quantity,
-                    unit_price: item.unit_price,
-                    line_discount: item.line_discount || 0,
-                    tax_rate: item.tax_rate || 0,
-                    line_total: lineTotal,
-                    created_by: userId
+                        const lineTotal = (item.quantity * item.unit_price) - (item.line_discount || 0);
+                        subtotal += (item.quantity * item.unit_price);
+
+                        processedItems.push({
+                            product_id: item.product_id,
+                            quantity: item.quantity,
+                            unit_price: item.unit_price,
+                            line_discount: item.line_discount || 0,
+                            tax_rate: item.tax_rate || 0,
+                            line_total: item.line_total || lineTotal,
+                            created_by: userId
+                        });
+                    }
+
+                    const totalAmount = (subtotal - discount_amount) + tax_amount;
+
+                    // 3. Create Quotation Record
+                    const [quotation] = await trx('quotations').insert({
+                        quotation_number: quotationNumber,
+                        customer_id,
+                        quotation_date: quotation_date || new Date(),
+                        valid_until: validUntilDate,
+                        subtotal,
+                        discount_amount,
+                        tax_amount,
+                        total_amount: totalAmount,
+                        status: 'draft',
+                        created_by: userId
+                    }).returning('*');
+
+                    // 4. Create Quotation Items
+                    for (const item of processedItems) {
+                        await trx('quotation_items').insert({
+                            quotation_id: quotation.id,
+                            ...item
+                        });
+                    }
+
+                    return quotation;
                 });
+            } catch (error) {
+                if (error.code === '23505' && error.constraint === 'quotations_quotation_number_key') {
+                    attempts++;
+                    console.warn(`Duplicate quotation number detected. Retrying attempt ${attempts}/${maxAttempts}...`);
+                    try {
+                        const maxResult = await this.db.raw(`SELECT COALESCE(MAX(CAST(REPLACE(quotation_number, 'QUO-', '') AS INTEGER)), 0) as max_num FROM quotations`);
+                        const maxNum = maxResult.rows[0].max_num;
+                        await this.db('sequences').where('name', 'quotation').update({ current_value: maxNum });
+                    } catch (syncError) {
+                        console.error('Failed to sync sequence:', syncError);
+                    }
+                    if (attempts === maxAttempts) throw new AppError('Failed to generate unique quotation number', 500);
+                } else {
+                    throw error;
+                }
             }
-
-            const totalAmount = (subtotal - discount_amount) + tax_amount;
-
-            // 3. Create Quotation Record
-            const [quotation] = await trx('quotations').insert({
-                quotation_number: quotationNumber,
-                customer_id,
-                quotation_date: quotation_date || new Date(),
-                valid_until: validUntilDate,
-                subtotal,
-                discount_amount,
-                tax_amount,
-                total_amount: totalAmount,
-                status: 'draft',
-                created_by: userId
-            }).returning('*');
-
-            // 4. Create Quotation Items
-            for (const item of processedItems) {
-                await trx('quotation_items').insert({
-                    quotation_id: quotation.id,
-                    ...item
-                });
-            }
-
-            return quotation;
-        });
+        }
     }
 
     /**

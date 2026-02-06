@@ -25,118 +25,141 @@ class PurchaseService {
             notes
         } = data;
 
-        return await this.db.transaction(async (trx) => {
-            // 1. Generate Bill Number
-            const billNumber = await this.generateBillNumber(trx);
+        // Retry loop for unique constraint violations
+        let attempts = 0;
+        const maxAttempts = 3;
 
-            // 2. Process Items
-            let subtotal = 0;
-            const processedItems = [];
+        while (attempts < maxAttempts) {
+            try {
+                return await this.db.transaction(async (trx) => {
+                    // 1. Generate Bill Number
+                    const billNumber = await this.generateBillNumber(trx);
 
-            for (const item of items) {
-                const product = await trx('products').where('id', item.product_id).first();
-                if (!product) throw new AppError(`Product not found: ${item.product_id}`, 404);
+                    // 2. Process Items
+                    let subtotal = 0;
+                    const processedItems = [];
 
-                const lineTotal = (item.quantity * item.unit_cost) - (item.line_discount || 0);
-                subtotal += (item.quantity * item.unit_cost);
+                    for (const item of items) {
+                        const product = await trx('products').where('id', item.product_id).first();
+                        if (!product) throw new AppError(`Product not found: ${item.product_id}`, 404);
 
-                processedItems.push({
-                    product_id: item.product_id,
-                    quantity: item.quantity,
-                    unit_cost: item.unit_cost,
-                    line_discount: item.line_discount || 0,
-                    tax_rate: item.tax_rate || 0,
-                    line_total: lineTotal,
-                    created_by: userId
+                        const lineTotal = (item.quantity * item.unit_cost) - (item.line_discount || 0);
+                        subtotal += (item.quantity * item.unit_cost);
+
+                        processedItems.push({
+                            product_id: item.product_id,
+                            quantity: item.quantity,
+                            unit_cost: item.unit_cost,
+                            line_discount: item.line_discount || 0,
+                            tax_rate: item.tax_rate || 0,
+                            line_total: lineTotal,
+                            created_by: userId
+                        });
+
+                        // Create Stock Movement (IN)
+                        await this.stockService.createMovement({
+                            product_id: item.product_id,
+                            movement_type: 'IN',
+                            reference_type: 'purchase',
+                            quantity: item.quantity,
+                            unit_cost: item.unit_cost,
+                            notes: `Purchase ${billNumber}`,
+                            created_by: userId
+                        }, trx);
+                    }
+
+                    const totalAmount = (subtotal - discount_amount) + tax_amount;
+                    const amountDue = totalAmount - amount_paid;
+                    const status = amountDue <= 0 ? 'paid' : 'billed';
+
+                    // 3. Update Supplier Balance if credit
+                    if (supplier_id && amountDue > 0) {
+                        await trx('suppliers')
+                            .where('id', supplier_id)
+                            .increment('current_balance', amountDue);
+                    }
+
+                    // 4. Create Purchase Record
+                    const [purchase] = await trx('purchases').insert({
+                        bill_number: billNumber,
+                        supplier_id,
+                        purchase_date: purchase_date || new Date(),
+                        reference_number,
+                        subtotal,
+                        discount_amount,
+                        tax_amount,
+                        total_amount: totalAmount,
+                        amount_paid,
+                        amount_due: amountDue,
+                        status,
+                        notes,
+                        created_by: userId
+                    }).returning('*');
+
+                    // 5. Create Purchase Items
+                    for (const item of processedItems) {
+                        await trx('purchase_items').insert({
+                            purchase_id: purchase.id,
+                            ...item
+                        });
+                    }
+
+                    // 6. ACCOUNTING: Journal & Ledger Entries
+                    const accounts = await this.getRequiredAccounts(trx);
+
+                    const journalEntries = [
+                        // Debit Inventory (Asset)
+                        { account_id: accounts.inventory, entry_type: 'debit', amount: subtotal, narration: `Inventory In ${billNumber}` }
+                    ];
+
+                    // Handle Tax (Debit Tax Input - Asset/Expense)
+                    if (tax_amount > 0) {
+                        journalEntries.push({ account_id: accounts.tax_input, entry_type: 'debit', amount: tax_amount, narration: `Tax on ${billNumber}` });
+                    }
+
+                    // Handle Discount (Credit Discount Received - Income)
+                    if (discount_amount > 0) {
+                        journalEntries.push({ account_id: accounts.discount_received, entry_type: 'credit', amount: discount_amount, narration: `Discount on ${billNumber}` });
+                    }
+
+                    // Handle Payment & Payables
+                    if (amount_paid > 0) {
+                        const paymentAccount = payment_method === 'cash' ? accounts.cash : accounts.bank;
+                        journalEntries.push({ account_id: paymentAccount, entry_type: 'credit', amount: amount_paid, narration: `Payment for ${billNumber}` });
+                    }
+
+                    if (amountDue > 0 && supplier_id) {
+                        const supplier = await trx('suppliers').where('id', supplier_id).select('account_id').first();
+                        journalEntries.push({ account_id: supplier.account_id, entry_type: 'credit', amount: amountDue, narration: `Payable ${billNumber}`, reference_id: purchase.id });
+                    }
+
+                    await this.ledgerService.createJournalEntry({
+                        journal_date: purchase.purchase_date,
+                        transaction_type: 'purchase',
+                        narration: `Purchase Bill ${billNumber}`,
+                        entries: journalEntries,
+                        created_by: userId
+                    }, trx);
+
+                    return purchase;
                 });
-
-                // Create Stock Movement (IN)
-                await this.stockService.createMovement({
-                    product_id: item.product_id,
-                    movement_type: 'IN',
-                    reference_type: 'purchase',
-                    quantity: item.quantity,
-                    unit_cost: item.unit_cost,
-                    notes: `Purchase ${billNumber}`,
-                    created_by: userId
-                }, trx);
+            } catch (error) {
+                if (error.code === '23505' && error.constraint === 'purchases_bill_number_key') {
+                    attempts++;
+                    console.warn(`Duplicate bill number detected. Retrying attempt ${attempts}/${maxAttempts}...`);
+                    try {
+                        const maxResult = await this.db.raw(`SELECT COALESCE(MAX(CAST(REPLACE(bill_number, 'PUR-', '') AS INTEGER)), 0) as max_num FROM purchases`);
+                        const maxNum = maxResult.rows[0].max_num;
+                        await this.db('sequences').where('name', 'purchase').update({ current_value: maxNum });
+                    } catch (syncError) {
+                        console.error('Failed to sync sequence:', syncError);
+                    }
+                    if (attempts === maxAttempts) throw new AppError('Failed to generate unique bill number', 500);
+                } else {
+                    throw error;
+                }
             }
-
-            const totalAmount = (subtotal - discount_amount) + tax_amount;
-            const amountDue = totalAmount - amount_paid;
-            const status = amountDue <= 0 ? 'paid' : 'billed';
-
-            // 3. Update Supplier Balance if credit
-            if (supplier_id && amountDue > 0) {
-                await trx('suppliers')
-                    .where('id', supplier_id)
-                    .increment('current_balance', amountDue);
-            }
-
-            // 4. Create Purchase Record
-            const [purchase] = await trx('purchases').insert({
-                bill_number: billNumber,
-                supplier_id,
-                purchase_date: purchase_date || new Date(),
-                reference_number,
-                subtotal,
-                discount_amount,
-                tax_amount,
-                total_amount: totalAmount,
-                amount_paid,
-                amount_due: amountDue,
-                status,
-                notes,
-                created_by: userId
-            }).returning('*');
-
-            // 5. Create Purchase Items
-            for (const item of processedItems) {
-                await trx('purchase_items').insert({
-                    purchase_id: purchase.id,
-                    ...item
-                });
-            }
-
-            // 6. ACCOUNTING: Journal & Ledger Entries
-            const accounts = await this.getRequiredAccounts(trx);
-
-            const journalEntries = [
-                // Debit Inventory (Asset)
-                { account_id: accounts.inventory, entry_type: 'debit', amount: subtotal, narration: `Inventory In ${billNumber}` }
-            ];
-
-            // Handle Tax (Debit Tax Input - Asset/Expense)
-            if (tax_amount > 0) {
-                journalEntries.push({ account_id: accounts.tax_input, entry_type: 'debit', amount: tax_amount, narration: `Tax on ${billNumber}` });
-            }
-
-            // Handle Discount (Credit Discount Received - Income)
-            if (discount_amount > 0) {
-                journalEntries.push({ account_id: accounts.discount_received, entry_type: 'credit', amount: discount_amount, narration: `Discount on ${billNumber}` });
-            }
-
-            // Handle Payment & Payables
-            if (amount_paid > 0) {
-                const paymentAccount = payment_method === 'cash' ? accounts.cash : accounts.bank;
-                journalEntries.push({ account_id: paymentAccount, entry_type: 'credit', amount: amount_paid, narration: `Payment for ${billNumber}` });
-            }
-
-            if (amountDue > 0 && supplier_id) {
-                const supplier = await trx('suppliers').where('id', supplier_id).select('account_id').first();
-                journalEntries.push({ account_id: supplier.account_id, entry_type: 'credit', amount: amountDue, narration: `Payable ${billNumber}`, reference_id: purchase.id });
-            }
-
-            await this.ledgerService.createJournalEntry({
-                journal_date: purchase.purchase_date,
-                transaction_type: 'purchase',
-                narration: `Purchase Bill ${billNumber}`,
-                entries: journalEntries,
-                created_by: userId
-            }, trx);
-
-            return purchase;
-        });
+        }
     }
 
     /**

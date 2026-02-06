@@ -38,53 +38,77 @@ class LedgerService {
      * Ensures debits = credits
      */
     async createJournalEntry(data, trx = null) {
-        const query = trx || this.db;
-        const { journal_date, transaction_type, narration, entries, created_by } = data;
+        // Retry loop for unique constraint violations
+        let attempts = 0;
+        const maxAttempts = 3;
 
-        // Validate balance
-        const totalDebits = entries
-            .filter(e => e.entry_type === 'debit')
-            .reduce((sum, e) => sum + parseFloat(e.amount), 0);
+        while (attempts < maxAttempts) {
+            try {
+                return await this.db.transaction(async (trx) => {
+                    const query = trx;
+                    // Validate balance
+                    const totalDebits = entries
+                        .filter(e => e.entry_type === 'debit')
+                        .reduce((sum, e) => sum + parseFloat(e.amount), 0);
 
-        const totalCredits = entries
-            .filter(e => e.entry_type === 'credit')
-            .reduce((sum, e) => sum + parseFloat(e.amount), 0);
+                    const totalCredits = entries
+                        .filter(e => e.entry_type === 'credit')
+                        .reduce((sum, e) => sum + parseFloat(e.amount), 0);
 
-        if (Math.abs(totalDebits - totalCredits) > 0.001) {
-            throw new AppError(`Journal entry not balanced. Debits: ${totalDebits.toFixed(2)}, Credits: ${totalCredits.toFixed(2)}`, 400);
+                    if (Math.abs(totalDebits - totalCredits) > 0.001) {
+                        throw new AppError(`Journal entry not balanced. Debits: ${totalDebits.toFixed(2)}, Credits: ${totalCredits.toFixed(2)}`, 400);
+                    }
+
+                    // Create journal
+                    const journalNumber = await this.generateJournalNumber(query);
+                    const [journal] = await query('journals')
+                        .insert({
+                            journal_number: journalNumber,
+                            journal_date,
+                            reference_type: transaction_type || 'journal',
+                            description: narration,
+                            total_debit: totalDebits,
+                            total_credit: totalCredits,
+                            is_balanced: true,
+                            created_by
+                        })
+                        .returning('*');
+
+                    // Create ledger entries
+                    for (const entry of entries) {
+                        await query('ledger_entries').insert({
+                            journal_id: journal.id,
+                            account_id: entry.account_id,
+                            entry_type: entry.entry_type,
+                            amount: entry.amount,
+                            description: entry.narration || narration,
+                            created_by
+                        });
+
+                        // Update account's current balance
+                        await this.updateAccountBalance(entry.account_id, entry.entry_type, entry.amount, query);
+                    }
+
+                    return journal;
+                });
+            } catch (error) {
+                if (error.code === '23505' && error.constraint === 'journals_journal_number_key') {
+                    attempts++;
+                    console.warn(`Duplicate journal number detected. Retrying attempt ${attempts}/${maxAttempts}...`);
+                    try {
+                        const maxResult = await this.db.raw(`SELECT COALESCE(MAX(CAST(REPLACE(journal_number, 'JV-', '') AS INTEGER)), 0) as max_num FROM journals`);
+                        const maxNum = maxResult.rows[0].max_num;
+                        // Update sequence
+                        await this.db('sequences').where('name', 'journal').update({ current_value: maxNum });
+                    } catch (syncError) {
+                        console.error('Failed to sync sequence:', syncError);
+                    }
+                    if (attempts === maxAttempts) throw new AppError('Failed to generate unique journal number', 500);
+                } else {
+                    throw error;
+                }
+            }
         }
-
-        // Create journal
-        const journalNumber = await this.generateJournalNumber(query);
-        const [journal] = await query('journals')
-            .insert({
-                journal_number: journalNumber,
-                journal_date,
-                reference_type: transaction_type || 'journal',
-                description: narration,
-                total_debit: totalDebits,
-                total_credit: totalCredits,
-                is_balanced: true,
-                created_by
-            })
-            .returning('*');
-
-        // Create ledger entries
-        for (const entry of entries) {
-            await query('ledger_entries').insert({
-                journal_id: journal.id,
-                account_id: entry.account_id,
-                entry_type: entry.entry_type,
-                amount: entry.amount,
-                description: entry.narration || narration,
-                created_by
-            });
-
-            // Update account's current balance
-            await this.updateAccountBalance(entry.account_id, entry.entry_type, entry.amount, query);
-        }
-
-        return journal;
     }
 
     /**

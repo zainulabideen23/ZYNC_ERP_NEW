@@ -10,7 +10,8 @@
     --color-panel: #15202a;
     --color-panel-2: #16232b;
     --color-text: #E6EEF6;
-    --color-muted: #97A1AD;
+    --color-muted: #cbd5e1;
+    /* Lightened from #97A1AD for better contrast */
     --color-accent: #2F8FFF;
     --color-accent-hover: #1a7ae6;
     --color-success: #29B070;

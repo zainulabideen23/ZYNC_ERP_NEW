@@ -11,6 +11,12 @@ class ReportService {
     async getDashboardStats() {
         const today = new Date().toISOString().split('T')[0];
 
+        // Current month boundaries
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
+        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
+
         // 1. Today's Sales
         const todaySales = await this.db('sales')
             .where('sale_date', today)
@@ -82,7 +88,98 @@ class ReportService {
 
         const recentActivity = [...recentSales, ...recentPurchases]
             .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-            .slice(0, 5);
+            .slice(0, 8);
+
+        // ── NEW: 6. Purchase Trend (Last 7 Days) ──
+        const purchaseTrend = await this.db('purchases')
+            .where('purchase_date', '>=', startDate)
+            .where('is_deleted', false)
+            .select('purchase_date', this.db.raw('SUM(total_amount) as total'))
+            .groupBy('purchase_date')
+            .orderBy('purchase_date', 'asc');
+
+        const purchTrend = [];
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(sevenDaysAgo);
+            d.setDate(d.getDate() + i);
+            const dateStr = d.toISOString().split('T')[0];
+            const found = purchaseTrend.find(p => {
+                const pDate = p.purchase_date instanceof Date ? p.purchase_date.toISOString().split('T')[0] : p.purchase_date;
+                return pDate === dateStr;
+            });
+            purchTrend.push({ date: dateStr, amount: found ? parseFloat(found.total) : 0 });
+        }
+
+        // ── NEW: 7. Month Profit (current month P&L) ──
+        let monthProfit = { total_income: 0, total_expenses: 0, net_profit: 0 };
+        try {
+            const pl = await this.getProfitAndLoss(monthStart, today);
+            monthProfit = { total_income: pl.total_income, total_expenses: pl.total_expenses, net_profit: pl.net_profit };
+        } catch (e) { /* ignore if no data */ }
+
+        // ── NEW: 8. Last month sales total (for comparison %) ──
+        const lastMonthSalesRow = await this.db('sales')
+            .where('sale_date', '>=', lastMonthStart)
+            .where('sale_date', '<=', lastMonthEnd)
+            .where('is_deleted', false)
+            .select(this.db.raw('COALESCE(SUM(total_amount), 0) as total'))
+            .first();
+
+        // Current month sales total
+        const thisMonthSalesRow = await this.db('sales')
+            .where('sale_date', '>=', monthStart)
+            .where('is_deleted', false)
+            .select(this.db.raw('COALESCE(SUM(total_amount), 0) as total'))
+            .first();
+
+        // ── NEW: 9. Top 5 Selling Products (this month) ──
+        const topProducts = await this.db('sale_items as si')
+            .join('sales as s', 'si.sale_id', 's.id')
+            .join('products as p', 'si.product_id', 'p.id')
+            .where('s.is_deleted', false)
+            .where('s.sale_date', '>=', monthStart)
+            .select(
+                'p.name',
+                this.db.raw('SUM(si.quantity) as qty_sold'),
+                this.db.raw('SUM(si.line_total) as revenue')
+            )
+            .groupBy('p.id', 'p.name')
+            .orderBy('qty_sold', 'desc')
+            .limit(5);
+
+        // ── NEW: 10. Expense Breakdown (this month by category) ──
+        const expenseBreakdown = await this.db('expenses as e')
+            .leftJoin('expense_categories as ec', 'e.category_id', 'ec.id')
+            .where('e.is_deleted', false)
+            .where('e.expense_date', '>=', monthStart)
+            .select(
+                this.db.raw("COALESCE(ec.name, 'Other') as category"),
+                this.db.raw('SUM(e.amount) as total')
+            )
+            .groupBy('ec.id', 'ec.name')
+            .orderBy('total', 'desc');
+
+        // ── NEW: 11. Stock Health (counts by status) ──
+        const allProducts = await this.db('products')
+            .where('is_deleted', false)
+            .where('track_stock', true)
+            .select('current_stock', 'min_stock_level');
+
+        let stockHealthy = 0, stockLow = 0, stockOut = 0;
+        allProducts.forEach(p => {
+            const stock = parseFloat(p.current_stock);
+            if (stock <= 0) stockOut++;
+            else if (stock <= p.min_stock_level) stockLow++;
+            else stockHealthy++;
+        });
+
+        // ── NEW: 12. Pending Actions ──
+        const overdueInvoices = await this.db('sales')
+            .where('is_deleted', false)
+            .where('amount_due', '>', 0)
+            .where('status', '!=', 'completed')
+            .count('* as count')
+            .first();
 
         return {
             today_sales: {
@@ -94,7 +191,18 @@ class ReportService {
             outstanding_receivables: parseFloat(receivables.total),
             outstanding_payables: parseFloat(payables.total),
             sales_trend: trend,
-            recent_activity: recentActivity
+            purchase_trend: purchTrend,
+            recent_activity: recentActivity,
+            month_profit: monthProfit,
+            this_month_sales: parseFloat(thisMonthSalesRow.total),
+            last_month_sales: parseFloat(lastMonthSalesRow.total),
+            top_products: topProducts.map(p => ({ name: p.name, qty_sold: parseInt(p.qty_sold), revenue: parseFloat(p.revenue) })),
+            expense_breakdown: expenseBreakdown.map(e => ({ category: e.category, total: parseFloat(e.total) })),
+            stock_health: { healthy: stockHealthy, low: stockLow, out: stockOut, total: allProducts.length },
+            pending_actions: {
+                overdue_invoices: parseInt(overdueInvoices.count),
+                low_stock: parseInt(lowStock.count)
+            }
         };
     }
 

@@ -24,7 +24,8 @@
 }
 
 .logo {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
+    /* Reduced from 1.5rem */
     font-weight: 800;
     background: linear-gradient(135deg, var(--color-accent) 0%, #a855f7 100%);
     -webkit-background-clip: text;
@@ -36,7 +37,7 @@
     font-size: 0.7rem;
     color: var(--color-muted);
     display: block;
-    margin-top: 2px;
+    margin-top: 0;
 }
 
 /* Navigation */
@@ -44,6 +45,12 @@
     flex: 1;
     padding: var(--space-2) var(--space-2);
     overflow-y: auto;
+}
+
+.nav-divider {
+    height: 1px;
+    background: var(--border-surface);
+    margin: 8px 12px;
 }
 
 .nav-item {
@@ -65,7 +72,8 @@
 }
 
 .nav-item.active {
-    background: rgba(47, 143, 255, 0.08);
+    background: rgba(47, 143, 255, 0.1);
+    /* Increased opacity for better visibility */
     border-left-color: var(--color-accent);
     color: var(--color-text);
 }

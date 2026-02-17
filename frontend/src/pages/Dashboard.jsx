@@ -205,7 +205,7 @@ function Dashboard() {
             <div className="chart-section">
 
                 {/* Cash Flow Chart */}
-                <div className="chart-card">
+                <div className="chart-card fixed-height">
                     <div className="chart-header">
                         <h3 className="chart-title">Cash Flow Trend</h3>
                         <div className="chart-legend">
@@ -226,19 +226,29 @@ function Dashboard() {
                             {data?.sales_trend?.map((day, i) => {
                                 const salesVal = day.amount
                                 const purchVal = data?.purchase_trend?.[i]?.amount || 0
-                                const salesH = Math.max((salesVal / maxChartVal) * 100, 2)
-                                const purchH = Math.max((purchVal / maxChartVal) * 100, 2)
+
+                                // SQL Scale for better visualization of variance
+                                const maxSqrt = Math.sqrt(maxChartVal)
+                                const salesH = salesVal > 0 ? Math.max((Math.sqrt(salesVal) / maxSqrt) * 100, 4) : 0
+                                const purchH = purchVal > 0 ? Math.max((Math.sqrt(purchVal) / maxSqrt) * 100, 4) : 0
 
                                 return (
                                     <div key={i} className="chart-col">
                                         <div className="bars-group">
-                                            <div className="bar bar-sales" style={{ height: `${salesH}%` }}></div>
-                                            <div className="bar bar-purchase" style={{ height: `${purchH}%` }}></div>
+                                            <div className="bar bar-sales" style={{ height: `${salesH}%`, minHeight: salesVal > 0 ? '4px' : '0' }}></div>
+                                            <div className="bar bar-purchase" style={{ height: `${purchH}%`, minHeight: purchVal > 0 ? '4px' : '0' }}></div>
                                         </div>
                                         <span className="chart-label">{format(new Date(day.date), 'dd MMM')}</span>
                                         <div className="tooltip">
-                                            <div>Sale: {formatCurrency(salesVal)}</div>
-                                            <div>Buy: {formatCurrency(purchVal)}</div>
+                                            <div className="font-bold mb-1">{format(new Date(day.date), 'EEE, dd MMM')}</div>
+                                            <div className="flex justify-between gap-4 text-xs">
+                                                <span>Sale:</span>
+                                                <span className="font-mono">{formatCurrency(salesVal)}</span>
+                                            </div>
+                                            <div className="flex justify-between gap-4 text-xs">
+                                                <span>Buy:</span>
+                                                <span className="font-mono">{formatCurrency(purchVal)}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 )
@@ -252,7 +262,7 @@ function Dashboard() {
                 </div>
 
                 {/* Recent Activity */}
-                <div className="chart-card">
+                <div className="chart-card fixed-height">
                     <div className="chart-header">
                         <h3 className="chart-title">Recent Activity</h3>
                         <Link to="/reports" className="view-all-btn">View All</Link>

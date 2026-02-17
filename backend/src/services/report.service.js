@@ -18,8 +18,11 @@ class ReportService {
         const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
 
         // 1. Today's Sales
+        const todayStart = today + ' 00:00:00';
+        const todayEnd = today + ' 23:59:59';
+
         const todaySales = await this.db('sales')
-            .where('sale_date', today)
+            .whereBetween('sale_date', [todayStart, todayEnd])
             .where('is_deleted', false)
             .select(
                 this.db.raw('COUNT(*) as count'),
@@ -55,8 +58,8 @@ class ReportService {
         const salesTrend = await this.db('sales')
             .where('sale_date', '>=', startDate)
             .where('is_deleted', false)
-            .select('sale_date', this.db.raw('SUM(total_amount) as total'))
-            .groupBy('sale_date')
+            .select(this.db.raw('DATE(sale_date) as sale_date'), this.db.raw('SUM(total_amount) as total'))
+            .groupByRaw('DATE(sale_date)')
             .orderBy('sale_date', 'asc');
 
         const trend = [];
@@ -94,8 +97,8 @@ class ReportService {
         const purchaseTrend = await this.db('purchases')
             .where('purchase_date', '>=', startDate)
             .where('is_deleted', false)
-            .select('purchase_date', this.db.raw('SUM(total_amount) as total'))
-            .groupBy('purchase_date')
+            .select(this.db.raw('DATE(purchase_date) as purchase_date'), this.db.raw('SUM(total_amount) as total'))
+            .groupByRaw('DATE(purchase_date)')
             .orderBy('purchase_date', 'asc');
 
         const purchTrend = [];

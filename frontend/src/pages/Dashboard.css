@@ -220,11 +220,16 @@
     flex-direction: column;
 }
 
+.chart-card.fixed-height {
+    height: 420px;
+}
+
 .chart-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: var(--space-4);
+    flex-shrink: 0;
 }
 
 .chart-title {
@@ -248,6 +253,9 @@
     background: var(--color-panel-2);
     border-radius: 4px;
     border: 1px solid var(--border-surface);
+    white-space: nowrap;
+    /* Prevent text wrapping */
+    flex-shrink: 0;
 }
 
 .legend-color {
@@ -277,11 +285,12 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    height: 200px;
-    /* Increased height slightly */
+    height: 250px;
+    /* Increased to fill fixed card */
     padding-top: 20px;
     gap: 8px;
     position: relative;
+    /* margin-top: auto; */
 }
 
 /* Grid Lines */
@@ -421,6 +430,28 @@
     padding-left: 16px;
     display: flex;
     flex-direction: column;
+    flex: 1;
+    overflow-y: auto;
+    /* Scrollable */
+    padding-right: 6px;
+}
+
+/* Custom Scrollbar for Timeline */
+.timeline::-webkit-scrollbar {
+    width: 4px;
+}
+
+.timeline::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.timeline::-webkit-scrollbar-thumb {
+    background: var(--border-surface);
+    border-radius: 4px;
+}
+
+.timeline::-webkit-scrollbar-thumb:hover {
+    background: var(--color-muted);
 }
 
 .timeline::before {

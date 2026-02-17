@@ -65,7 +65,7 @@ function Layout() {
                 </nav>
 
                 <div className="sidebar-footer">
-                    <button className="btn btn-primary new-sale-btn" onClick={openNewInvoice}>
+                    <button className="btn btn-primary new-sale-btn" onClick={openNewInvoice} aria-label="Create new sale">
                         + New Sale
                     </button>
 
@@ -74,7 +74,7 @@ function Layout() {
                         <span className="user-role">{user?.role}</span>
                     </div>
 
-                    <button className="btn btn-ghost" onClick={handleLogout}>
+                    <button className="btn btn-ghost" onClick={handleLogout} aria-label="Logout">
                         Logout
                     </button>
                 </div>

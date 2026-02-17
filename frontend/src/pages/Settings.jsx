@@ -102,31 +102,23 @@ function Settings() {
     }
 
     return (
-        <div className="page-container" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+        <div className="page-container flex-col" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
             <div className="page-header">
                 <h1 className="page-title">⚙️ Settings</h1>
             </div>
 
             {/* Tabs */}
-            <div style={{ display: 'flex', gap: 'var(--space-2)', borderBottom: '2px solid #eee' }}>
+            <div className="settings-tabs">
                 {[
-                    { id: 'company', label: '🏢 Company', icon: '🏢' },
-                    { id: 'balances', label: '💰 Opening Balances', icon: '💰' },
-                    { id: 'backup', label: '💾 Backup', icon: '💾' }
+                    { id: 'company', label: '🏢 Company' },
+                    { id: 'balances', label: '💰 Opening Balances' },
+                    { id: 'backup', label: '💾 Backup' }
                 ].map(tab => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        style={{
-                            padding: '12px 20px',
-                            border: 'none',
-                            background: 'none',
-                            cursor: 'pointer',
-                            borderBottom: activeTab === tab.id ? '3px solid var(--color-accent)' : 'none',
-                            color: activeTab === tab.id ? 'var(--color-accent)' : '#666',
-                            fontWeight: activeTab === tab.id ? 'bold' : 'normal',
-                            fontSize: '0.95rem'
-                        }}
+                        className={`settings-tab ${activeTab === tab.id ? 'settings-tab--active' : ''}`}
+                        aria-label={`Switch to ${tab.label} tab`}
                     >
                         {tab.label}
                     </button>
@@ -135,9 +127,9 @@ function Settings() {
 
             {/* Company Tab */}
             {activeTab === 'company' && (
-                <div className="grid grid-2" style={{ gap: 'var(--space-6)' }}>
+                <div className="grid grid-2">
                     <div className="card">
-                        <h3 className="card-title" style={{ marginBottom: 'var(--space-4)' }}>Company Information</h3>
+                        <h3 className="card-title" style={{ marginBottom: 'var(--space-3)' }}>Company Information</h3>
                         <div className="form-group">
                             <label className="form-label">Company Name</label>
                             <input type="text" className="form-input" defaultValue="ZYNC Trading Company" />
@@ -154,11 +146,11 @@ function Settings() {
                             <label className="form-label">Email</label>
                             <input type="email" className="form-input" placeholder="Enter email" />
                         </div>
-                        <button className="btn btn-primary">Save Changes</button>
+                        <button className="btn btn-primary" aria-label="Save company changes">Save Changes</button>
                     </div>
 
                     <div className="card">
-                        <h3 className="card-title" style={{ marginBottom: 'var(--space-4)' }}>User Profile</h3>
+                        <h3 className="card-title" style={{ marginBottom: 'var(--space-3)' }}>User Profile</h3>
                         <div className="form-group">
                             <label className="form-label">Username</label>
                             <input type="text" className="form-input" value={user?.username || ''} disabled />
@@ -174,15 +166,15 @@ function Settings() {
                     </div>
 
                     <div className="card">
-                        <h3 className="card-title" style={{ marginBottom: 'var(--space-4)' }}>Application</h3>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-                            <span>Version</span><span className="font-mono">1.0.0</span>
+                        <h3 className="card-title" style={{ marginBottom: 'var(--space-3)' }}>Application</h3>
+                        <div className="flex justify-between" style={{ marginBottom: 'var(--space-2)' }}>
+                            <span className="text-muted">Version</span><span className="font-mono">1.0.0</span>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-                            <span>Platform</span><span className="font-mono">{window.electronAPI?.platform || 'Web'}</span>
+                        <div className="flex justify-between" style={{ marginBottom: 'var(--space-2)' }}>
+                            <span className="text-muted">Platform</span><span className="font-mono">{window.electronAPI?.platform || 'Web'}</span>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span>Build</span><span className="font-mono">2025-01-18</span>
+                        <div className="flex justify-between">
+                            <span className="text-muted">Build</span><span className="font-mono">2025-01-18</span>
                         </div>
                     </div>
                 </div>
@@ -190,44 +182,28 @@ function Settings() {
 
             {/* Opening Balances Tab */}
             {activeTab === 'balances' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-6)' }}>
+                <div className="grid grid-2">
                     {/* Customers */}
                     <div className="card">
-                        <h3 className="card-title" style={{ marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <h3 className="card-title" style={{ marginBottom: 'var(--space-3)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             👥 Customer Opening Balances
                         </h3>
                         {loading ? (
-                            <div style={{ padding: 'var(--space-4)', textAlign: 'center', color: '#999' }}>
-                                Loading...
-                            </div>
+                            <div className="empty-state">Loading...</div>
                         ) : customers.length === 0 ? (
-                            <div style={{ padding: 'var(--space-4)', textAlign: 'center', color: '#999', fontSize: '0.9rem' }}>
-                                No customers found
-                            </div>
+                            <div className="empty-state">No customers found</div>
                         ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                            <div className="flex-col" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
                                 {customers.map(customer => (
-                                    <div
-                                        key={customer.id}
-                                        style={{
-                                            padding: 'var(--space-3)',
-                                            border: '1px solid #eee',
-                                            borderRadius: '6px',
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center'
-                                        }}
-                                    >
+                                    <div key={customer.id} className="balance-row">
                                         <div>
-                                            <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
-                                                {customer.name}
-                                            </div>
-                                            <div style={{ fontSize: '0.85rem', color: '#666' }}>
+                                            <div className="balance-name">{customer.name}</div>
+                                            <div className="balance-detail">
                                                 Credit Limit: Rs. {customer.credit_limit?.toLocaleString() || '0'}
                                             </div>
                                         </div>
                                         {editingBalance?.type === 'customer' && editingBalance?.id === customer.id ? (
-                                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                            <div className="flex gap-2 items-center">
                                                 <input
                                                     type="number"
                                                     value={balanceValue}
@@ -235,38 +211,22 @@ function Settings() {
                                                     className="form-input"
                                                     style={{ width: '100px', padding: '6px' }}
                                                 />
-                                                <button
-                                                    onClick={handleSaveBalance}
-                                                    className="btn btn-success"
-                                                    style={{ padding: '6px 12px', fontSize: '0.85rem' }}
-                                                >
-                                                    ✓
+                                                <button onClick={handleSaveBalance} className="btn btn-success btn-sm" aria-label="Save balance">
+                                                    ✓ Save
                                                 </button>
-                                                <button
-                                                    onClick={() => setEditingBalance(null)}
-                                                    className="btn btn-secondary"
-                                                    style={{ padding: '6px 12px', fontSize: '0.85rem' }}
-                                                >
-                                                    ✕
+                                                <button onClick={() => setEditingBalance(null)} className="btn btn-secondary btn-sm" aria-label="Cancel editing">
+                                                    ✕ Cancel
                                                 </button>
                                             </div>
                                         ) : (
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                <div style={{ fontSize: '1rem', fontWeight: 'bold', color: '#1e3c72', minWidth: '80px', textAlign: 'right' }}>
+                                            <div className="flex items-center gap-2">
+                                                <div className="balance-value">
                                                     Rs. {(customer.opening_balance || 0).toLocaleString()}
                                                 </div>
                                                 <button
                                                     onClick={() => handleEditBalance('customer', customer.id, customer.opening_balance)}
-                                                    className="btn btn-small"
-                                                    style={{
-                                                        padding: '6px 12px',
-                                                        background: '#e3f2fd',
-                                                        color: '#1e3c72',
-                                                        border: 'none',
-                                                        borderRadius: '4px',
-                                                        cursor: 'pointer',
-                                                        fontSize: '0.85rem'
-                                                    }}
+                                                    className="balance-edit-btn"
+                                                    aria-label={`Edit balance for ${customer.name}`}
                                                 >
                                                     Edit
                                                 </button>
@@ -280,41 +240,25 @@ function Settings() {
 
                     {/* Suppliers */}
                     <div className="card">
-                        <h3 className="card-title" style={{ marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <h3 className="card-title" style={{ marginBottom: 'var(--space-3)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             🏭 Supplier Opening Balances
                         </h3>
                         {loading ? (
-                            <div style={{ padding: 'var(--space-4)', textAlign: 'center', color: '#999' }}>
-                                Loading...
-                            </div>
+                            <div className="empty-state">Loading...</div>
                         ) : suppliers.length === 0 ? (
-                            <div style={{ padding: 'var(--space-4)', textAlign: 'center', color: '#999', fontSize: '0.9rem' }}>
-                                No suppliers found
-                            </div>
+                            <div className="empty-state">No suppliers found</div>
                         ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                            <div className="flex-col" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
                                 {suppliers.map(supplier => (
-                                    <div
-                                        key={supplier.id}
-                                        style={{
-                                            padding: 'var(--space-3)',
-                                            border: '1px solid #eee',
-                                            borderRadius: '6px',
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center'
-                                        }}
-                                    >
+                                    <div key={supplier.id} className="balance-row">
                                         <div>
-                                            <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
-                                                {supplier.name}
-                                            </div>
-                                            <div style={{ fontSize: '0.85rem', color: '#666' }}>
+                                            <div className="balance-name">{supplier.name}</div>
+                                            <div className="balance-detail">
                                                 Contact: {supplier.contact_person || 'N/A'}
                                             </div>
                                         </div>
                                         {editingBalance?.type === 'supplier' && editingBalance?.id === supplier.id ? (
-                                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                            <div className="flex gap-2 items-center">
                                                 <input
                                                     type="number"
                                                     value={balanceValue}
@@ -322,38 +266,22 @@ function Settings() {
                                                     className="form-input"
                                                     style={{ width: '100px', padding: '6px' }}
                                                 />
-                                                <button
-                                                    onClick={handleSaveBalance}
-                                                    className="btn btn-success"
-                                                    style={{ padding: '6px 12px', fontSize: '0.85rem' }}
-                                                >
-                                                    ✓
+                                                <button onClick={handleSaveBalance} className="btn btn-success btn-sm" aria-label="Save balance">
+                                                    ✓ Save
                                                 </button>
-                                                <button
-                                                    onClick={() => setEditingBalance(null)}
-                                                    className="btn btn-secondary"
-                                                    style={{ padding: '6px 12px', fontSize: '0.85rem' }}
-                                                >
-                                                    ✕
+                                                <button onClick={() => setEditingBalance(null)} className="btn btn-secondary btn-sm" aria-label="Cancel editing">
+                                                    ✕ Cancel
                                                 </button>
                                             </div>
                                         ) : (
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                <div style={{ fontSize: '1rem', fontWeight: 'bold', color: '#1e3c72', minWidth: '80px', textAlign: 'right' }}>
+                                            <div className="flex items-center gap-2">
+                                                <div className="balance-value">
                                                     Rs. {(supplier.opening_balance || 0).toLocaleString()}
                                                 </div>
                                                 <button
                                                     onClick={() => handleEditBalance('supplier', supplier.id, supplier.opening_balance)}
-                                                    className="btn btn-small"
-                                                    style={{
-                                                        padding: '6px 12px',
-                                                        background: '#fce4ec',
-                                                        color: '#c2185b',
-                                                        border: 'none',
-                                                        borderRadius: '4px',
-                                                        cursor: 'pointer',
-                                                        fontSize: '0.85rem'
-                                                    }}
+                                                    className="balance-edit-btn supplier"
+                                                    aria-label={`Edit balance for ${supplier.name}`}
                                                 >
                                                     Edit
                                                 </button>
@@ -367,10 +295,8 @@ function Settings() {
 
                     {/* Info */}
                     <div className="card" style={{ gridColumn: '1 / -1' }}>
-                        <h4 style={{ marginBottom: 'var(--space-2)', fontWeight: 'bold', color: '#1e3c72' }}>
-                            📌 About Opening Balances
-                        </h4>
-                        <ul style={{ marginLeft: '20px', fontSize: '0.9rem', lineHeight: '1.6', color: '#666' }}>
+                        <h4 className="info-heading">📌 About Opening Balances</h4>
+                        <ul className="info-list">
                             <li>Set the starting balance for each customer (amount they owe)</li>
                             <li>Set the starting balance for each supplier (amount you owe)</li>
                             <li>These balances are used for credit limit calculations and aged receivables/payables reports</li>
@@ -384,49 +310,48 @@ function Settings() {
             {/* Backup Tab */}
             {activeTab === 'backup' && (
                 <div className="card">
-                    <h3 className="card-title" style={{ marginBottom: 'var(--space-4)' }}>💾 Backup & Restore</h3>
-                    <p style={{ marginBottom: 'var(--space-4)', color: '#666' }}>
-                        Create a backup of your database. Note: This assumes <code>pg_dump</code> is available on the server.
+                    <h3 className="card-title" style={{ marginBottom: 'var(--space-3)' }}>💾 Backup & Restore</h3>
+                    <p className="text-muted" style={{ marginBottom: 'var(--space-3)' }}>
+                        Create a backup of your database. Note: This assumes <code className="font-mono">pg_dump</code> is available on the server.
                     </p>
-                    <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+                    <div className="flex gap-2">
                         <button
                             className="btn btn-primary"
                             onClick={handleCreateBackup}
                             disabled={backupLoading}
+                            aria-label="Create database backup"
                         >
-                            {backupLoading ? '⏳ Creating...' : 'Create Backup'}
+                            {backupLoading ? '⏳ Creating...' : '💾 Create Backup'}
                         </button>
                     </div>
 
-                    <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-4)', borderTop: '1px solid #eee' }}>
-                        <h4 style={{ marginBottom: 'var(--space-2)', fontWeight: 'bold', color: '#1e3c72' }}>
-                            📋 Recent Backups
-                        </h4>
+                    <div style={{ marginTop: 'var(--space-4)', paddingTop: 'var(--space-3)', borderTop: '1px solid var(--border-surface)' }}>
+                        <h4 className="info-heading" style={{ marginBottom: 'var(--space-2)' }}>📋 Recent Backups</h4>
                         {backupLoading && backups.length === 0 ? (
-                            <div className="text-center p-4">Loading backups...</div>
+                            <div className="empty-state">Loading backups...</div>
                         ) : backups.length === 0 ? (
-                            <div className="text-center p-4 text-muted">No backups found</div>
+                            <div className="empty-state">No backups found</div>
                         ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                            <div className="flex-col" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
                                 {backups.map(backup => (
-                                    <div key={backup.filename} style={{ padding: 'var(--space-2)', background: '#f9f9f9', borderRadius: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem' }}>
+                                    <div key={backup.filename} className="backup-item">
                                         <div>
-                                            <div style={{ fontWeight: 'bold' }}>🗂️ {backup.filename}</div>
-                                            <div style={{ fontSize: '0.85rem', color: '#999' }}>
+                                            <div className="backup-item-name">🗂️ {backup.filename}</div>
+                                            <div className="backup-item-meta">
                                                 Size: {(backup.size / 1024 / 1024).toFixed(2)} MB • Created: {new Date(backup.createdAt).toLocaleString()}
                                             </div>
                                         </div>
                                         <div className="flex gap-2">
                                             <button
-                                                className="btn btn-ghost"
-                                                style={{ padding: '6px 12px', fontSize: '0.85rem' }}
+                                                className="btn btn-ghost btn-sm"
                                                 onClick={() => handleDownloadBackup(backup.filename)}
+                                                aria-label={`Download ${backup.filename}`}
                                             >⬇️ Download</button>
                                             <button
-                                                className="btn btn-ghost"
-                                                style={{ padding: '6px 12px', fontSize: '0.85rem', color: 'var(--color-danger)' }}
+                                                className="btn btn-ghost btn-sm text-danger"
                                                 onClick={() => handleDeleteBackup(backup.filename)}
-                                            >🗑️</button>
+                                                aria-label={`Delete ${backup.filename}`}
+                                            >🗑️ Delete</button>
                                         </div>
                                     </div>
                                 ))}

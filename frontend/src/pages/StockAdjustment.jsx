@@ -114,22 +114,24 @@ function StockAdjustment() {
     }, 0)
 
     return (
-        <div className="page-container" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+        <div className="page-container" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
             {/* Page Header */}
             <div className="page-header">
-                <h1 className="page-title">📦 Stock Adjustment</h1>
-                <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '4px' }}>
-                    Adjust inventory for damages, shrinkage, or count corrections
-                </p>
+                <div>
+                    <h1 className="page-title">📦 Stock Adjustment</h1>
+                    <p className="text-muted text-sm" style={{ marginTop: '4px' }}>
+                        Adjust inventory for damages, shrinkage, or count corrections
+                    </p>
+                </div>
             </div>
 
             {/* Form Card */}
             <div className="card">
-                <h2 style={{ fontSize: '1.1rem', marginBottom: 'var(--space-3)', fontWeight: 'bold' }}>
+                <h2 className="card-title" style={{ marginBottom: 'var(--space-3)' }}>
                     Add Adjustment
                 </h2>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+                <div className="form-grid">
                     {/* Product Search */}
                     <div>
                         <label className="form-label">Product</label>
@@ -141,15 +143,7 @@ function StockAdjustment() {
                             onChange={(e) => setSearch(e.target.value)}
                         />
                         {search && (
-                            <div
-                                style={{
-                                    marginTop: '4px',
-                                    border: '1px solid #ddd',
-                                    borderRadius: '4px',
-                                    maxHeight: '200px',
-                                    overflowY: 'auto'
-                                }}
-                            >
+                            <div className="card" style={{ marginTop: '4px', padding: 0, maxHeight: '200px', overflowY: 'auto' }}>
                                 {filteredProducts.slice(0, 10).map(p => (
                                     <div
                                         key={p.id}
@@ -157,20 +151,11 @@ function StockAdjustment() {
                                             setSelectedProduct(p.id)
                                             setSearch('')
                                         }}
-                                        style={{
-                                            padding: '8px 12px',
-                                            cursor: 'pointer',
-                                            borderBottom: '1px solid #eee',
-                                            fontSize: '0.9rem',
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center'
-                                        }}
-                                        onMouseEnter={(e) => e.target.parentElement.style.background = '#f9f9f9'}
-                                        onMouseLeave={(e) => e.target.parentElement.style.background = 'white'}
+                                        className="balance-row cursor-pointer"
+                                        style={{ borderRadius: 0 }}
                                     >
                                         <span>{p.name}</span>
-                                        <span style={{ fontSize: '0.8rem', color: '#999' }}>
+                                        <span className="text-xs text-muted">
                                             Stock: {p.current_stock || 0}
                                         </span>
                                     </div>
@@ -178,19 +163,11 @@ function StockAdjustment() {
                             </div>
                         )}
                         {selectedProductData && (
-                            <div
-                                style={{
-                                    marginTop: '8px',
-                                    padding: '8px 12px',
-                                    background: '#f0f8ff',
-                                    borderRadius: '4px',
-                                    fontSize: '0.9rem'
-                                }}
-                            >
-                                <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                            <div className="summary-stat" style={{ marginTop: '8px' }}>
+                                <div style={{ fontWeight: '600', marginBottom: '4px' }}>
                                     ✓ {selectedProductData.name}
                                 </div>
-                                <div style={{ fontSize: '0.85rem', color: '#666' }}>
+                                <div className="text-sm text-muted">
                                     Code: {selectedProductData.code} | Stock: {selectedProductData.current_stock || 0} units
                                 </div>
                             </div>
@@ -239,7 +216,7 @@ function StockAdjustment() {
                     </div>
 
                     {/* Notes */}
-                    <div style={{ gridColumn: '1 / -1' }}>
+                    <div className="full-width">
                         <label className="form-label">Notes (Optional)</label>
                         <textarea
                             className="form-input"
@@ -255,6 +232,7 @@ function StockAdjustment() {
                     onClick={addAdjustment}
                     className="btn btn-primary"
                     style={{ marginTop: 'var(--space-3)' }}
+                    aria-label="Add adjustment to list"
                 >
                     ✓ Add to List
                 </button>
@@ -263,7 +241,7 @@ function StockAdjustment() {
             {/* Adjustments List */}
             {adjustments.length > 0 && (
                 <div className="card">
-                    <h2 style={{ fontSize: '1.1rem', marginBottom: 'var(--space-3)', fontWeight: 'bold' }}>
+                    <h2 className="card-title" style={{ marginBottom: 'var(--space-3)' }}>
                         Pending Adjustments ({adjustments.length})
                     </h2>
 
@@ -272,138 +250,99 @@ function StockAdjustment() {
                         style={{
                             display: 'grid',
                             gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                            gap: 'var(--space-3)',
-                            marginBottom: 'var(--space-4)',
-                            padding: 'var(--space-3)',
-                            background: '#f9f9f9',
-                            borderRadius: '6px'
+                            gap: 'var(--space-2)',
+                            marginBottom: 'var(--space-3)'
                         }}
                     >
-                        <div>
-                            <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '4px' }}>
-                                Total Items
-                            </div>
-                            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1e3c72' }}>
+                        <div className="summary-stat">
+                            <div className="summary-stat-label">Total Items</div>
+                            <div className="summary-stat-value accent">
                                 {adjustments.reduce((sum, a) => sum + a.quantity, 0)}
                             </div>
                         </div>
-                        <div>
-                            <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '4px' }}>
-                                Removals
-                            </div>
-                            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#d32f2f' }}>
+                        <div className="summary-stat">
+                            <div className="summary-stat-label">Removals</div>
+                            <div className="summary-stat-value danger">
                                 {adjustments.filter(a => a.adjustment_type === 'remove').reduce((sum, a) => sum + a.quantity, 0)}
                             </div>
                         </div>
-                        <div>
-                            <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '4px' }}>
-                                Additions
-                            </div>
-                            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#388e3c' }}>
+                        <div className="summary-stat">
+                            <div className="summary-stat-label">Additions</div>
+                            <div className="summary-stat-value success">
                                 {adjustments.filter(a => a.adjustment_type === 'add').reduce((sum, a) => sum + a.quantity, 0)}
                             </div>
                         </div>
-                        <div>
-                            <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '4px' }}>
-                                Impact Value
-                            </div>
-                            <div
-                                style={{
-                                    fontSize: '1.5rem',
-                                    fontWeight: 'bold',
-                                    color: totalAdjustmentValue < 0 ? '#d32f2f' : '#388e3c'
-                                }}
-                            >
+                        <div className="summary-stat">
+                            <div className="summary-stat-label">Impact Value</div>
+                            <div className={`summary-stat-value ${totalAdjustmentValue < 0 ? 'danger' : 'success'}`}>
                                 Rs. {Math.abs(totalAdjustmentValue).toLocaleString()}
                             </div>
                         </div>
                     </div>
 
                     {/* Adjustments Table */}
-                    <table className="table">
-                        <thead>
-                            <tr>
-                                <th>Product</th>
-                                <th>Current Stock</th>
-                                <th>Type</th>
-                                <th>Qty</th>
-                                <th>Reason</th>
-                                <th>Notes</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {adjustments.map(adj => (
-                                <tr key={adj.id}>
-                                    <td style={{ fontWeight: 'bold' }}>{adj.product_name}</td>
-                                    <td>{adj.current_stock} units</td>
-                                    <td>
-                                        <span
-                                            style={{
-                                                padding: '4px 8px',
-                                                borderRadius: '4px',
-                                                fontSize: '0.85rem',
-                                                fontWeight: 'bold',
-                                                background:
-                                                    adj.adjustment_type === 'remove' ? '#ffebee' : '#e8f5e9',
-                                                color:
-                                                    adj.adjustment_type === 'remove' ? '#d32f2f' : '#388e3c'
-                                            }}
-                                        >
-                                            {adj.adjustment_type === 'remove' ? '➖ Remove' : '➕ Add'}
-                                        </span>
-                                    </td>
-                                    <td style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
-                                        {adj.quantity}
-                                    </td>
-                                    <td>{getReasonDisplay(adj.reason)}</td>
-                                    <td style={{ fontSize: '0.9rem', color: '#666' }}>
-                                        {adj.notes || '-'}
-                                    </td>
-                                    <td>
-                                        <button
-                                            onClick={() => removeAdjustment(adj.id)}
-                                            className="btn btn-danger"
-                                            style={{
-                                                padding: '4px 8px',
-                                                fontSize: '0.8rem',
-                                                background: '#ffcdd2',
-                                                color: '#c62828',
-                                                border: 'none',
-                                                borderRadius: '4px',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            Delete
-                                        </button>
-                                    </td>
+                    <div className="table-container">
+                        <table className="table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Current Stock</th>
+                                    <th>Type</th>
+                                    <th>Qty</th>
+                                    <th>Reason</th>
+                                    <th>Notes</th>
+                                    <th>Action</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {adjustments.map(adj => (
+                                    <tr key={adj.id}>
+                                        <td style={{ fontWeight: '600' }}>{adj.product_name}</td>
+                                        <td>{adj.current_stock} units</td>
+                                        <td>
+                                            <span className={`adj-badge ${adj.adjustment_type === 'remove' ? 'remove' : 'add'}`}>
+                                                {adj.adjustment_type === 'remove' ? '➖ Remove' : '➕ Add'}
+                                            </span>
+                                        </td>
+                                        <td style={{ fontWeight: '700', fontSize: '1.1rem' }}>
+                                            {adj.quantity}
+                                        </td>
+                                        <td>{getReasonDisplay(adj.reason)}</td>
+                                        <td className="text-muted text-sm">
+                                            {adj.notes || '-'}
+                                        </td>
+                                        <td>
+                                            <button
+                                                onClick={() => removeAdjustment(adj.id)}
+                                                className="btn btn-ghost btn-sm text-danger"
+                                                aria-label={`Remove ${adj.product_name} adjustment`}
+                                            >
+                                                🗑️ Remove
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
 
                     {/* Submit Button */}
-                    <div style={{ marginTop: 'var(--space-4)', display: 'flex', gap: 'var(--space-3)' }}>
+                    <div className="modal-actions">
+                        <button
+                            onClick={() => setAdjustments([])}
+                            className="btn btn-ghost"
+                            aria-label="Cancel all adjustments"
+                        >
+                            Cancel
+                        </button>
                         <button
                             onClick={submitAdjustments}
                             disabled={submitting}
                             className="btn btn-success"
-                            style={{
-                                flex: 1,
-                                padding: '10px',
-                                fontSize: '1rem',
-                                fontWeight: 'bold',
-                                opacity: submitting ? 0.6 : 1
-                            }}
+                            style={{ flex: 1 }}
+                            aria-label="Submit all adjustments"
                         >
                             {submitting ? '⏳ Submitting...' : '✓ Submit Adjustments'}
-                        </button>
-                        <button
-                            onClick={() => setAdjustments([])}
-                            className="btn btn-secondary"
-                            style={{ padding: '10px 20px', fontSize: '0.95rem' }}
-                        >
-                            Cancel
                         </button>
                     </div>
                 </div>
@@ -411,14 +350,7 @@ function StockAdjustment() {
 
             {/* Empty State */}
             {adjustments.length === 0 && (
-                <div
-                    style={{
-                        padding: 'var(--space-6)',
-                        textAlign: 'center',
-                        color: '#999',
-                        fontSize: '0.95rem'
-                    }}
-                >
+                <div className="empty-state" style={{ padding: 'var(--space-5)' }}>
                     <div style={{ fontSize: '2rem', marginBottom: 'var(--space-2)' }}>📦</div>
                     <p>No adjustments pending. Add products above to get started.</p>
                 </div>

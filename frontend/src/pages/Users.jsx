@@ -84,17 +84,17 @@ function Users() {
         setEditingUser(null)
     }
 
-    if (loading) return <div className="page-container">Loading...</div>
+    if (loading) return <div className="page-container"><div className="empty-state">Loading...</div></div>
 
     if (currentUser?.role !== 'admin') {
-        return <div className="page-container"><div className="card p-6 text-center text-danger">Access Denied: Admin privileges required.</div></div>
+        return <div className="page-container"><div className="card text-center text-danger">Access Denied: Admin privileges required.</div></div>
     }
 
     return (
         <div className="page-container">
             <div className="page-header">
                 <h1 className="page-title">User Management</h1>
-                <button className="btn btn-primary" onClick={() => { resetForm(); setShowModal(true) }}>
+                <button className="btn btn-primary" onClick={() => { resetForm(); setShowModal(true) }} aria-label="Add new user">
                     + Add User
                 </button>
             </div>
@@ -104,24 +104,26 @@ function Users() {
                     <table className="table">
                         <thead>
                             <tr>
+                                <th className="table-checkbox"><input type="checkbox" aria-label="Select all users" /></th>
                                 <th>Username</th>
                                 <th>Full Name</th>
                                 <th>Role</th>
                                 <th>Status</th>
                                 <th>Last Login</th>
-                                <th style={{ textAlign: 'right' }}>Actions</th>
+                                <th className="text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {users.map((user) => (
                                 <tr key={user.id} style={{ opacity: user.is_active ? 1 : 0.6 }}>
+                                    <td className="table-checkbox"><input type="checkbox" aria-label={`Select ${user.username}`} /></td>
                                     <td className="font-mono">{user.username}</td>
                                     <td>
                                         {user.full_name}
-                                        <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{user.email}</div>
+                                        <div className="text-xs text-muted">{user.email}</div>
                                     </td>
                                     <td>
-                                        <span className={`badge ${user.role === 'admin' ? 'badge-primary' : user.role === 'manager' ? 'badge-secondary' : 'badge-ghost'}`}>
+                                        <span className={`badge ${user.role === 'admin' ? 'badge-accent' : user.role === 'manager' ? 'badge-secondary' : 'badge-ghost'}`}>
                                             {user.role}
                                         </span>
                                     </td>
@@ -130,16 +132,18 @@ function Users() {
                                             {user.is_active ? 'Active' : 'Inactive'}
                                         </span>
                                     </td>
-                                    <td style={{ fontSize: '12px' }}>
+                                    <td className="text-xs text-muted">
                                         {user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}
                                     </td>
-                                    <td style={{ textAlign: 'right' }}>
-                                        <button className="btn btn-ghost btn-sm" onClick={() => openEditModal(user)} title="Edit Details">
-                                            ✏️
-                                        </button>
-                                        <button className="btn btn-ghost btn-sm text-warning" onClick={() => openPasswordModal(user)} title="Reset Password">
-                                            🔑
-                                        </button>
+                                    <td className="text-right">
+                                        <div className="flex gap-2" style={{ justifyContent: 'flex-end' }}>
+                                            <button className="btn btn-ghost btn-sm" onClick={() => openEditModal(user)} aria-label={`Edit ${user.username}`}>
+                                                ✏️ Edit
+                                            </button>
+                                            <button className="btn btn-ghost btn-sm text-warning" onClick={() => openPasswordModal(user)} aria-label={`Reset password for ${user.username}`}>
+                                                🔑 Reset Password
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -154,12 +158,12 @@ function Users() {
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
                         <h2>{editingUser ? 'Edit User' : 'Create User'}</h2>
                         <form onSubmit={handleSubmit}>
-                            <div className="grid grid-2" style={{ gap: 'var(--space-4)' }}>
+                            <div className="form-grid">
                                 <div className="form-group">
                                     <label className="form-label">Username *</label>
                                     <input type="text" className="form-input" value={formData.username}
                                         onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                                        disabled={!!editingUser} // Cannot change username
+                                        disabled={!!editingUser}
                                         required />
                                 </div>
                                 <div className="form-group">
@@ -177,7 +181,7 @@ function Users() {
                                 </div>
                             )}
 
-                            <div className="grid grid-2" style={{ gap: 'var(--space-4)' }}>
+                            <div className="form-grid">
                                 <div className="form-group">
                                     <label className="form-label">Email</label>
                                     <input type="email" className="form-input" value={formData.email}
@@ -190,7 +194,7 @@ function Users() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-2" style={{ gap: 'var(--space-4)' }}>
+                            <div className="form-grid">
                                 <div className="form-group">
                                     <label className="form-label">Role</label>
                                     <select className="form-select" value={formData.role}
@@ -212,9 +216,9 @@ function Users() {
                                 )}
                             </div>
 
-                            <div className="flex gap-4" style={{ marginTop: 'var(--space-6)' }}>
-                                <button type="submit" className="btn btn-primary">Save User</button>
+                            <div className="modal-actions">
                                 <button type="button" className="btn btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
+                                <button type="submit" className="btn btn-primary">Save User</button>
                             </div>
                         </form>
                     </div>
@@ -234,37 +238,14 @@ function Users() {
                                     minLength={6} required />
                                 <small className="text-muted">Must be at least 6 characters</small>
                             </div>
-                            <div className="flex gap-4" style={{ marginTop: 'var(--space-6)' }}>
-                                <button type="submit" className="btn btn-warning">Reset Password</button>
+                            <div className="modal-actions">
                                 <button type="button" className="btn btn-ghost" onClick={() => setShowPasswordModal(false)}>Cancel</button>
+                                <button type="submit" className="btn btn-warning">Reset Password</button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
-
-            <style>{`
-        .modal-overlay {
-          position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-          background: rgba(0, 0, 0, 0.7);
-          display: flex; align-items: center; justify-content: center;
-          z-index: 1000;
-        }
-        .modal {
-          background: var(--color-bg-secondary);
-          border: 1px solid var(--color-border);
-          border-radius: var(--radius-lg);
-          padding: var(--space-6);
-          width: 100%; max-width: 600px;
-          animation: slideIn 0.2s ease;
-        }
-        @keyframes slideIn {
-          from { transform: translateY(20px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-        .text-danger { color: #ef4444; }
-        .text-warning { color: #f59e0b; }
-      `}</style>
         </div>
     )
 }

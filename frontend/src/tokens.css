@@ -1,0 +1,53 @@
+/* ============================================
+   ZYNC ERP — Design Tokens
+   Canonical CSS custom properties.
+   Do NOT rename these downstream.
+   ============================================ */
+
+:root {
+    /* ─── Colors ─── */
+    --color-bg: #0f1a24;
+    --color-panel: #15202a;
+    --color-panel-2: #16232b;
+    --color-text: #E6EEF6;
+    --color-muted: #97A1AD;
+    --color-accent: #2F8FFF;
+    --color-accent-hover: #1a7ae6;
+    --color-success: #29B070;
+    --color-warning: #f59e0b;
+    --color-danger: #FF5C6C;
+    --color-info: #06b6d4;
+    --border-surface: rgba(255, 255, 255, 0.04);
+
+    /* ─── Radii ─── */
+    --radius-sm: 6px;
+    --radius-md: 12px;
+
+    /* ─── Spacing (px scale) ─── */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 16px;
+    --space-4: 24px;
+    --space-5: 32px;
+
+    /* ─── Elevation ─── */
+    --elevation-1: 0 6px 18px rgba(2, 8, 15, 0.45);
+
+    /* ─── Typography ─── */
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+    /* ─── Legacy Aliases ───
+       Maps old token names → canonical tokens.
+       Many pages (POS, NewSale, NewPurchase, Quotations, etc.)
+       still reference these. DO NOT remove until fully migrated. */
+    --color-bg-primary: var(--color-bg);
+    --color-bg-secondary: var(--color-panel);
+    --color-bg-tertiary: var(--color-panel-2);
+    --color-text-primary: var(--color-text);
+    --color-text-secondary: var(--color-muted);
+    --color-text-muted: var(--color-muted);
+    --color-border: var(--border-surface);
+    --radius-lg: var(--radius-md);
+    --space-6: var(--space-5);
+}

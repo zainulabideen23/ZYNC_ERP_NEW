@@ -9,7 +9,7 @@ function Sales() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => { loadData() }, [])
-    
+
     // Subscribe to data sync events to refresh list when sales change
     useDataSync(DataSyncEvents.SALE_CREATED, () => {
         loadData()
@@ -33,7 +33,7 @@ function Sales() {
         try {
             const response = await salesAPI.get(sale.id)
             const data = response.data
-            
+
             // Create professional printable invoice HTML
             const printContent = `
                 <!DOCTYPE html>
@@ -299,7 +299,7 @@ function Sales() {
                 </body>
                 </html>
             `
-            
+
             // Use hidden iframe for direct printing (no new window)
             let printFrame = document.getElementById('print-frame')
             if (!printFrame) {
@@ -308,19 +308,19 @@ function Sales() {
                 printFrame.style.cssText = 'position:absolute;left:-9999px;width:0;height:0;border:none;'
                 document.body.appendChild(printFrame)
             }
-            
+
             const frameDoc = printFrame.contentWindow || printFrame.contentDocument
             const doc = frameDoc.document || frameDoc
             doc.open()
             doc.write(printContent)
             doc.close()
-            
+
             // Wait for content to load then print
             printFrame.onload = () => {
                 frameDoc.focus()
                 frameDoc.print()
             }
-            
+
         } catch (error) {
             console.error('Failed to print invoice:', error)
             alert('Failed to print invoice. Please try again.')
@@ -382,20 +382,11 @@ function Sales() {
                                 </td>
                                 <td>
                                     <button
-                                        className="btn btn-small"
+                                        className="btn btn-ghost btn-sm"
                                         onClick={() => handlePrintInvoice(sale)}
-                                        title="Print Invoice"
-                                        style={{
-                                            padding: '4px 8px',
-                                            fontSize: '11px',
-                                            background: '#1e3c72',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '4px',
-                                            cursor: 'pointer'
-                                        }}
+                                        aria-label={`Print invoice ${sale.invoice_number}`}
                                     >
-                                        🖨️
+                                        🖨️ Print
                                     </button>
                                 </td>
                             </tr>

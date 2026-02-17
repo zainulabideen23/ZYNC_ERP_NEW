@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import App from './App'
+import './tokens.css'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -14,8 +15,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
                 toastOptions={{
                     duration: 3000,
                     style: {
-                        background: '#1f2937',
-                        color: '#f9fafb',
+                        background: '#15202a',
+                        color: '#E6EEF6',
+                        border: '1px solid rgba(255,255,255,0.04)',
                     },
                 }}
             />

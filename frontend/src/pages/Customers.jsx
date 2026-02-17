@@ -164,7 +164,6 @@ function Customers() {
                     </div>
                 </div>
             )}
-            <style>{`.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000}.modal{background:var(--color-bg-secondary);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-6);width:100%;max-width:600px}.modal h2{margin-bottom:var(--space-6)}.btn-sm{padding:var(--space-1) var(--space-2);font-size:0.75rem}.form-textarea{width:100%;padding:var(--space-2);background:var(--color-bg-secondary);border:1px solid var(--color-border);border-radius:var(--radius-md);color:var(--color-text-primary)}`}</style>
         </div>
     )
 }

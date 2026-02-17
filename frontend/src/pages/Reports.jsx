@@ -389,28 +389,16 @@ function Reports() {
             </header>
 
             <div className="report-tabs">
-                <button
-                    className={`btn ${activeTab === 'stock' ? 'btn-primary' : 'btn-secondary'}`}
-                    onClick={() => setActiveTab('stock')}
-                >📦 Stock Report</button>
-                <button
-                    className={`btn ${activeTab === 'sales' ? 'btn-primary' : 'btn-secondary'}`}
-                    onClick={() => setActiveTab('sales')}
-                >💰 Sales Summary</button>
-                <button
-                    className={`btn ${activeTab === 'trial' ? 'btn-primary' : 'btn-secondary'}`}
-                    onClick={() => setActiveTab('trial')}
-                >⚖️ Trial Balance</button>
-                <button
-                    className={`btn ${activeTab === 'pl' ? 'btn-primary' : 'btn-secondary'}`}
-                    onClick={() => setActiveTab('pl')}
-                >📉 Profit & Loss</button>
-                <button className={`btn ${activeTab === 'bs' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('bs')}>🏛️ Balance Sheet</button>
-                <div style={{ width: '1px', background: 'var(--color-border)', margin: '0 4px' }}></div>
-                <button className={`btn ${activeTab === 'sales_product' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('sales_product')}>📦 Products</button>
-                <button className={`btn ${activeTab === 'sales_customer' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('sales_customer')}>👥 Customers</button>
-                <button className={`btn ${activeTab === 'purchase_supplier' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('purchase_supplier')}>🚛 Suppliers</button>
-                <button className={`btn ${activeTab === 'expense_summary' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('expense_summary')}>💸 Expenses</button>
+                <button className={`report-tab ${activeTab === 'stock' ? 'report-tab--active' : ''}`} onClick={() => setActiveTab('stock')} aria-label="Stock Report">📦 Stock Report</button>
+                <button className={`report-tab ${activeTab === 'sales' ? 'report-tab--active' : ''}`} onClick={() => setActiveTab('sales')} aria-label="Sales Summary">💰 Sales Summary</button>
+                <button className={`report-tab ${activeTab === 'trial' ? 'report-tab--active' : ''}`} onClick={() => setActiveTab('trial')} aria-label="Trial Balance">⚖️ Trial Balance</button>
+                <button className={`report-tab ${activeTab === 'pl' ? 'report-tab--active' : ''}`} onClick={() => setActiveTab('pl')} aria-label="Profit and Loss">📉 Profit & Loss</button>
+                <button className={`report-tab ${activeTab === 'bs' ? 'report-tab--active' : ''}`} onClick={() => setActiveTab('bs')} aria-label="Balance Sheet">🏛️ Balance Sheet</button>
+                <div style={{ width: '1px', background: 'var(--border-surface)', margin: '0 4px' }}></div>
+                <button className={`report-tab ${activeTab === 'sales_product' ? 'report-tab--active' : ''}`} onClick={() => setActiveTab('sales_product')} aria-label="Sales by Product">📦 Products</button>
+                <button className={`report-tab ${activeTab === 'sales_customer' ? 'report-tab--active' : ''}`} onClick={() => setActiveTab('sales_customer')} aria-label="Sales by Customer">👥 Customers</button>
+                <button className={`report-tab ${activeTab === 'purchase_supplier' ? 'report-tab--active' : ''}`} onClick={() => setActiveTab('purchase_supplier')} aria-label="Purchases by Supplier">🚛 Suppliers</button>
+                <button className={`report-tab ${activeTab === 'expense_summary' ? 'report-tab--active' : ''}`} onClick={() => setActiveTab('expense_summary')} aria-label="Expense Summary">💸 Expenses</button>
             </div>
 
             <form onSubmit={handleFilterSubmit} className="report-filters">

@@ -3,6 +3,7 @@
  * Run this when sequences get out of sync with actual data
  */
 const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const knex = require(path.join(__dirname, '..', 'src', 'config', 'database'));
 
 async function syncAllSequences() {

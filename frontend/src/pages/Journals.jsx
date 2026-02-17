@@ -234,8 +234,8 @@ function Journals() {
                         </div>
                         <div className="grid grid-2 mb-6 text-sm text-secondary">
                             <div><strong>Date:</strong> {format(new Date(viewingJournal.journal_date), 'dd MMMM yyyy')}</div>
-                            <div><strong>Source:</strong> {viewingJournal.journal_type.toUpperCase()}</div>
-                            <div className="col-span-2"><strong>Narration:</strong> {viewingJournal.narration}</div>
+                            <div><strong>Source:</strong> {(viewingJournal.reference_type || viewingJournal.journal_type || 'general').toUpperCase()}</div>
+                            <div className="col-span-2"><strong>Narration:</strong> {viewingJournal.description || viewingJournal.narration || '-'}</div>
                         </div>
                         <div className="table-container">
                             <table className="table">

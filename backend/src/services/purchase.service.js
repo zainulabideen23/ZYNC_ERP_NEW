@@ -69,7 +69,12 @@ class PurchaseService {
                     }
 
                     const totalAmount = (subtotal - discount_amount) + tax_amount;
-                    const amountDue = totalAmount - amount_paid;
+                    
+                    // Handle overpayment: clamp amount_due to 0 (constraint requires >= 0)
+                    let amountDue = totalAmount - amount_paid;
+                    if (amountDue < 0) {
+                        amountDue = 0; // Overpaid - no amount due
+                    }
                     const status = amountDue <= 0 ? 'paid' : 'billed';
 
                     // 3. Update Supplier Balance if credit
@@ -122,10 +127,19 @@ class PurchaseService {
                         journalEntries.push({ account_id: accounts.discount_received, entry_type: 'credit', amount: discount_amount, narration: `Discount on ${billNumber}` });
                     }
 
-                    // Handle Payment & Payables
+                    // Calculate overpayment using previously computed `totalAmount`
+                    const overpayment = Math.max(0, amount_paid - totalAmount);
+
+                    // Handle Payment - credit the full amount paid from cash/bank
                     if (amount_paid > 0) {
                         const paymentAccount = payment_method === 'cash' ? accounts.cash : accounts.bank;
                         journalEntries.push({ account_id: paymentAccount, entry_type: 'credit', amount: amount_paid, narration: `Payment for ${billNumber}` });
+                    }
+
+                    // Handle overpayment - Debit as an advance/receivable to balance the entry
+                    if (overpayment > 0) {
+                        // Use receivables or cash as a proxy for "Advance to Supplier"
+                        journalEntries.push({ account_id: accounts.cash, entry_type: 'debit', amount: overpayment, narration: `Supplier Advance/Overpayment ${billNumber}` });
                     }
 
                     if (amountDue > 0 && supplier_id) {
@@ -164,15 +178,27 @@ class PurchaseService {
 
     /**
      * Generate next bill number
+     * Auto-syncs with actual max value in purchases table to ensure sequential numbering
      */
     async generateBillNumber(trx) {
         const sequence = await trx('sequences').where('name', 'purchase').forUpdate().first();
         if (!sequence) throw new AppError('Purchase sequence not found', 500);
 
-        const nextVal = sequence.current_value + 1;
+        // Get actual max bill number from purchases table to stay in sync
+        const prefix = sequence.prefix || 'PUR-';
+        const maxResult = await trx.raw(
+            `SELECT COALESCE(MAX(CAST(REPLACE(bill_number, ?, '') AS INTEGER)), 0) as max_num FROM purchases WHERE bill_number LIKE ?`,
+            [prefix, prefix + '%']
+        );
+        const maxInTable = parseInt(maxResult.rows[0]?.max_num || 0);
+        
+        // Use the higher of sequence value or actual max from table
+        const baseValue = Math.max(sequence.current_value, maxInTable);
+        const nextVal = baseValue + 1;
+        
         await trx('sequences').where('name', 'purchase').update({ current_value: nextVal });
 
-        return `${sequence.prefix}${nextVal.toString().padStart(sequence.pad_length || 6, '0')}`;
+        return `${prefix}${nextVal.toString().padStart(sequence.pad_length || 6, '0')}`;
     }
 
     /**

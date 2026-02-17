@@ -54,6 +54,10 @@ function Reports() {
                     response = await reportsAPI.expenseSummary({ from_date: filters.from_date, to_date: filters.to_date })
                     break;
             }
+            // Debug log for stock report response
+            if (activeTab === 'stock') {
+                console.log('Stock report API response:', response);
+            }
             setData(response.data)
         } catch (error) {
             console.error('Failed to load report:', error)

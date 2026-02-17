@@ -22,9 +22,8 @@ router.get('/:id', authenticate, async (req, res, next) => {
     try {
         const quotation = await db('quotations as q')
             .leftJoin('customers as c', 'q.customer_id', 'c.id')
-            .select('q.*', 'c.name as customer_name', 'c.phone_number as customer_phone', 'c.address_line1 as customer_address')
+            .select('q.*', 'c.name as customer_name', 'c.phone as customer_phone', 'c.address as customer_address')
             .where('q.id', req.params.id)
-            .where('q.is_deleted', false)
             .first();
 
         if (!quotation) throw new AppError('Quotation not found', 404);

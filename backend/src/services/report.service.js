@@ -106,16 +106,16 @@ class ReportService {
 
         let query = this.db('products as p')
             .leftJoin('categories as c', 'p.category_id', 'c.id')
-            .leftJoin('companies as co', 'p.company_id', 'co.id')
             .leftJoin('units as u', 'p.unit_id', 'u.id')
             .select(
                 'p.id', 'p.code', 'p.name', 'p.retail_price', 'p.cost_price', 'p.min_stock_level', 'p.current_stock',
-                'c.name as category', 'co.name as company', 'u.abbreviation as unit'
+                'c.name as category', 'u.abbreviation as unit'
             )
             .where('p.is_deleted', false);
 
         if (category_id) query = query.where('p.category_id', category_id);
-        if (company_id) query = query.where('p.company_id', company_id);
+        // products table does not have a company_id column in this schema
+        // if (company_id) query = query.where('p.company_id', company_id);
         if (low_stock_only === 'true') query = query.whereRaw('p.current_stock <= p.min_stock_level');
 
         const items = await query.orderBy('p.name');

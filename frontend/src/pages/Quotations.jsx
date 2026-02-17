@@ -247,7 +247,7 @@ function Quotations() {
                                         )}
                                     </td>
                                     <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{formatCurrency(quote.total_amount)}</td>
-                                    <td style={{ fontSize: '0.9rem', color: '#666' }}>{quote.items.length} items</td>
+                                    <td style={{ fontSize: '0.9rem', color: '#666' }}>{quote.items ? quote.items.length : 0} items</td>
                                     <td>{getStatusBadge(quote.status)}</td>
                                     <td>
                                         <div style={{ display: 'flex', gap: '6px' }}>

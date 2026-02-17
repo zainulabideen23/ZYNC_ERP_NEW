@@ -18,7 +18,17 @@ function Accounts() {
                 accountsAPI.list(),
                 accountsAPI.getGroups()
             ])
-            setAccounts(accRes.data)
+            // accRes.data is an array of groups with accounts: [{...group, accounts: [...]}, ...]
+            // Flatten all accounts from all groups
+            let flatAccounts = []
+            if (Array.isArray(accRes.data)) {
+                accRes.data.forEach(group => {
+                    if (Array.isArray(group.accounts)) {
+                        flatAccounts = flatAccounts.concat(group.accounts)
+                    }
+                })
+            }
+            setAccounts(flatAccounts)
             setGroups(groupRes.data)
         } catch (error) {
             toast.error('Failed to load chart of accounts')

@@ -1,17 +1,59 @@
+import { useState, useEffect } from 'react'
 import './pos.css'
 
 /**
  * Quantity Stepper Component
- * Plus/minus buttons with quantity display
+ * Plus/minus buttons with editable quantity input
  */
 export function QuantityStepper({ value, onChange, min = 1, max }) {
+    const [inputValue, setInputValue] = useState(value.toString())
+
+    // Sync inputValue when value prop changes externally
+    useEffect(() => {
+        setInputValue(value.toString())
+    }, [value])
+
     const handleDecrement = () => {
-        onChange(Math.max(min - 1, value - 1)) // Allow going to 0 to remove
+        const newValue = Math.max(min - 1, value - 1) // Allow going to 0 to remove
+        onChange(newValue)
+        setInputValue(newValue.toString())
     }
 
     const handleIncrement = () => {
         if (max !== undefined && value >= max) return
-        onChange(value + 1)
+        const newValue = value + 1
+        onChange(newValue)
+        setInputValue(newValue.toString())
+    }
+
+    const handleInputChange = (e) => {
+        const val = e.target.value
+        setInputValue(val)
+
+        // Parse and validate on each change
+        const parsed = parseInt(val, 10)
+        if (!isNaN(parsed) && parsed >= 0) {
+            const clamped = max !== undefined ? Math.min(parsed, max) : parsed
+            onChange(clamped)
+        }
+    }
+
+    const handleInputBlur = () => {
+        // On blur, ensure the input shows the actual value
+        const parsed = parseInt(inputValue, 10)
+        if (isNaN(parsed) || parsed < 0) {
+            setInputValue(value.toString())
+        } else {
+            const clamped = max !== undefined ? Math.min(parsed, max) : parsed
+            setInputValue(clamped.toString())
+            onChange(clamped)
+        }
+    }
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            e.target.blur()
+        }
     }
 
     return (
@@ -24,7 +66,18 @@ export function QuantityStepper({ value, onChange, min = 1, max }) {
             >
                 −
             </button>
-            <span className="qty-value">{value}</span>
+            <input
+                type="number"
+                className="qty-input"
+                value={inputValue}
+                onChange={handleInputChange}
+                onBlur={handleInputBlur}
+                onKeyDown={handleKeyDown}
+                onFocus={(e) => e.target.select()}
+                min={0}
+                max={max}
+                aria-label="Quantity"
+            />
             <button
                 type="button"
                 className="qty-btn"

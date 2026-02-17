@@ -6,10 +6,10 @@ import './pos.css'
  * Displays product info with stock status and in-cart indicator
  * Features: Just-added pulse animation, persistent in-cart pill, selection states
  */
-const ProductCard = memo(function ProductCard({ 
-    product, 
-    cartQuantity = 0, 
-    onAdd, 
+const ProductCard = memo(function ProductCard({
+    product,
+    cartQuantity = 0,
+    onAdd,
     isFocused = false,
     isSelected = false,
     priceLabel = 'Price',
@@ -18,12 +18,12 @@ const ProductCard = memo(function ProductCard({
 }) {
     const [justAdded, setJustAdded] = useState(false)
     const prevQuantityRef = useRef(cartQuantity)
-    
+
     const stock = product.current_stock || 0
     const isOutOfStock = stock <= 0
     const isLowStock = stock > 0 && stock <= (product.min_stock_level || 5)
     const inCart = cartQuantity > 0
-    
+
     // For purchases, out of stock items are still clickable
     const isDisabled = isOutOfStock && !allowOutOfStock
 
@@ -51,11 +51,18 @@ const ProductCard = memo(function ProductCard({
     }
 
     // Build class names - don't apply out-of-stock styling if allowOutOfStock is true
+    // Build class names - robust status handling
+    const statusClass = isOutOfStock
+        ? 'out-of-stock'
+        : isLowStock
+            ? 'low-stock'
+            : 'in-stock'
+
     const classNames = [
         'product-card',
+        statusClass,
         inCart && 'in-cart',
-        isDisabled && 'out-of-stock',
-        isLowStock && !isOutOfStock && 'low-stock',
+        isDisabled && 'disabled',
         isFocused && 'focused',
         isSelected && 'selected',
         justAdded && 'just-added'
@@ -73,17 +80,16 @@ const ProductCard = memo(function ProductCard({
             aria-pressed={isSelected}
             tabIndex={0}
         >
-            {/* In-cart pill indicator - Strong visual, top-right */}
-            {inCart && (
-                <div className="in-cart-pill" aria-label={`${cartQuantity} in cart`}>
-                    <span className="pill-icon">🛒</span>
-                    <span className="pill-qty">{cartQuantity}</span>
+            <div className="card-header">
+                {/* Product name - Left Side */}
+                <div className="product-name" title={product.name}>
+                    {product.name}
                 </div>
-            )}
 
-            {/* Product name */}
-            <div className="product-name" title={product.name}>
-                {product.name}
+                {/* Stock badge - Right Side (Flex) */}
+                <div className={`stock-badge ${isOutOfStock ? 'out-of-stock' : isLowStock ? 'low-stock' : 'in-stock'}`}>
+                    {isOutOfStock ? 'Out' : isLowStock ? `Low:${stock}` : ''}
+                </div>
             </div>
 
             {/* Product code */}
@@ -91,15 +97,20 @@ const ProductCard = memo(function ProductCard({
                 {product.code}
             </div>
 
-            {/* Stock badge */}
-            <div className={`stock-badge ${isOutOfStock ? 'out-of-stock' : isLowStock ? 'low-stock' : 'in-stock'}`}>
-                {isOutOfStock ? '✕ Out of Stock' : isLowStock ? `⚠ Low: ${stock}` : `Stock: ${stock}`}
-            </div>
+            <div className="card-footer">
+                {/* Price - Bottom Left */}
+                <div className="product-price">
+                    {priceLabel !== 'Price' && <span className="price-label">{priceLabel}: </span>}
+                    Rs. {Number(displayPrice).toLocaleString()}
+                </div>
 
-            {/* Price */}
-            <div className="product-price">
-                {priceLabel !== 'Price' && <span className="price-label">{priceLabel}: </span>}
-                Rs. {Number(displayPrice).toLocaleString()}
+                {/* In-cart pill indicator - Bottom Right */}
+                {inCart && (
+                    <div className="in-cart-pill" aria-label={`${cartQuantity} in cart`}>
+                        <span className="pill-icon">🛒</span>
+                        <span className="pill-qty">{cartQuantity}</span>
+                    </div>
+                )}
             </div>
 
             {/* Just-added flash overlay */}

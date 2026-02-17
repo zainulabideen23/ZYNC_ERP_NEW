@@ -208,15 +208,27 @@ class SaleService {
 
     /**
      * Generate next invoice number
+     * Auto-syncs with actual max value in sales table to ensure sequential numbering
      */
     async generateInvoiceNumber(trx) {
         const sequence = await trx('sequences').where('name', 'invoice').forUpdate().first();
         if (!sequence) throw new AppError('Invoice sequence not found', 500);
 
-        const nextVal = sequence.current_value + 1;
+        // Get actual max invoice number from sales table to stay in sync
+        const prefix = sequence.prefix || 'SINV-';
+        const maxResult = await trx.raw(
+            `SELECT COALESCE(MAX(CAST(REPLACE(invoice_number, ?, '') AS INTEGER)), 0) as max_num FROM sales WHERE invoice_number LIKE ?`,
+            [prefix, prefix + '%']
+        );
+        const maxInTable = parseInt(maxResult.rows[0]?.max_num || 0);
+        
+        // Use the higher of sequence value or actual max from table
+        const baseValue = Math.max(sequence.current_value, maxInTable);
+        const nextVal = baseValue + 1;
+        
         await trx('sequences').where('name', 'invoice').update({ current_value: nextVal });
 
-        return `${sequence.prefix}${nextVal.toString().padStart(sequence.pad_length || 6, '0')}`;
+        return `${prefix}${nextVal.toString().padStart(sequence.pad_length || 6, '0')}`;
     }
 
     /**

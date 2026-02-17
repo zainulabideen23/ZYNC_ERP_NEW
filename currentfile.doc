@@ -1,0 +1,2547 @@
+<h1>ZYNC ERP — Complete Project Documentation</h1>
+<h2>1. Project Overview</h2>
+<p>ZYNC ERP is a modern, web-based Enterprise Resource Planning system designed for retail and wholesale businesses. It integrates Sales (POS), Inventory Management, Purchasing, Accounting, and Reporting into a single interface.</p>
+<ul>
+<li><strong>Version</strong>: 1.0.0</li>
+<li><strong>License</strong>: MIT</li>
+<li><strong>Default Credentials</strong>: <code>admin / admin123</code>, <code>cashier / cashier123</code>, <code>manager / manager123</code></li>
+<li><strong>Access URL</strong>: <code>http://localhost:5173</code></li>
+</ul>
+<hr>
+<h2>2. Architecture Overview</h2>
+<pre><code>┌─────────────────────────────────────────────────────────┐
+│                    FRONTEND (React + Vite)               │
+│  Port 5173 | HashRouter | Zustand State | Axios API      │
+├─────────────────────────────────────────────────────────┤
+│                         ↕ HTTP (REST)                    │
+├─────────────────────────────────────────────────────────┤
+│                    BACKEND (Express.js)                   │
+│  Port 3001 | JWT Auth | RBAC | Helmet | Morgan           │
+│  17 Route Modules → 14 Service Classes                   │
+├─────────────────────────────────────────────────────────┤
+│                         ↕ Knex.js ORM                    │
+├─────────────────────────────────────────────────────────┤
+│                    DATABASE (PostgreSQL)                  │
+│  24 Tables | 17 Enums | UUID PKs | Soft Deletes          │
+└─────────────────────────────────────────────────────────┘
+</code></pre>
+<p><strong>Request Flow</strong>: Browser → Vite Dev Proxy (<code>/api</code> → <code>localhost:3001</code>) → Express Middleware (Helmet → CORS → JSON parser → Morgan logger) → Route → <code>authenticate</code> middleware → Controller → Service → Knex → PostgreSQL → Response</p>
+<hr>
+<h2>3. Tech Stack</h2>
+<h3>3.1 Backend Dependencies</h3>
+<table>
+<thead>
+<tr>
+<th>Package</th>
+<th>Version</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>express</td>
+<td>^4.18.2</td>
+<td>HTTP server framework</td>
+</tr>
+<tr>
+<td>knex</td>
+<td>^3.1.0</td>
+<td>SQL query builder / ORM</td>
+</tr>
+<tr>
+<td>pg</td>
+<td>^8.11.3</td>
+<td>PostgreSQL driver</td>
+</tr>
+<tr>
+<td>bcrypt</td>
+<td>^5.1.1</td>
+<td>Password hashing</td>
+</tr>
+<tr>
+<td>jsonwebtoken</td>
+<td>^9.0.2</td>
+<td>JWT token generation/verification</td>
+</tr>
+<tr>
+<td>helmet</td>
+<td>^7.1.0</td>
+<td>Security headers</td>
+</tr>
+<tr>
+<td>cors</td>
+<td>^2.8.5</td>
+<td>Cross-Origin Resource Sharing</td>
+</tr>
+<tr>
+<td>morgan</td>
+<td>^1.10.0</td>
+<td>HTTP request logging</td>
+</tr>
+<tr>
+<td>winston</td>
+<td>^3.11.0</td>
+<td>Application logging (file + console)</td>
+</tr>
+<tr>
+<td>dotenv</td>
+<td>^16.3.1</td>
+<td>Environment variable loading</td>
+</tr>
+<tr>
+<td>express-validator</td>
+<td>^7.0.1</td>
+<td>Request validation</td>
+</tr>
+<tr>
+<td>uuid</td>
+<td>^9.0.1</td>
+<td>UUID generation</td>
+</tr>
+<tr>
+<td>nodemon</td>
+<td>^3.0.2</td>
+<td>Dev: auto-restart on file changes</td>
+</tr>
+<tr>
+<td>jest</td>
+<td>^29.7.0</td>
+<td>Dev: testing framework</td>
+</tr>
+<tr>
+<td>supertest</td>
+<td>^7.2.2</td>
+<td>Dev: HTTP assertion testing</td>
+</tr>
+</tbody></table>
+<h3>3.2 Frontend Dependencies</h3>
+<table>
+<thead>
+<tr>
+<th>Package</th>
+<th>Version</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>react</td>
+<td>^18.2.0</td>
+<td>UI library</td>
+</tr>
+<tr>
+<td>react-dom</td>
+<td>^18.2.0</td>
+<td>React DOM renderer</td>
+</tr>
+<tr>
+<td>react-router-dom</td>
+<td>^6.21.0</td>
+<td>Client-side routing (HashRouter)</td>
+</tr>
+<tr>
+<td>zustand</td>
+<td>^4.4.7</td>
+<td>Lightweight state management</td>
+</tr>
+<tr>
+<td>axios</td>
+<td>^1.6.2</td>
+<td>HTTP client with interceptors</td>
+</tr>
+<tr>
+<td>date-fns</td>
+<td>^3.0.6</td>
+<td>Date formatting/manipulation</td>
+</tr>
+<tr>
+<td>react-hot-toast</td>
+<td>^2.4.1</td>
+<td>Toast notifications</td>
+</tr>
+<tr>
+<td>lucide-react</td>
+<td>^0.563.0</td>
+<td>Icon library</td>
+</tr>
+<tr>
+<td>html2pdf.js</td>
+<td>^0.14.0</td>
+<td>HTML-to-PDF invoice generation</td>
+</tr>
+<tr>
+<td>@tanstack/react-table</td>
+<td>^8.11.2</td>
+<td>Headless table utilities</td>
+</tr>
+<tr>
+<td>vite</td>
+<td>^5.0.8</td>
+<td>Build tool / dev server</td>
+</tr>
+<tr>
+<td>@vitejs/plugin-react</td>
+<td>^4.2.1</td>
+<td>React plugin for Vite</td>
+</tr>
+</tbody></table>
+<h3>3.3 NPM Scripts</h3>
+<p><strong>Backend</strong>: <code>npm run dev</code> (nodemon), <code>npm start</code> (node), <code>npm run migrate</code>, <code>npm run seed</code>, <code>npm test</code>
+<strong>Frontend</strong>: <code>npm run dev</code> (vite), <code>npm run build</code>, <code>npm run preview</code></p>
+<hr>
+<h2>4. Project Structure</h2>
+<pre><code>ZYNC-ERP/
+├── README.md                          # Project overview, setup instructions
+├── USER_MANUAL.md                     # End-user guide (5 sections)
+├── currentfile.md                     # This documentation file
+│
+├── backend/
+│   ├── package.json                   # Backend deps &amp; scripts
+│   ├── knexfile.js                    # Knex config (dev + production)
+│   ├── logs/                          # Winston log output
+│   │   ├── combined.log
+│   │   ├── error.log
+│   │   └── debug.log
+│   │
+│   ├── database/
+│   │   ├── migrations/                # 17 migration files
+│   │   │   ├── 20260118000000_create_initial_schema.js
+│   │   │   ├── 20260118000001_add_purchase_status.js
+│   │   │   ├── 20260118000002_add_sale_status.js
+│   │   │   ├── 20260126115121_update_products_table.js
+│   │   │   ├── 20260127103945_professional_schema_v1.js
+│   │   │   ├── 20260127111356_add_sequences_table.js
+│   │   │   ├── 20260127111659_add_code_to_account_groups.js
+│   │   │   ├── 20260127113203_add_cnic_and_company_to_people.js
+│   │   │   ├── 20260127113313_add_missing_columns_v1.js
+│   │   │   ├── 20260127113653_fix_sales_date_check.js
+│   │   │   ├── 20260127113826_drop_redundant_triggers.js
+│   │   │   ├── 20260127114531_add_last_login_to_users.js
+│   │   │   ├── 20260127115901_restore_expenses_and_categories.js
+│   │   │   ├── 20260130100000_fix_sales_overpayment.js
+│   │   │   ├── 20260130120000_drop_sales_check1.js
+│   │   │   └── 20260206100000_drop_purchases_check1.js
+│   │   └── seeds/
+│   │       └── 001_seed_data.js       # Default data seeder
+│   │
+│   ├── scripts/                       # 20 utility scripts
+│   │   ├── add_missing_sequences.js
+│   │   ├── backup_data.js
+│   │   ├── check_sequence_exact.js
+│   │   ├── check_sequences.js
+│   │   ├── cleanup_transactions.js
+│   │   ├── clear_data.js
+│   │   ├── debug_columns.js
+│   │   ├── fake_migrations.js
+│   │   ├── fix_invoice_sequence.js
+│   │   ├── insert_sequences.js
+│   │   ├── migrate_to_new_schema.js
+│   │   ├── perf_test.js
+│   │   ├── reset_password.js
+│   │   ├── seed_categories.js
+│   │   ├── seed_database.js
+│   │   ├── seed_dummy_products.js
+│   │   ├── show_database.js
+│   │   ├── sync_all_sequences.js
+│   │   ├── sync_sequences.js
+│   │   ├── verify_endpoints.js
+│   │   ├── verify_ledger.js
+│   │   └── verify_schema.js
+│   │
+│   └── src/
+│       ├── index.js                   # Express entry point (108 lines)
+│       ├── config/
+│       │   └── database.js            # Knex instance creator (12 lines)
+│       ├── middleware/
+│       │   ├── auth.js                # JWT auth + RBAC (57 lines)
+│       │   └── errorHandler.js        # Global error handler (69 lines)
+│       ├── utils/
+│       │   └── logger.js              # Winston logger config (34 lines)
+│       ├── routes/                    # 17 route files
+│       │   ├── auth.routes.js
+│       │   ├── product.routes.js
+│       │   ├── customer.routes.js
+│       │   ├── supplier.routes.js
+│       │   ├── category.routes.js
+│       │   ├── company.routes.js
+│       │   ├── sale.routes.js
+│       │   ├── purchase.routes.js
+│       │   ├── account.routes.js
+│       │   ├── report.routes.js
+│       │   ├── expense.routes.js
+│       │   ├── journal.routes.js
+│       │   ├── user.routes.js
+│       │   ├── backup.routes.js
+│       │   ├── stock.routes.js
+│       │   ├── quotation.routes.js
+│       │   └── unit.routes.js
+│       └── services/                  # 14 service files
+│           ├── auth.service.js
+│           ├── product.service.js
+│           ├── customer.service.js
+│           ├── supplier.service.js
+│           ├── sale.service.js
+│           ├── purchase.service.js
+│           ├── expense.service.js
+│           ├── journal.service.js
+│           ├── quotation.service.js
+│           ├── account.service.js
+│           ├── report.service.js
+│           ├── stock.service.js
+│           ├── ledger.service.js
+│           └── backup.service.js
+│
+└── frontend/
+    ├── package.json
+    ├── vite.config.js                 # Vite config with /api proxy
+    ├── index.html                     # SPA entry with CSP header
+    └── src/
+        ├── main.jsx                   # ReactDOM root (HashRouter + Toaster)
+        ├── App.jsx                    # Route definitions (78 lines)
+        ├── index.css                  # Global design system (550 lines)
+        ├── store/
+        │   ├── auth.store.js          # Auth state (42 lines)
+        │   └── cart.store.js          # POS cart state (236 lines)
+        ├── utils/
+        │   └── dataSync.js            # Pub/Sub event system (69 lines)
+        ├── services/
+        │   └── api.js                 # Axios instance + 14 API modules (182 lines)
+        ├── components/
+        │   ├── Layout.jsx             # Sidebar + main content (92 lines)
+        │   ├── Layout.css             # Sidebar styling (129 lines)
+        │   ├── InvoicePDF.jsx         # PDF invoice generator (285 lines)
+        │   └── pos/                   # POS component library
+        │       ├── index.js           # Barrel export
+        │       ├── pos.css            # POS styling (1442 lines)
+        │       ├── ProductCard.jsx    # Product grid card (123 lines)
+        │       ├── CartSidebar.jsx    # Cart drawer/panel (373 lines)
+        │       ├── CustomerSelector.jsx # Customer dropdown (159 lines)
+        │       ├── BarcodeInput.jsx   # Barcode scanner (120 lines)
+        │       ├── POSControls.jsx    # Qty stepper + payment + tabs (153 lines)
+        │       └── QuickAmountButtons.jsx # Quick cash amounts (44 lines)
+        └── pages/                     # 18 page components
+            ├── Dashboard.jsx + .css
+            ├── Login.jsx + .css
+            ├── Sales.jsx
+            ├── NewSale.jsx
+            ├── Purchases.jsx
+            ├── NewPurchase.jsx
+            ├── Products.jsx
+            ├── Customers.jsx
+            ├── Suppliers.jsx
+            ├── Expenses.jsx + .css
+            ├── Journals.jsx
+            ├── Quotations.jsx
+            ├── Accounts.jsx
+            ├── LedgerView.jsx
+            ├── StockAdjustment.jsx
+            ├── Reports.jsx + .css
+            ├── Settings.jsx
+            └── Users.jsx
+</code></pre>
+<hr>
+<h2>5. Environment Configuration</h2>
+<h3>5.1 Backend <code>.env</code> File</h3>
+<pre><code class="language-env">PORT=3001
+NODE_ENV=development
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_USER=your_postgres_user
+DB_PASSWORD=your_postgres_password
+DB_NAME=zync_erp
+JWT_SECRET=your_super_secret_jwt_key
+LOG_LEVEL=info
+</code></pre>
+<h3>5.2 Frontend Environment</h3>
+<ul>
+<li><code>VITE_API_URL</code> — Base API URL (defaults to same origin via Vite proxy)</li>
+</ul>
+<h3>5.3 Vite Config (<code>vite.config.js</code>)</h3>
+<ul>
+<li><strong>Dev Server</strong>: Port 5173</li>
+<li><strong>API Proxy</strong>: <code>/api</code> → <code>http://localhost:3001</code> (avoids CORS in development)</li>
+<li><strong>Path Alias</strong>: <code>@</code> → <code>./src</code></li>
+<li><strong>Build Output</strong>: <code>dist/</code> with source maps enabled</li>
+</ul>
+<h3>5.4 Knex Config (<code>knexfile.js</code>)</h3>
+<ul>
+<li><strong>Development</strong>: Connects to local PostgreSQL using env vars</li>
+<li><strong>Production</strong>: Same structure, uses production env vars</li>
+<li><strong>Migrations Directory</strong>: <code>database/migrations</code></li>
+<li><strong>Seeds Directory</strong>: <code>database/seeds</code></li>
+</ul>
+<hr>
+<h2>6. Database Schema</h2>
+<h3>6.1 PostgreSQL Enums (17 Total)</h3>
+<table>
+<thead>
+<tr>
+<th>Enum Name</th>
+<th>Values</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>user_role</td>
+<td>admin, manager, cashier, viewer</td>
+</tr>
+<tr>
+<td>account_type</td>
+<td>asset, liability, income, expense, capital</td>
+</tr>
+<tr>
+<td>payment_method</td>
+<td>cash, bank_transfer, credit, cheque, mixed</td>
+</tr>
+<tr>
+<td>payment_status</td>
+<td>pending, partial, paid, overpaid</td>
+</tr>
+<tr>
+<td>sale_status</td>
+<td>completed, returned, cancelled</td>
+</tr>
+<tr>
+<td>purchase_status</td>
+<td>received, partial, cancelled</td>
+</tr>
+<tr>
+<td>quotation_status</td>
+<td>draft, sent, accepted, rejected, expired, converted</td>
+</tr>
+<tr>
+<td>movement_type</td>
+<td>IN, OUT</td>
+</tr>
+<tr>
+<td>reference_type</td>
+<td>purchase, sale, adjustment, opening, return</td>
+</tr>
+<tr>
+<td>stock_movement_type</td>
+<td>purchase, sale, return, adjustment, opening</td>
+</tr>
+<tr>
+<td>journal_entry_type</td>
+<td>debit, credit</td>
+</tr>
+<tr>
+<td>expense_status</td>
+<td>pending, approved, paid</td>
+</tr>
+<tr>
+<td>audit_action</td>
+<td>create, update, delete</td>
+</tr>
+<tr>
+<td>discount_type</td>
+<td>percentage, fixed</td>
+</tr>
+<tr>
+<td>tax_type</td>
+<td>inclusive, exclusive</td>
+</tr>
+<tr>
+<td>adjustment_reason</td>
+<td>damage, shrinkage, correction, count, expired, other</td>
+</tr>
+<tr>
+<td>ledger_entry_type</td>
+<td>debit, credit</td>
+</tr>
+</tbody></table>
+<h3>6.2 Tables (24 Total)</h3>
+<h4>Core Identity Tables</h4>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Key Columns</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>users</code></td>
+<td>id (UUID PK), username, password_hash, full_name, email, phone, role (user_role enum), is_active, last_login_at</td>
+<td>Soft delete via is_active</td>
+</tr>
+<tr>
+<td><code>settings</code></td>
+<td>id (UUID PK), key (unique), value, type, description</td>
+<td>Key-value config store</td>
+</tr>
+<tr>
+<td><code>sequences</code></td>
+<td>id (UUID PK), name (unique), prefix, current_value, pad_length, reset_yearly</td>
+<td>Auto-numbering system</td>
+</tr>
+</tbody></table>
+<h4>Product &amp; Inventory Tables</h4>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Key Columns</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>categories</code></td>
+<td>id, name, description, is_deleted</td>
+<td>Product categories</td>
+</tr>
+<tr>
+<td><code>companies</code></td>
+<td>id, name, description, is_deleted</td>
+<td>Brands/manufacturers</td>
+</tr>
+<tr>
+<td><code>units</code></td>
+<td>id, name, abbreviation, is_deleted</td>
+<td>Units of measure (pcs, kg, etc.)</td>
+</tr>
+<tr>
+<td><code>products</code></td>
+<td>id, code (unique), barcode (unique), name, description, category_id (FK), company_id (FK), unit_id (FK), retail_price, wholesale_price, cost_price, min_stock_level, track_stock, is_active, is_deleted</td>
+<td>Core product catalog</td>
+</tr>
+<tr>
+<td><code>stock_movements</code></td>
+<td>id, product_id (FK), movement_type (IN/OUT), reference_type, reference_id, quantity, unit_cost, remaining_qty, notes</td>
+<td>FIFO inventory tracking</td>
+</tr>
+</tbody></table>
+<h4>People Tables</h4>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Key Columns</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>customers</code></td>
+<td>id, code, name, phone_number, phone_alt, email, cnic, company_name, address_line1, city, credit_limit, opening_balance, current_balance, account_id (FK), is_active, is_deleted</td>
+<td>Customer master</td>
+</tr>
+<tr>
+<td><code>suppliers</code></td>
+<td>id, code, name, phone_number, email, cnic, company_name, address_line1, city, contact_person, opening_balance, current_balance, account_id (FK), is_active, is_deleted</td>
+<td>Supplier master</td>
+</tr>
+</tbody></table>
+<h4>Transaction Tables</h4>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Key Columns</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>sales</code></td>
+<td>id, invoice_number (unique), customer_id (FK), sale_date, subtotal, discount_amount, discount_percentage, tax_amount, total_amount, amount_paid, payment_method, payment_status, status, notes, quotation_id, created_by (FK), is_deleted</td>
+<td>Sales header</td>
+</tr>
+<tr>
+<td><code>sale_items</code></td>
+<td>id, sale_id (FK), product_id (FK), quantity, unit_price, line_discount, tax_rate, tax_amount, total</td>
+<td>Sale line items</td>
+</tr>
+<tr>
+<td><code>purchases</code></td>
+<td>id, purchase_number (unique), supplier_id (FK), purchase_date, subtotal, discount_amount, tax_amount, total_amount, amount_paid, payment_method, payment_status, status, notes, created_by (FK), is_deleted</td>
+<td>Purchase header</td>
+</tr>
+<tr>
+<td><code>purchase_items</code></td>
+<td>id, purchase_id (FK), product_id (FK), quantity, unit_cost, total</td>
+<td>Purchase line items</td>
+</tr>
+<tr>
+<td><code>quotations</code></td>
+<td>id, quotation_number (unique), customer_id (FK), quotation_date, valid_until, subtotal, discount_amount, discount_type, tax_rate, tax_amount, total_amount, status, notes, created_by (FK), is_deleted</td>
+<td>Quotation header</td>
+</tr>
+<tr>
+<td><code>quotation_items</code></td>
+<td>id, quotation_id (FK), product_id (FK), quantity, unit_price, discount_percent, discount_amount, tax_percent, total</td>
+<td>Quotation line items</td>
+</tr>
+<tr>
+<td><code>payments</code></td>
+<td>id, payment_type, reference_id, amount, payment_method, payment_date, notes, received_by (FK)</td>
+<td>Payment records</td>
+</tr>
+</tbody></table>
+<h4>Accounting Tables</h4>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Key Columns</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>account_groups</code></td>
+<td>id, name, type (account_type enum), code, sequence, is_system</td>
+<td>Chart of Accounts grouping</td>
+</tr>
+<tr>
+<td><code>accounts</code></td>
+<td>id, code (unique), name, group_id (FK), account_type, is_bank_account, bank_name, is_system, is_active, opening_balance, current_balance</td>
+<td>General Ledger accounts</td>
+</tr>
+<tr>
+<td><code>ledger_entries</code></td>
+<td>id, account_id (FK), entry_date, entry_type (debit/credit), amount, balance_after, reference_type, reference_id, description</td>
+<td>Double-entry journal lines</td>
+</tr>
+<tr>
+<td><code>journals</code></td>
+<td>id, journal_number (unique), journal_date, reference_type, reference_id, description, total_amount, created_by (FK), is_deleted</td>
+<td>Manual journal entries</td>
+</tr>
+<tr>
+<td><code>journal_entries</code></td>
+<td>id, journal_id (FK), account_id (FK), entry_type (debit/credit), amount, description</td>
+<td>Journal line items</td>
+</tr>
+</tbody></table>
+<h4>Expense Tables</h4>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Key Columns</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>expense_categories</code></td>
+<td>id, name, account_id (FK), is_deleted</td>
+<td>Expense category master</td>
+</tr>
+<tr>
+<td><code>expenses</code></td>
+<td>id, expense_number (unique), category_id (FK), amount, expense_date, description, payment_method, account_id (FK), notes, created_by (FK), is_deleted</td>
+<td>Expense records</td>
+</tr>
+</tbody></table>
+<h4>Audit Table</h4>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Key Columns</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>audit_logs</code></td>
+<td>id, user_id (FK), action, table_name, record_id, old_values (JSONB), new_values (JSONB)</td>
+<td>Change tracking</td>
+</tr>
+</tbody></table>
+<h3>6.3 Key Design Decisions</h3>
+<ul>
+<li><strong>All PKs are UUIDs</strong> — Generated via <code>uuid_generate_v4()</code></li>
+<li><strong>Soft Deletes</strong> — Most tables use <code>is_deleted</code> boolean (default false)</li>
+<li><strong>Timestamps</strong> — All tables have <code>created_at</code> and <code>updated_at</code> (auto-managed)</li>
+<li><strong>Indexes</strong> — On all foreign keys, unique constraints on codes/numbers</li>
+<li><strong>Financial Precision</strong> — All monetary columns use <code>decimal(15,2)</code></li>
+</ul>
+<hr>
+<h2>7. Seed Data (001_seed_data.js)</h2>
+<p>The seed file initializes the database with default master data:</p>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Count</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Users</td>
+<td>3</td>
+<td>admin/admin123, cashier/cashier123, manager/manager123</td>
+</tr>
+<tr>
+<td>Account Groups</td>
+<td>10</td>
+<td>Bank Accounts, Cash, Inventory, Receivables, Payables, Bank Loans, Sales Revenue, COGS, Operating Expenses, Owner Capital</td>
+</tr>
+<tr>
+<td>GL Accounts</td>
+<td>12</td>
+<td>Cash in Hand (1001), Bank Account (1002), Inventory (1004), Customer Receivables (1201), Supplier Payables (2001), Sales Income (4001), Sales Discount (4002), COGS (5001), Salaries (6001), Rent (6002), Marketing (6003), Owner Capital (3001)</td>
+</tr>
+<tr>
+<td>Units</td>
+<td>8</td>
+<td>Piece, Kilogram, Liter, Box, Pack, Dozen, Meter, Square Meter</td>
+</tr>
+<tr>
+<td>Categories</td>
+<td>5</td>
+<td>Electronics, Clothing, Groceries, Home &amp; Garden, Sports &amp; Outdoors</td>
+</tr>
+<tr>
+<td>Companies</td>
+<td>3</td>
+<td>Generic Brand, Premium Brand, Budget Brand</td>
+</tr>
+<tr>
+<td>Products</td>
+<td>5</td>
+<td>USB Cable, Wireless Mouse, T-Shirt, Rice (1kg), Coffee (500g) — with opening stock movements</td>
+</tr>
+<tr>
+<td>Customers</td>
+<td>3</td>
+<td>Ahmed Khan (Karachi), Fatima Ali (Lahore), Muhammad Hassan (Islamabad)</td>
+</tr>
+<tr>
+<td>Suppliers</td>
+<td>3</td>
+<td>Tech Imports Ltd, Fashion Wholesale Co, Agricultural Exports</td>
+</tr>
+<tr>
+<td>Expense Categories</td>
+<td>6</td>
+<td>Salaries, Rent, Utilities, Marketing, Transportation, Office Supplies</td>
+</tr>
+<tr>
+<td>Sequences</td>
+<td>8</td>
+<td>invoice (INV-), purchase (PUR-), journal (JRN-), quotation (QT-), expense (EXP-), challan (CH-), supplier (SUP-), customer (CUST-)</td>
+</tr>
+<tr>
+<td>Settings</td>
+<td>10</td>
+<td>company_name, phone, email, tax_id, financial_year_start, default_tax_rate, currency_symbol (Rs.), currency_code (PKR), decimal_places, enable_discounts</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>8. Backend — Middleware &amp; Security</h2>
+<h3>8.1 Authentication Middleware (<code>auth.js</code>)</h3>
+<ul>
+<li><strong><code>authenticate</code></strong>: Extracts JWT from <code>Authorization: Bearer &lt;token&gt;</code> header, verifies with <code>JWT_SECRET</code>, looks up user in database, checks <code>is_active</code> flag, attaches <code>req.user = { id, username, role, fullName }</code> to the request.</li>
+<li><strong><code>authorize(...allowedRoles)</code></strong>: Factory that returns middleware checking <code>req.user.role</code> against allowed roles. Returns 403 if unauthorized.</li>
+</ul>
+<h3>8.2 Error Handler (<code>errorHandler.js</code>)</h3>
+<ul>
+<li><strong><code>AppError</code></strong> class: Custom operational error with <code>statusCode</code> and <code>isOperational</code> flag.</li>
+<li><strong>Global errorHandler</strong>: Maps PostgreSQL error codes to user-friendly messages:<ul>
+<li><code>23505</code> (unique_violation) → 409 &quot;A record with this value already exists&quot;</li>
+<li><code>23503</code> (foreign_key_violation) → 409 &quot;Cannot delete, referenced elsewhere&quot;</li>
+<li>JWT errors (<code>JsonWebTokenError</code>, <code>TokenExpiredError</code>) → 401</li>
+</ul>
+</li>
+<li>Prevents stack trace leaking in production.</li>
+</ul>
+<h3>8.3 Logger (<code>logger.js</code>)</h3>
+<ul>
+<li><strong>Winston</strong> with colorized console output + two file transports:<ul>
+<li><code>logs/error.log</code> — error level only</li>
+<li><code>logs/combined.log</code> — all levels</li>
+</ul>
+</li>
+<li>Format: <code>YYYY-MM-DD HH:mm:ss [LEVEL]: message</code></li>
+<li>Captures stack traces for error objects.</li>
+</ul>
+<h3>8.4 CORS Configuration</h3>
+<ul>
+<li>Allowed origins: <code>http://localhost:5173</code>, <code>http://localhost:3000</code></li>
+<li>Credentials: enabled</li>
+</ul>
+<h3>8.5 Content Security Policy (CSP)</h3>
+<p>Set in <code>index.html</code>: <code>default-src &#39;self&#39;; script-src &#39;self&#39; &#39;unsafe-inline&#39;; style-src &#39;self&#39; &#39;unsafe-inline&#39;; img-src &#39;self&#39; data: blob:; connect-src &#39;self&#39; http://localhost:*;</code></p>
+<hr>
+<h2>9. Backend — API Routes (17 Modules)</h2>
+<h3>9.1 Route Registration (in <code>index.js</code>)</h3>
+<pre><code>/api/auth         → auth.routes.js
+/api/products     → product.routes.js
+/api/customers    → customer.routes.js
+/api/suppliers    → supplier.routes.js
+/api/categories   → category.routes.js
+/api/companies    → company.routes.js
+/api/sales        → sale.routes.js
+/api/purchases    → purchase.routes.js
+/api/accounts     → account.routes.js
+/api/reports      → report.routes.js
+/api/expenses     → expense.routes.js
+/api/journals     → journal.routes.js
+/api/users        → user.routes.js
+/api/backup       → backup.routes.js
+/api/stock        → stock.routes.js
+/api/quotations   → quotation.routes.js
+/api/units        → unit.routes.js
+/api/health       → Health check endpoint (inline)
+</code></pre>
+<h3>9.2 Detailed API Endpoints</h3>
+<h4>Auth (<code>/api/auth</code>)</h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Auth</th>
+<th>Roles</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>POST</td>
+<td>/login</td>
+<td>No</td>
+<td>—</td>
+<td>Login with username/password, returns JWT + user info</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/register</td>
+<td>Yes</td>
+<td>admin</td>
+<td>Create new user account</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/me</td>
+<td>Yes</td>
+<td>all</td>
+<td>Get current user profile</td>
+</tr>
+</tbody></table>
+<h4>Products (<code>/api/products</code>)</h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Auth</th>
+<th>Roles</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GET</td>
+<td>/</td>
+<td>Yes</td>
+<td>all</td>
+<td>List products (search, category, company filters, pagination)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/all</td>
+<td>Yes</td>
+<td>all</td>
+<td>All active products (no pagination, for dropdowns/POS)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/:id</td>
+<td>Yes</td>
+<td>all</td>
+<td>Get product by ID with stock info</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/</td>
+<td>Yes</td>
+<td>admin, manager</td>
+<td>Create product</td>
+</tr>
+<tr>
+<td>PUT</td>
+<td>/:id</td>
+<td>Yes</td>
+<td>admin, manager</td>
+<td>Update product</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td>/:id</td>
+<td>Yes</td>
+<td>admin</td>
+<td>Soft delete product</td>
+</tr>
+</tbody></table>
+<h4>Customers (<code>/api/customers</code>)</h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Auth</th>
+<th>Roles</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GET</td>
+<td>/</td>
+<td>Yes</td>
+<td>all</td>
+<td>List customers (search, pagination)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/all</td>
+<td>Yes</td>
+<td>all</td>
+<td>All active customers (no pagination)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/:id</td>
+<td>Yes</td>
+<td>all</td>
+<td>Get customer with ledger and sales history</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/</td>
+<td>Yes</td>
+<td>admin, manager, cashier</td>
+<td>Create customer + generate receivable account</td>
+</tr>
+<tr>
+<td>PUT</td>
+<td>/:id</td>
+<td>Yes</td>
+<td>admin, manager</td>
+<td>Update customer</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td>/:id</td>
+<td>Yes</td>
+<td>admin</td>
+<td>Soft delete customer</td>
+</tr>
+</tbody></table>
+<h4>Suppliers (<code>/api/suppliers</code>)</h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Auth</th>
+<th>Roles</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GET</td>
+<td>/</td>
+<td>Yes</td>
+<td>all</td>
+<td>List suppliers (search, pagination)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/all</td>
+<td>Yes</td>
+<td>all</td>
+<td>All active suppliers</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/:id</td>
+<td>Yes</td>
+<td>all</td>
+<td>Get supplier with purchase history</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/</td>
+<td>Yes</td>
+<td>admin, manager</td>
+<td>Create supplier + generate payable account</td>
+</tr>
+<tr>
+<td>PUT</td>
+<td>/:id</td>
+<td>Yes</td>
+<td>admin, manager</td>
+<td>Update supplier</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td>/:id</td>
+<td>Yes</td>
+<td>admin</td>
+<td>Soft delete supplier</td>
+</tr>
+</tbody></table>
+<h4>Sales (<code>/api/sales</code>)</h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Auth</th>
+<th>Roles</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GET</td>
+<td>/</td>
+<td>Yes</td>
+<td>all</td>
+<td>List sales (date range, customer, status filters)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/:id</td>
+<td>Yes</td>
+<td>all</td>
+<td>Get sale with items, customer, creator details</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/</td>
+<td>Yes</td>
+<td>admin, manager, cashier</td>
+<td>Create sale (generates ledger + stock movements)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/:id/return</td>
+<td>Yes</td>
+<td>admin, manager</td>
+<td>Return a sale (reverse ledger + stock)</td>
+</tr>
+</tbody></table>
+<h4>Purchases (<code>/api/purchases</code>)</h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Auth</th>
+<th>Roles</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GET</td>
+<td>/</td>
+<td>Yes</td>
+<td>all</td>
+<td>List purchases (date range, supplier, status filters)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/:id</td>
+<td>Yes</td>
+<td>all</td>
+<td>Get purchase with items and supplier details</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/</td>
+<td>Yes</td>
+<td>admin, manager</td>
+<td>Create purchase (generates ledger + stock IN movements)</td>
+</tr>
+</tbody></table>
+<h4>Expenses (<code>/api/expenses</code>)</h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Auth</th>
+<th>Roles</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GET</td>
+<td>/</td>
+<td>Yes</td>
+<td>all</td>
+<td>List expenses (date range, category filters)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/categories</td>
+<td>Yes</td>
+<td>all</td>
+<td>List expense categories</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/:id</td>
+<td>Yes</td>
+<td>all</td>
+<td>Get expense details</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/</td>
+<td>Yes</td>
+<td>admin, manager</td>
+<td>Create expense + generate ledger entries</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td>/:id</td>
+<td>Yes</td>
+<td>admin</td>
+<td>Soft delete expense</td>
+</tr>
+</tbody></table>
+<h4>Quotations (<code>/api/quotations</code>)</h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Auth</th>
+<th>Roles</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GET</td>
+<td>/</td>
+<td>Yes</td>
+<td>all</td>
+<td>List quotations (date range, customer, status)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/:id</td>
+<td>Yes</td>
+<td>all</td>
+<td>Get quotation with items</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/</td>
+<td>Yes</td>
+<td>admin, manager, cashier</td>
+<td>Create quotation</td>
+</tr>
+<tr>
+<td>PUT</td>
+<td>/:id/status</td>
+<td>Yes</td>
+<td>admin, manager</td>
+<td>Update quotation status</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/:id/convert</td>
+<td>Yes</td>
+<td>admin, manager, cashier</td>
+<td>Convert quotation to sale</td>
+</tr>
+</tbody></table>
+<h4>Accounts (<code>/api/accounts</code>)</h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Auth</th>
+<th>Roles</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GET</td>
+<td>/</td>
+<td>Yes</td>
+<td>all</td>
+<td>List accounts with groups</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/groups</td>
+<td>Yes</td>
+<td>all</td>
+<td>List account groups</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/:id</td>
+<td>Yes</td>
+<td>all</td>
+<td>Get account details</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/:id/ledger</td>
+<td>Yes</td>
+<td>all</td>
+<td>Get account ledger entries (date range filter)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/</td>
+<td>Yes</td>
+<td>admin</td>
+<td>Create new account</td>
+</tr>
+</tbody></table>
+<h4>Journals (<code>/api/journals</code>)</h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Auth</th>
+<th>Roles</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GET</td>
+<td>/</td>
+<td>Yes</td>
+<td>all</td>
+<td>List journal entries (date range, type filters)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/:id</td>
+<td>Yes</td>
+<td>all</td>
+<td>Get journal with entries (debit/credit lines)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/</td>
+<td>Yes</td>
+<td>admin, manager</td>
+<td>Create manual journal entry</td>
+</tr>
+</tbody></table>
+<h4>Reports (<code>/api/reports</code>)</h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Auth</th>
+<th>Roles</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GET</td>
+<td>/dashboard</td>
+<td>Yes</td>
+<td>all</td>
+<td>Dashboard statistics (today&#39;s sales, totals, recent activity)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/stock</td>
+<td>Yes</td>
+<td>all</td>
+<td>Stock report (current levels, values, low stock)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/profit-loss</td>
+<td>Yes</td>
+<td>admin, manager</td>
+<td>P&amp;L statement (date range)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/trial-balance</td>
+<td>Yes</td>
+<td>admin, manager</td>
+<td>Trial balance report</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/balance-sheet</td>
+<td>Yes</td>
+<td>admin, manager</td>
+<td>Balance sheet report</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/sales</td>
+<td>Yes</td>
+<td>all</td>
+<td>Sales report (date range, grouping)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/purchases</td>
+<td>Yes</td>
+<td>all</td>
+<td>Purchases report (date range)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/expenses</td>
+<td>Yes</td>
+<td>all</td>
+<td>Expenses report (date range, by category)</td>
+</tr>
+</tbody></table>
+<h4>Stock (<code>/api/stock</code>)</h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Auth</th>
+<th>Roles</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GET</td>
+<td>/movements</td>
+<td>Yes</td>
+<td>all</td>
+<td>List stock movements (product, type filters)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/levels</td>
+<td>Yes</td>
+<td>all</td>
+<td>Current stock levels for all products</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/adjust</td>
+<td>Yes</td>
+<td>admin, manager</td>
+<td>Create stock adjustment (IN/OUT with reason)</td>
+</tr>
+</tbody></table>
+<h4>Users (<code>/api/users</code>)</h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Auth</th>
+<th>Roles</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GET</td>
+<td>/</td>
+<td>Yes</td>
+<td>admin</td>
+<td>List all users</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/:id</td>
+<td>Yes</td>
+<td>admin</td>
+<td>Get user details</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/</td>
+<td>Yes</td>
+<td>admin</td>
+<td>Create user</td>
+</tr>
+<tr>
+<td>PUT</td>
+<td>/:id</td>
+<td>Yes</td>
+<td>admin</td>
+<td>Update user</td>
+</tr>
+<tr>
+<td>PUT</td>
+<td>/:id/password</td>
+<td>Yes</td>
+<td>admin</td>
+<td>Reset user password</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td>/:id</td>
+<td>Yes</td>
+<td>admin</td>
+<td>Deactivate user</td>
+</tr>
+</tbody></table>
+<h4>Backup (<code>/api/backup</code>)</h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Auth</th>
+<th>Roles</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>POST</td>
+<td>/export</td>
+<td>Yes</td>
+<td>admin</td>
+<td>Export database to JSON</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/import</td>
+<td>Yes</td>
+<td>admin</td>
+<td>Import database from JSON</td>
+</tr>
+</tbody></table>
+<h4>Categories, Companies, Units</h4>
+<ul>
+<li>Standard CRUD: <code>GET /</code>, <code>POST /</code>, <code>PUT /:id</code>, <code>DELETE /:id</code></li>
+<li>All require authentication; create/update/delete restricted to admin, manager</li>
+</ul>
+<hr>
+<h2>10. Backend — Services (14 Modules)</h2>
+<h3>10.1 Auth Service (<code>auth.service.js</code>)</h3>
+<ul>
+<li><strong>login()</strong>: Validates credentials, checks <code>is_active</code>, generates JWT (24h expiry), updates <code>last_login_at</code>.</li>
+<li><strong>register()</strong>: Hashes password with bcrypt (10 rounds), creates user record.</li>
+</ul>
+<h3>10.2 Sale Service (<code>sale.service.js</code>)</h3>
+<p><strong>Core workflow in <code>create()</code>:</strong></p>
+<ol>
+<li>Generates invoice number via <code>sequences</code> table (e.g., <code>INV-00045</code>)</li>
+<li>Validates all items have sufficient stock</li>
+<li>Creates sale header with payment calculation</li>
+<li>Creates sale_items with line-level discounts and tax</li>
+<li>For each item: creates stock OUT movement (FIFO depletion)</li>
+<li>Records ledger entries via LedgerService:<ul>
+<li>DEBIT: Cash/Bank + Customer Receivables (if partial)</li>
+<li>CREDIT: Sales Revenue</li>
+<li>DEBIT: COGS / CREDIT: Inventory (for each item&#39;s FIFO cost)</li>
+</ul>
+</li>
+<li>If customer exists, updates customer balance</li>
+</ol>
+<p><strong>Return workflow</strong>: Reverses all ledger entries and creates stock IN movements.</p>
+<h3>10.3 Purchase Service (<code>purchase.service.js</code>)</h3>
+<p><strong>Core workflow in <code>create()</code>:</strong></p>
+<ol>
+<li>Generates purchase number (PUR-XXXXX)</li>
+<li>Creates purchase header and items</li>
+<li>For each item: creates stock IN movement with unit cost</li>
+<li>Records ledger entries:<ul>
+<li>DEBIT: Inventory</li>
+<li>CREDIT: Cash/Bank + Supplier Payables</li>
+</ul>
+</li>
+<li>Updates supplier balance</li>
+</ol>
+<h3>10.4 LedgerService (<code>ledger.service.js</code>)</h3>
+<p><strong>The accounting engine</strong> — implements full double-entry bookkeeping:</p>
+<ul>
+<li><strong><code>recordEntry(trx, accountId, entryType, amount, referenceType, referenceId, description, date)</code></strong>: Creates a ledger entry and updates the account&#39;s <code>current_balance</code> atomically.</li>
+<li><strong><code>recordSale(trx, saleData)</code></strong>: Posts sale-related entries (Cash/Bank Dr, Sales Cr, COGS Dr, Inventory Cr).</li>
+<li><strong><code>recordPurchase(trx, purchaseData)</code></strong>: Posts purchase entries (Inventory Dr, Cash/Bank Cr).</li>
+<li><strong><code>recordExpense(trx, expenseData)</code></strong>: Posts expense entries (Expense Account Dr, Cash/Bank Cr).</li>
+<li><strong><code>reverseSale(trx, saleData)</code></strong>: Reverses all entries for a sale return.</li>
+<li>All operations use Knex transactions for atomicity.</li>
+</ul>
+<h3>10.5 Stock Service (<code>stock.service.js</code>)</h3>
+<p><strong>FIFO Inventory Management:</strong></p>
+<ul>
+<li><strong><code>adjustStock(data)</code></strong>: Creates IN or OUT stock movements with reason tracking (damage, shrinkage, correction, count, expired, other).</li>
+<li><strong>Stock OUT (sale/adjustment)</strong>: Depletes oldest stock first (FIFO) by iterating <code>stock_movements</code> ordered by <code>created_at ASC</code> where <code>remaining_qty &gt; 0</code>.</li>
+<li><strong>Stock IN (purchase/adjustment/return)</strong>: Creates new movement with full <code>remaining_qty</code>.</li>
+<li><strong>Cost Calculation</strong>: FIFO cost is retrieved from the actual purchase lot being depleted.</li>
+</ul>
+<h3>10.6 Expense Service (<code>expense.service.js</code>)</h3>
+<ul>
+<li>Generates expense number (EXP-XXXXX)</li>
+<li>Creates expense record linked to category</li>
+<li>Posts ledger entries: DEBIT expense category account, CREDIT cash/bank account</li>
+</ul>
+<h3>10.7 Quotation Service (<code>quotation.service.js</code>)</h3>
+<ul>
+<li>Generates quotation number (QT-XXXXX) with retry loop for duplicate handling</li>
+<li>Creates quotation with line items (unit price, discount percent, tax percent)</li>
+<li>Status management: draft → sent → accepted/rejected/expired</li>
+<li><strong>Convert to Sale</strong>: Loads quotation data and creates a sale via SaleService</li>
+</ul>
+<h3>10.8 Journal Service (<code>journal.service.js</code>)</h3>
+<ul>
+<li>Creates manual journal entries with balanced debit/credit lines</li>
+<li>Validates total debits = total credits before posting</li>
+<li>Each line creates a ledger entry via LedgerService</li>
+</ul>
+<h3>10.9 Report Service (<code>report.service.js</code>)</h3>
+<ul>
+<li><strong>Dashboard</strong>: Today&#39;s sales (count + total), total customers, total products, recent sales, low stock alerts</li>
+<li><strong>Stock Report</strong>: Product-level stock with current quantity, value, and status</li>
+<li><strong>P&amp;L</strong>: Revenue minus COGS minus Expenses for date range</li>
+<li><strong>Trial Balance</strong>: All accounts with debit/credit totals</li>
+<li><strong>Balance Sheet</strong>: Assets, Liabilities, Capital with totals</li>
+</ul>
+<h3>10.10 Other Services</h3>
+<ul>
+<li><strong>Product Service</strong>: CRUD with stock level calculations, search, filtering</li>
+<li><strong>Customer Service</strong>: CRUD with auto-generated receivable accounts, balance tracking</li>
+<li><strong>Supplier Service</strong>: CRUD with auto-generated payable accounts</li>
+<li><strong>Account Service</strong>: Chart of accounts management, ledger querying</li>
+<li><strong>Backup Service</strong>: Full database export/import as JSON</li>
+</ul>
+<hr>
+<h2>11. Frontend — Architecture</h2>
+<h3>11.1 Entry Point (<code>main.jsx</code>)</h3>
+<pre><code class="language-jsx">&lt;React.StrictMode&gt;
+    &lt;HashRouter&gt;
+        &lt;App /&gt;
+        &lt;Toaster position=&quot;top-right&quot; duration={3000}
+            style={{ background: &#39;#1f2937&#39;, color: &#39;#f9fafb&#39; }} /&gt;
+    &lt;/HashRouter&gt;
+&lt;/React.StrictMode&gt;
+</code></pre>
+<ul>
+<li>Uses <strong>HashRouter</strong> (hash-based URLs for Electron compatibility)</li>
+<li>Global <strong>Toaster</strong> for notifications (dark theme)</li>
+</ul>
+<h3>11.2 Routing (<code>App.jsx</code> — 78 lines)</h3>
+<p>All routes wrapped in <code>&lt;Layout&gt;</code> component (except Login):</p>
+<table>
+<thead>
+<tr>
+<th>Route</th>
+<th>Component</th>
+<th>Protection</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/login</code></td>
+<td>Login</td>
+<td>Public</td>
+</tr>
+<tr>
+<td><code>/</code></td>
+<td>Dashboard</td>
+<td>Protected</td>
+</tr>
+<tr>
+<td><code>/sales</code></td>
+<td>Sales</td>
+<td>Protected</td>
+</tr>
+<tr>
+<td><code>/sales/new</code></td>
+<td>NewSale</td>
+<td>Protected</td>
+</tr>
+<tr>
+<td><code>/purchases</code></td>
+<td>Purchases</td>
+<td>Protected</td>
+</tr>
+<tr>
+<td><code>/purchases/new</code></td>
+<td>NewPurchase</td>
+<td>Protected</td>
+</tr>
+<tr>
+<td><code>/products</code></td>
+<td>Products</td>
+<td>Protected</td>
+</tr>
+<tr>
+<td><code>/customers</code></td>
+<td>Customers</td>
+<td>Protected</td>
+</tr>
+<tr>
+<td><code>/suppliers</code></td>
+<td>Suppliers</td>
+<td>Protected</td>
+</tr>
+<tr>
+<td><code>/expenses</code></td>
+<td>Expenses</td>
+<td>Protected</td>
+</tr>
+<tr>
+<td><code>/journals</code></td>
+<td>Journals</td>
+<td>Protected</td>
+</tr>
+<tr>
+<td><code>/quotations</code></td>
+<td>Quotations</td>
+<td>Protected</td>
+</tr>
+<tr>
+<td><code>/accounts</code></td>
+<td>Accounts</td>
+<td>Protected</td>
+</tr>
+<tr>
+<td><code>/accounts/:id/ledger</code></td>
+<td>LedgerView</td>
+<td>Protected</td>
+</tr>
+<tr>
+<td><code>/stock/adjust</code></td>
+<td>StockAdjustment</td>
+<td>Protected</td>
+</tr>
+<tr>
+<td><code>/reports</code></td>
+<td>Reports</td>
+<td>Protected</td>
+</tr>
+<tr>
+<td><code>/settings</code></td>
+<td>Settings</td>
+<td>Protected</td>
+</tr>
+<tr>
+<td><code>/users</code></td>
+<td>Users</td>
+<td>Protected</td>
+</tr>
+</tbody></table>
+<p><strong>ProtectedRoute</strong>: Checks <code>auth.store.isAuthenticated</code>; redirects to <code>/login</code> if false.</p>
+<h3>11.3 State Management</h3>
+<h4>Auth Store (<code>auth.store.js</code> — Zustand, persisted)</h4>
+<pre><code>State: { user, token, isAuthenticated }
+Actions: login(userData, token), logout(), getToken(), hasRole(role)
+Storage: localStorage key &#39;auth-storage&#39;
+</code></pre>
+<h4>Cart Store (<code>cart.store.js</code> — Zustand, persisted, 236 lines)</h4>
+<p>Full POS cart state with rich actions:</p>
+<pre><code>State: {
+  items[], customer, globalDiscount, taxRate, paymentMethod,
+  paidAmount, notes
+}
+Actions:
+  addItem(product)          — Add or increment item
+  removeItem(productId)     — Remove item from cart
+  updateQuantity(id, qty)   — Set item quantity
+  updateItemPrice(id, price) — Override item price
+  updateItemDiscount(id, disc) — Set per-item discount
+  setCustomer(customer)     — Set sale customer
+  setGlobalDiscount(amount) — Set global discount
+  setTaxRate(rate)          — Set tax rate
+  setPaymentMethod(method)  — cash/bank_transfer/credit
+  setPaidAmount(amount)     — Set amount paid
+  setNotes(text)            — Set sale notes
+  getSaleData()             — Compile cart into sale API payload
+  loadFromQuotation(quot)   — Load quotation into cart
+  clearCart()               — Reset all state
+Computed (via get):
+  subtotal, discountAmount, afterDiscount, taxAmount, total,
+  changeAmount, itemCount
+Storage: localStorage key &#39;cart-storage&#39;
+</code></pre>
+<h3>11.4 API Service Layer (<code>api.js</code> — 182 lines)</h3>
+<p><strong>Axios Instance Configuration:</strong></p>
+<ul>
+<li>Base URL: <code>/api</code> (proxied by Vite)</li>
+<li>Request interceptor: Injects <code>Authorization: Bearer &lt;token&gt;</code> from auth store</li>
+<li>Response interceptor: On 401, triggers <code>logout()</code> and redirects to <code>/login</code></li>
+</ul>
+<p><strong>14 API Modules:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Key Methods</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>authAPI</code></td>
+<td>login, register, getProfile</td>
+</tr>
+<tr>
+<td><code>productsAPI</code></td>
+<td>getAll, getAllNoPagination, get, create, update, delete</td>
+</tr>
+<tr>
+<td><code>customersAPI</code></td>
+<td>getAll, getAllNoPagination, get, create, update, delete</td>
+</tr>
+<tr>
+<td><code>suppliersAPI</code></td>
+<td>getAll, getAllNoPagination, get, create, update, delete</td>
+</tr>
+<tr>
+<td><code>salesAPI</code></td>
+<td>getAll, get, create, return</td>
+</tr>
+<tr>
+<td><code>purchasesAPI</code></td>
+<td>getAll, get, create</td>
+</tr>
+<tr>
+<td><code>categoriesAPI</code></td>
+<td>getAll, create, update, delete</td>
+</tr>
+<tr>
+<td><code>companiesAPI</code></td>
+<td>getAll, create, update, delete</td>
+</tr>
+<tr>
+<td><code>unitsAPI</code></td>
+<td>getAll</td>
+</tr>
+<tr>
+<td><code>accountsAPI</code></td>
+<td>getAll, getGroups, get, getLedger, create</td>
+</tr>
+<tr>
+<td><code>reportsAPI</code></td>
+<td>dashboard, stock, profitLoss, trialBalance, balanceSheet, sales, purchases, expenses</td>
+</tr>
+<tr>
+<td><code>expensesAPI</code></td>
+<td>getAll, getCategories, get, create, delete</td>
+</tr>
+<tr>
+<td><code>journalsAPI</code></td>
+<td>getAll, get, create</td>
+</tr>
+<tr>
+<td><code>quotationsAPI</code></td>
+<td>getAll, get, create, updateStatus, convert</td>
+</tr>
+<tr>
+<td><code>stockAPI</code></td>
+<td>getMovements, getLevels, adjust</td>
+</tr>
+<tr>
+<td><code>usersAPI</code></td>
+<td>getAll, get, create, update, resetPassword, delete</td>
+</tr>
+<tr>
+<td><code>backupAPI</code></td>
+<td>export, import</td>
+</tr>
+<tr>
+<td><code>settingsAPI</code></td>
+<td>getAll, update</td>
+</tr>
+</tbody></table>
+<h3>11.5 Data Synchronization (<code>dataSync.js</code> — Pub/Sub)</h3>
+<p>Custom event bus for cross-component communication:</p>
+<pre><code>Events: SALE_CREATED, PURCHASE_CREATED, PRODUCT_UPDATED,
+        CUSTOMER_UPDATED, EXPENSE_CREATED, STOCK_ADJUSTED,
+        JOURNAL_CREATED, QUOTATION_CREATED, QUOTATION_CONVERTED,
+        SETTINGS_UPDATED
+Methods: subscribe(event, callback), publish(event, data),
+         unsubscribe(event, callback)
+</code></pre>
+<p>Components subscribe on mount and unsubscribe on unmount to auto-refresh data.</p>
+<hr>
+<h2>12. Frontend — Pages (18 Total)</h2>
+<h3>12.1 Login Page (<code>Login.jsx</code> + <code>Login.css</code>)</h3>
+<ul>
+<li>Centered card with gradient background</li>
+<li>Username + password fields</li>
+<li>Calls <code>authAPI.login()</code>, stores result in auth store</li>
+<li>Redirects to Dashboard on success</li>
+<li>Gradient logo: blue → purple</li>
+</ul>
+<h3>12.2 Dashboard (<code>Dashboard.jsx</code> + <code>Dashboard.css</code> — 350+ lines)</h3>
+<ul>
+<li><strong>4 stat cards</strong>: Today&#39;s Sales, Total Customers, Total Products, Total Revenue (with gradient icon backgrounds: blue, green, orange, purple)</li>
+<li><strong>Bar chart</strong>: Last 7 days sales visualization (CSS-only, no chart library)</li>
+<li><strong>Activity feed</strong>: Recent sales and purchases with timestamps</li>
+<li><strong>Quick actions</strong>: 4-button grid linking to New Sale, New Purchase, Products, Reports</li>
+<li>Subscribes to <code>dataSync</code> for real-time updates</li>
+</ul>
+<h3>12.3 NewSale / POS Page (<code>NewSale.jsx</code> — 400+ lines)</h3>
+<p>The most complex page — a full Point of Sale terminal:</p>
+<ul>
+<li><strong>Left panel</strong>: Product grid with search, category tabs, barcode input</li>
+<li><strong>Right panel</strong>: Cart sidebar (drawer on &lt;1440px, docked on ≥1440px)</li>
+<li><strong>Product interaction</strong>: Click to add, flash animation, in-cart pill badge</li>
+<li><strong>Cart features</strong>: Quantity stepper, per-item price/discount editing, delete on qty=0</li>
+<li><strong>Payment</strong>: Method toggle (cash/bank/credit), paid amount input, quick amount buttons, change calculation</li>
+<li><strong>Customer</strong>: Searchable dropdown with keyboard navigation</li>
+<li><strong>Checkout</strong>: Validates stock, calls <code>salesAPI.create()</code>, publishes <code>SALE_CREATED</code></li>
+<li><strong>Keyboard shortcuts</strong>: <code>Ctrl+B</code> (barcode), <code>Escape</code> (close cart)</li>
+<li><strong>Invoice</strong>: After sale, option to generate PDF via InvoicePDF component</li>
+</ul>
+<h3>12.4 Sales List (<code>Sales.jsx</code>)</h3>
+<ul>
+<li>Table with invoice number, customer, date, total, payment status, actions</li>
+<li>Date range filtering</li>
+<li>Status badges: completed (green), returned (red), cancelled (grey)</li>
+<li>View details modal with sale items</li>
+<li>Return sale functionality</li>
+<li>PDF invoice download per sale</li>
+</ul>
+<h3>12.5 NewPurchase (<code>NewPurchase.jsx</code>)</h3>
+<ul>
+<li>Supplier selection dropdown</li>
+<li>Dynamic item rows: product picker, quantity, unit cost, line total</li>
+<li>Add/remove item rows</li>
+<li>Payment method and amount</li>
+<li>Purchase number auto-generated</li>
+<li>Creates purchase with stock IN + ledger entries</li>
+</ul>
+<h3>12.6 Purchases List (<code>Purchases.jsx</code>)</h3>
+<ul>
+<li>Filterable table by date range, supplier, status</li>
+<li>View purchase details modal</li>
+<li>Payment status tracking</li>
+</ul>
+<h3>12.7 Products (<code>Products.jsx</code>)</h3>
+<ul>
+<li>Searchable, filterable product table (by category, company)</li>
+<li>Add/Edit product modal with all fields (code, barcode, name, prices, category, company, unit, min stock)</li>
+<li>Stock level display with color-coded badges</li>
+<li>Soft delete with confirmation</li>
+</ul>
+<h3>12.8 Customers (<code>Customers.jsx</code>)</h3>
+<ul>
+<li>Table with search, pagination</li>
+<li>Add/Edit modal (name, phone, email, CNIC, company, address, city, credit limit, opening balance)</li>
+<li>View customer details with balance and sales history</li>
+<li>Auto-generates customer code (CUST-XXXXX)</li>
+</ul>
+<h3>12.9 Suppliers (<code>Suppliers.jsx</code>)</h3>
+<ul>
+<li>Similar to Customers page</li>
+<li>Add/Edit modal with supplier-specific fields (contact person, company)</li>
+<li>Auto-generates supplier code (SUP-XXXXX)</li>
+</ul>
+<h3>12.10 Expenses (<code>Expenses.jsx</code> + <code>Expenses.css</code> — 350+ lines)</h3>
+<ul>
+<li><strong>Stats cards</strong>: Total expenses, count, average (with gradient accents and hover animations)</li>
+<li>Date range filtering</li>
+<li>Expenses table with category, amount, date, payment method</li>
+<li>Add expense modal with category dropdown, amount, date, description, payment method</li>
+<li>Expense categories from API</li>
+</ul>
+<h3>12.11 Quotations (<code>Quotations.jsx</code>)</h3>
+<ul>
+<li>Quotation list with status management</li>
+<li>Status flow: Draft → Sent → Accepted/Rejected/Expired → Converted</li>
+<li>View quotation details</li>
+<li><strong>Convert to Sale</strong>: One-click conversion loads quotation into POS cart</li>
+<li>Status badge colors per state</li>
+</ul>
+<h3>12.12 Journals (<code>Journals.jsx</code>)</h3>
+<ul>
+<li>Journal entry list with date range filtering</li>
+<li>View journal details modal showing debit/credit lines</li>
+<li>Create journal entry modal:<ul>
+<li>Dynamic rows for debit/credit entries</li>
+<li>Account selector per row</li>
+<li>Auto-validates total debits = total credits</li>
+<li>Description and date fields</li>
+</ul>
+</li>
+</ul>
+<h3>12.13 Accounts / Chart of Accounts (<code>Accounts.jsx</code>)</h3>
+<ul>
+<li>Grouped by account type (Asset, Liability, Income, Expense, Capital)</li>
+<li>Shows account groups with nested accounts</li>
+<li>Account balance display</li>
+<li>Click account to navigate to ledger view</li>
+<li>Add new account modal</li>
+</ul>
+<h3>12.14 Ledger View (<code>LedgerView.jsx</code>)</h3>
+<ul>
+<li>Full ledger for a specific account</li>
+<li>Date range filtering</li>
+<li>Shows: date, description, reference, debit, credit, running balance</li>
+<li>Opening and closing balance display</li>
+</ul>
+<h3>12.15 Stock Adjustment (<code>StockAdjustment.jsx</code>)</h3>
+<ul>
+<li>Product selector dropdown</li>
+<li>Current stock display</li>
+<li>Adjustment type: IN or OUT</li>
+<li>Quantity and reason (damage, shrinkage, correction, count, expired, other)</li>
+<li>Notes field</li>
+<li>Creates stock movement via API</li>
+</ul>
+<h3>12.16 Reports (<code>Reports.jsx</code> + <code>Reports.css</code>)</h3>
+<p><strong>Tabbed report interface with 8 report types:</strong></p>
+<ol>
+<li><strong>Dashboard</strong>: Summary statistics</li>
+<li><strong>Stock Report</strong>: Current levels, values, low stock alerts</li>
+<li><strong>Profit &amp; Loss</strong>: Revenue - COGS - Expenses with date range</li>
+<li><strong>Trial Balance</strong>: All accounts with debit/credit totals, balanced check</li>
+<li><strong>Balance Sheet</strong>: Assets = Liabilities + Capital</li>
+<li><strong>Sales Report</strong>: Sales data by date range</li>
+<li><strong>Purchases Report</strong>: Purchase data by date range</li>
+<li><strong>Expenses Report</strong>: Expense data by category</li>
+</ol>
+<p>Financial statements use specialized CSS: <code>.statement-row</code>, <code>.statement-section</code>, <code>.balanced-badge</code></p>
+<h3>12.17 Settings (<code>Settings.jsx</code>)</h3>
+<ul>
+<li>Key-value settings editor</li>
+<li>Fields: Company Name, Phone, Email, Tax ID, Financial Year Start, Default Tax Rate, Currency Symbol, Currency Code, Decimal Places, Enable Discounts</li>
+<li>Save updates to API</li>
+</ul>
+<h3>12.18 Users (<code>Users.jsx</code>)</h3>
+<ul>
+<li>User management table (admin only)</li>
+<li>Add/Edit user modal: username, full name, email, phone, role (dropdown), is_active</li>
+<li>Password reset functionality</li>
+<li>Role assignment: admin, manager, cashier, viewer</li>
+</ul>
+<hr>
+<h2>13. Frontend — Components</h2>
+<h3>13.1 Layout Component (<code>Layout.jsx</code> + <code>Layout.css</code>)</h3>
+<ul>
+<li><strong>Fixed sidebar</strong> (240px wide) with:<ul>
+<li>Gradient logo (&quot;ZYNC&quot; with blue→purple gradient)</li>
+<li>Navigation links with emoji icons and active state highlighting</li>
+<li>&quot;New Sale&quot; quick action button</li>
+<li>User info (name + role) and logout button</li>
+</ul>
+</li>
+<li><strong>Main content area</strong>: <code>margin-left: 240px</code>, renders <code>&lt;Outlet /&gt;</code></li>
+<li><strong>Responsive</strong>: Sidebar slides off-screen on mobile (&lt;768px)</li>
+</ul>
+<p><strong>Navigation Items:</strong>
+Dashboard, Products, Customers, Suppliers, Sales, New Sale, Purchases, New Purchase, Quotations, Expenses, Journals, Accounts, Stock Adjust, Reports, Settings, Users</p>
+<h3>13.2 POS Component Library</h3>
+<h4>ProductCard (<code>ProductCard.jsx</code> — 123 lines)</h4>
+<ul>
+<li>Memoized with <code>React.memo</code> and custom equality check</li>
+<li><strong>Visual states</strong>: Default (dark card), In-cart (green tint + pill badge), Low stock (amber strip), Out of stock (red strip + dimmed)</li>
+<li><strong>Status strip</strong>: 6px left border via <code>::before</code> pseudo-element</li>
+<li><strong>In-cart pill</strong>: Shows cart icon + quantity, solid green with shadow</li>
+<li><strong>Just-added animation</strong>: Scale + blue flash (400ms)</li>
+<li><strong>Layout</strong>: Card header (name + stock badge), product code, card footer (price + in-cart pill)</li>
+</ul>
+<h4>CartSidebar (<code>CartSidebar.jsx</code> — 373 lines)</h4>
+<ul>
+<li><strong>Drawer mode</strong> (&lt;1440px): Slides in from right with backdrop blur overlay</li>
+<li><strong>Docked mode</strong> (≥1440px): Fixed panel, no overlay</li>
+<li><strong>3 regions</strong>: Fixed header, scrollable items list, fixed footer</li>
+<li><strong>Cart items</strong>: QuantityStepper, inline price editing, per-item discount, delete button, FIFO cost display</li>
+<li><strong>Footer section</strong>: Global discount input, tax display, payment method toggle, paid amount + quick amount buttons, change calculation, complete sale button</li>
+<li><strong>Keyboard</strong>: Escape to close</li>
+</ul>
+<h4>CustomerSelector (<code>CustomerSelector.jsx</code> — 159 lines)</h4>
+<ul>
+<li>Searchable dropdown with debounced input</li>
+<li>Keyboard navigation (↑↓ arrows, Enter to select, Escape to close)</li>
+<li>Shows customer name, phone, balance</li>
+<li>&quot;Walk-in Customer&quot; option (no customer selected)</li>
+<li>Clear button to deselect</li>
+</ul>
+<h4>BarcodeInput (<code>BarcodeInput.jsx</code> — 120 lines)</h4>
+<ul>
+<li><strong>Scanner detection</strong>: Listens for fast keypress sequences (&gt;3 chars in &lt;100ms) ending with Enter</li>
+<li><strong>Manual entry</strong>: Toggle form with <code>Ctrl+B</code> shortcut</li>
+<li>Matches by <code>product.barcode</code> or <code>product.code</code></li>
+<li>Returns matched product or null (parent handles not-found)</li>
+</ul>
+<h4>POSControls (<code>POSControls.jsx</code> — 153 lines)</h4>
+<p>Three sub-components:</p>
+<ul>
+<li><strong>QuantityStepper</strong>: ±buttons + editable number input, min/max clamping, blur validation</li>
+<li><strong>PaymentToggle</strong>: Segmented button group (💵 Cash, 🏦 Bank, 💳 Credit)</li>
+<li><strong>CategoryTabs</strong>: Horizontal scrollable pill tabs with &quot;All&quot; default</li>
+</ul>
+<h4>QuickAmountButtons (<code>QuickAmountButtons.jsx</code> — 44 lines)</h4>
+<ul>
+<li>Generates smart cash suggestions: exact amount, rounded to 50, 100, 500, 1000</li>
+<li>Deduplicates and caps at 4 buttons</li>
+<li>&quot;Exact&quot; label on first button</li>
+<li>Selected state with green border</li>
+</ul>
+<h3>13.3 InvoicePDF (<code>InvoicePDF.jsx</code> — 285 lines)</h3>
+<ul>
+<li><strong><code>generateInvoicePDF(saleData, companyName)</code></strong>: Builds HTML template with company header, customer details, item table, totals, payment info, and footer</li>
+<li>Uses <code>html2pdf.js</code> to convert HTML → PDF blob → triggers download</li>
+<li><strong><code>InvoicePDFButton</code></strong>: React component wrapping the function with loading state</li>
+</ul>
+<hr>
+<h2>14. Frontend — Design System (<code>index.css</code> — 550 lines)</h2>
+<h3>14.1 CSS Variables (Design Tokens)</h3>
+<pre><code class="language-css">/* Dark Theme Colors */
+--color-bg-primary: #0f172a;      /* Main background */
+--color-bg-secondary: #1e293b;    /* Cards, sidebar */
+--color-bg-tertiary: #334155;     /* Table headers, hover */
+--color-bg-hover: #475569;        /* Active hover state */
+--color-text-primary: #f8fafc;    /* Main text */
+--color-text-secondary: #94a3b8;  /* Muted text */
+--color-text-muted: #64748b;      /* Disabled text */
+--color-accent: #3b82f6;          /* Primary actions (blue) */
+--color-success: #22c55e;         /* Success states (green) */
+--color-warning: #f59e0b;         /* Warning states (amber) */
+--color-danger: #ef4444;          /* Error states (red) */
+--color-info: #06b6d4;            /* Info states (cyan) */
+--font-sans: &#39;Inter&#39;, system-ui;  /* Primary font */
+--font-mono: &#39;JetBrains Mono&#39;;    /* Code/numbers font */
+</code></pre>
+<h3>14.2 Component Styles</h3>
+<ul>
+<li><strong>Buttons</strong>: <code>.btn-primary</code> (blue), <code>.btn-secondary</code> (grey), <code>.btn-success</code> (green), <code>.btn-danger</code> (red), <code>.btn-ghost</code> (transparent)</li>
+<li><strong>Forms</strong>: <code>.form-group</code>, <code>.form-label</code>, <code>.form-input</code>, <code>.form-select</code>, <code>.form-textarea</code> with focus ring</li>
+<li><strong>Cards</strong>: <code>.card</code> with border, radius-lg, padding</li>
+<li><strong>Tables</strong>: <code>.table</code> with hover rows, uppercase headers</li>
+<li><strong>Badges</strong>: <code>.badge-success</code>, <code>.badge-warning</code>, <code>.badge-danger</code>, <code>.badge-ghost-*</code></li>
+<li><strong>Stats</strong>: <code>.stat-card</code>, <code>.stat-value</code>, <code>.stat-label</code>, <code>.stat-change</code></li>
+<li><strong>Grid</strong>: <code>.grid-2</code>, <code>.grid-3</code>, <code>.grid-4</code> with responsive breakpoints</li>
+<li><strong>Neon Effects</strong>: <code>.neon-success</code>, <code>.neon-danger</code>, <code>.neon-warning</code> (glow shadows)</li>
+</ul>
+<h3>14.3 POS Styles (<code>pos.css</code> — 1442 lines)</h3>
+<p>Comprehensive styling for the POS interface:</p>
+<ul>
+<li><strong>Design tokens</strong>: State colors (neutral, selected, in-cart, low-stock, out-stock, flash)</li>
+<li><strong>Product cards</strong>: Dark cards (#1e293b) with 6px status strips, hover elevation, selection border, in-cart gradient tint, just-added flash animation</li>
+<li><strong>Cart sidebar</strong>: 460px drawer with slide animation, backdrop blur, 3-region flex layout</li>
+<li><strong>Cart items</strong>: Selection states, inline editing, swipe-to-delete, item total display</li>
+<li><strong>Responsive</strong>: Cart docks at ≥1440px, drawer mode below</li>
+</ul>
+<hr>
+<h2>15. Authentication &amp; Authorization Flow</h2>
+<h3>15.1 Login Flow</h3>
+<ol>
+<li>User submits username + password → <code>POST /api/auth/login</code></li>
+<li>Backend: Validates credentials, checks <code>is_active</code>, generates JWT (24h TTL)</li>
+<li>Frontend: Stores <code>{ user, token }</code> in Zustand auth store (persisted to localStorage)</li>
+<li>Axios interceptor automatically attaches <code>Authorization: Bearer &lt;token&gt;</code> to all requests</li>
+<li>On token expiry/401: Interceptor calls <code>logout()</code>, redirects to <code>/login</code></li>
+</ol>
+<h3>15.2 Role-Based Access Control</h3>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Permissions</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>admin</strong></td>
+<td>Full access: all CRUD, user management, reports, settings, backup</td>
+</tr>
+<tr>
+<td><strong>manager</strong></td>
+<td>Create/edit sales, purchases, expenses, products, customers, suppliers, quotations, journals; access reports</td>
+</tr>
+<tr>
+<td><strong>cashier</strong></td>
+<td>Create sales, create quotations, view products/customers</td>
+</tr>
+<tr>
+<td><strong>viewer</strong></td>
+<td>Read-only access to all data</td>
+</tr>
+</tbody></table>
+<h3>15.3 Password Security</h3>
+<ul>
+<li>Hashed with bcrypt (10 salt rounds)</li>
+<li>No plaintext storage</li>
+<li>Admin can reset any user&#39;s password</li>
+</ul>
+<hr>
+<h2>16. Double-Entry Accounting Engine</h2>
+<h3>16.1 Account Types</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Normal Balance</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Asset</td>
+<td>Debit</td>
+<td>Cash, Bank, Inventory, Receivables</td>
+</tr>
+<tr>
+<td>Liability</td>
+<td>Credit</td>
+<td>Payables, Bank Loans</td>
+</tr>
+<tr>
+<td>Capital</td>
+<td>Credit</td>
+<td>Owner Capital</td>
+</tr>
+<tr>
+<td>Income</td>
+<td>Credit</td>
+<td>Sales Revenue</td>
+</tr>
+<tr>
+<td>Expense</td>
+<td>Debit</td>
+<td>COGS, Salaries, Rent</td>
+</tr>
+</tbody></table>
+<h3>16.2 Ledger Entry Examples</h3>
+<p><strong>Sale (Cash, Rs. 1,000):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Account</th>
+<th>Debit</th>
+<th>Credit</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Cash in Hand</td>
+<td>1,000</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Sales Revenue</td>
+<td>—</td>
+<td>1,000</td>
+</tr>
+<tr>
+<td>COGS</td>
+<td>600</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Inventory</td>
+<td>—</td>
+<td>600</td>
+</tr>
+</tbody></table>
+<p><strong>Purchase (Bank Transfer, Rs. 5,000):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Account</th>
+<th>Debit</th>
+<th>Credit</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Inventory</td>
+<td>5,000</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Bank Account</td>
+<td>—</td>
+<td>5,000</td>
+</tr>
+</tbody></table>
+<p><strong>Expense (Cash, Rs. 500):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Account</th>
+<th>Debit</th>
+<th>Credit</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Expense Account</td>
+<td>500</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Cash in Hand</td>
+<td>—</td>
+<td>500</td>
+</tr>
+</tbody></table>
+<h3>16.3 Balance Tracking</h3>
+<ul>
+<li>Each ledger entry updates the account&#39;s <code>current_balance</code> atomically</li>
+<li><code>balance_after</code> recorded per entry for running balance display</li>
+<li>Trial balance validates total debits = total credits</li>
+</ul>
+<hr>
+<h2>17. FIFO Inventory System</h2>
+<h3>17.1 Stock Movement Types</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Direction</th>
+<th>Trigger</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Purchase</td>
+<td>IN</td>
+<td>New purchase created</td>
+</tr>
+<tr>
+<td>Opening</td>
+<td>IN</td>
+<td>Seed data / initial stock</td>
+</tr>
+<tr>
+<td>Return</td>
+<td>IN</td>
+<td>Sale return</td>
+</tr>
+<tr>
+<td>Adjustment (IN)</td>
+<td>IN</td>
+<td>Manual stock adjustment</td>
+</tr>
+<tr>
+<td>Sale</td>
+<td>OUT</td>
+<td>Sale completed</td>
+</tr>
+<tr>
+<td>Adjustment (OUT)</td>
+<td>OUT</td>
+<td>Manual stock adjustment (damage, etc.)</td>
+</tr>
+</tbody></table>
+<h3>17.2 FIFO Depletion Algorithm</h3>
+<p>When stock goes OUT (sale or adjustment):</p>
+<ol>
+<li>Query <code>stock_movements</code> WHERE <code>product_id = X</code> AND <code>movement_type = &#39;IN&#39;</code> AND <code>remaining_qty &gt; 0</code> ORDER BY <code>created_at ASC</code></li>
+<li>Iterate through oldest lots first</li>
+<li>Deduct from <code>remaining_qty</code> of each lot until total quantity fulfilled</li>
+<li>Calculate COGS based on actual <code>unit_cost</code> of each depleted lot</li>
+<li>This ensures First-In, First-Out costing</li>
+</ol>
+<h3>17.3 Current Stock Calculation</h3>
+<p><code>Current Stock = SUM(remaining_qty) WHERE movement_type = &#39;IN&#39; AND remaining_qty &gt; 0</code></p>
+<hr>
+<h2>18. Auto-Numbering System (Sequences)</h2>
+<p>The <code>sequences</code> table provides configurable auto-incrementing document numbers:</p>
+<table>
+<thead>
+<tr>
+<th>Sequence</th>
+<th>Prefix</th>
+<th>Example</th>
+<th>Used By</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>invoice</td>
+<td>INV-</td>
+<td>INV-00001</td>
+<td>Sales</td>
+</tr>
+<tr>
+<td>purchase</td>
+<td>PUR-</td>
+<td>PUR-00001</td>
+<td>Purchases</td>
+</tr>
+<tr>
+<td>journal</td>
+<td>JRN-</td>
+<td>JRN-00001</td>
+<td>Journals</td>
+</tr>
+<tr>
+<td>quotation</td>
+<td>QT-</td>
+<td>QT-00001</td>
+<td>Quotations</td>
+</tr>
+<tr>
+<td>expense</td>
+<td>EXP-</td>
+<td>EXP-00001</td>
+<td>Expenses</td>
+</tr>
+<tr>
+<td>challan</td>
+<td>CH-</td>
+<td>CH-00001</td>
+<td>Delivery challans</td>
+</tr>
+<tr>
+<td>supplier</td>
+<td>SUP-</td>
+<td>SUP-00001</td>
+<td>Supplier codes</td>
+</tr>
+<tr>
+<td>customer</td>
+<td>CUST-</td>
+<td>CUST-00001</td>
+<td>Customer codes</td>
+</tr>
+</tbody></table>
+<p><strong>Generation Logic</strong>: Read <code>current_value</code> → increment → pad with zeros (<code>pad_length</code>) → prepend <code>prefix</code> → save new value. Uses database transactions to prevent duplicates.</p>
+<hr>
+<h2>19. Utility Scripts (20 Total)</h2>
+<table>
+<thead>
+<tr>
+<th>Script</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>backup_data.js</code></td>
+<td>Export database tables to JSON file</td>
+</tr>
+<tr>
+<td><code>clear_data.js</code></td>
+<td>Truncate all transaction data (keep master data)</td>
+</tr>
+<tr>
+<td><code>reset_password.js</code></td>
+<td>Reset a user&#39;s password via CLI</td>
+</tr>
+<tr>
+<td><code>seed_database.js</code></td>
+<td>Run the seed data script</td>
+</tr>
+<tr>
+<td><code>seed_categories.js</code></td>
+<td>Seed product categories</td>
+</tr>
+<tr>
+<td><code>seed_dummy_products.js</code></td>
+<td>Generate dummy products for testing</td>
+</tr>
+<tr>
+<td><code>show_database.js</code></td>
+<td>Display database tables and counts</td>
+</tr>
+<tr>
+<td><code>verify_schema.js</code></td>
+<td>Verify all tables and columns exist</td>
+</tr>
+<tr>
+<td><code>verify_endpoints.js</code></td>
+<td>Test all API endpoints</td>
+</tr>
+<tr>
+<td><code>verify_ledger.js</code></td>
+<td>Validate ledger balance integrity</td>
+</tr>
+<tr>
+<td><code>sync_sequences.js</code></td>
+<td>Sync sequence counters with actual data</td>
+</tr>
+<tr>
+<td><code>sync_all_sequences.js</code></td>
+<td>Sync all sequence types</td>
+</tr>
+<tr>
+<td><code>add_missing_sequences.js</code></td>
+<td>Add any missing sequence records</td>
+</tr>
+<tr>
+<td><code>check_sequences.js</code></td>
+<td>Display current sequence values</td>
+</tr>
+<tr>
+<td><code>check_sequence_exact.js</code></td>
+<td>Check specific sequence value</td>
+</tr>
+<tr>
+<td><code>insert_sequences.js</code></td>
+<td>Insert sequence records manually</td>
+</tr>
+<tr>
+<td><code>fix_invoice_sequence.js</code></td>
+<td>Fix invoice sequence counter</td>
+</tr>
+<tr>
+<td><code>fake_migrations.js</code></td>
+<td>Mark migrations as run without executing</td>
+</tr>
+<tr>
+<td><code>migrate_to_new_schema.js</code></td>
+<td>Migrate data to new schema format</td>
+</tr>
+<tr>
+<td><code>debug_columns.js</code></td>
+<td>Debug column definitions</td>
+</tr>
+<tr>
+<td><code>cleanup_transactions.js</code></td>
+<td>Clean up orphaned transaction data</td>
+</tr>
+<tr>
+<td><code>perf_test.js</code></td>
+<td>Performance testing script</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>20. Known Issues &amp; Bug Fixes</h2>
+<h3>20.1 Resolved: Journals Detail Modal TypeError</h3>
+<p><strong>Problem</strong>: Clicking &quot;View&quot; on a journal entry crashed with <code>TypeError: Cannot read property &#39;toUpperCase&#39; of undefined</code> on line 237 of <code>Journals.jsx</code>.
+<strong>Root Cause</strong>: The modal template used <code>viewingJournal.journal_type</code> and <code>viewingJournal.narration</code>, but the API returns <code>reference_type</code> and <code>description</code>.
+<strong>Fix</strong>: Updated field names:</p>
+<pre><code class="language-diff">- &lt;div&gt;&lt;strong&gt;Source:&lt;/strong&gt; {viewingJournal.journal_type.toUpperCase()}&lt;/div&gt;
++ &lt;div&gt;&lt;strong&gt;Source:&lt;/strong&gt; {viewingJournal.reference_type?.toUpperCase()}&lt;/div&gt;
+- &lt;div&gt;&lt;strong&gt;Narration:&lt;/strong&gt; {viewingJournal.narration}&lt;/div&gt;
++ &lt;div&gt;&lt;strong&gt;Narration:&lt;/strong&gt; {viewingJournal.description || viewingJournal.narration}&lt;/div&gt;
+</code></pre>
+<hr>
+<h2>21. Feature Status Summary</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Status</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>JWT Authentication</td>
+<td>✅ Complete</td>
+<td>Login, register, token refresh</td>
+</tr>
+<tr>
+<td>Role-Based Access</td>
+<td>✅ Complete</td>
+<td>4 roles with route-level guards</td>
+</tr>
+<tr>
+<td>Product Management</td>
+<td>✅ Complete</td>
+<td>Full CRUD with categories, companies, units</td>
+</tr>
+<tr>
+<td>Customer Management</td>
+<td>✅ Complete</td>
+<td>CRUD with auto-generated accounts</td>
+</tr>
+<tr>
+<td>Supplier Management</td>
+<td>✅ Complete</td>
+<td>CRUD with auto-generated accounts</td>
+</tr>
+<tr>
+<td>Point of Sale (POS)</td>
+<td>✅ Complete</td>
+<td>Full-featured with barcode, cart, payments</td>
+</tr>
+<tr>
+<td>Sales Management</td>
+<td>✅ Complete</td>
+<td>Create, list, view, return</td>
+</tr>
+<tr>
+<td>Purchase Management</td>
+<td>✅ Complete</td>
+<td>Create, list, view</td>
+</tr>
+<tr>
+<td>Quotation Management</td>
+<td>✅ Complete</td>
+<td>CRUD + convert to sale</td>
+</tr>
+<tr>
+<td>Expense Tracking</td>
+<td>✅ Complete</td>
+<td>Create, list with categories</td>
+</tr>
+<tr>
+<td>Journal Entries</td>
+<td>✅ Complete</td>
+<td>Manual double-entry journals</td>
+</tr>
+<tr>
+<td>Chart of Accounts</td>
+<td>✅ Complete</td>
+<td>Grouped accounts with ledger view</td>
+</tr>
+<tr>
+<td>Double-Entry Accounting</td>
+<td>✅ Complete</td>
+<td>Full ledger with atomic transactions</td>
+</tr>
+<tr>
+<td>FIFO Inventory</td>
+<td>✅ Complete</td>
+<td>Stock movements with cost tracking</td>
+</tr>
+<tr>
+<td>Stock Adjustments</td>
+<td>✅ Complete</td>
+<td>IN/OUT with reason tracking</td>
+</tr>
+<tr>
+<td>Financial Reports</td>
+<td>✅ Complete</td>
+<td>P&amp;L, Trial Balance, Balance Sheet</td>
+</tr>
+<tr>
+<td>Dashboard</td>
+<td>✅ Complete</td>
+<td>Stats, charts, activity feed</td>
+</tr>
+<tr>
+<td>Invoice PDF</td>
+<td>✅ Complete</td>
+<td>HTML-to-PDF generation</td>
+</tr>
+<tr>
+<td>Auto-Numbering</td>
+<td>✅ Complete</td>
+<td>8 configurable sequences</td>
+</tr>
+<tr>
+<td>User Management</td>
+<td>✅ Complete</td>
+<td>Admin-only CRUD</td>
+</tr>
+<tr>
+<td>Settings</td>
+<td>✅ Complete</td>
+<td>Key-value configuration</td>
+</tr>
+<tr>
+<td>Backup/Restore</td>
+<td>✅ Complete</td>
+<td>JSON export/import</td>
+</tr>
+<tr>
+<td>Data Sync</td>
+<td>✅ Complete</td>
+<td>Pub/sub event system</td>
+</tr>
+<tr>
+<td>Barcode Scanner</td>
+<td>✅ Complete</td>
+<td>Hardware scanner + manual entry</td>
+</tr>
+<tr>
+<td>Responsive Design</td>
+<td>⚠️ Partial</td>
+<td>POS adapts at 1440px; other pages have basic mobile support</td>
+</tr>
+<tr>
+<td>Audit Logging</td>
+<td>⚠️ Schema Only</td>
+<td>Table exists but not populated by services</td>
+</tr>
+<tr>
+<td>Multi-Company</td>
+<td>❌ Not Started</td>
+<td>Schema supports but not implemented</td>
+</tr>
+<tr>
+<td>Email Notifications</td>
+<td>❌ Not Started</td>
+<td>Not implemented</td>
+</tr>
+<tr>
+<td>File Attachments</td>
+<td>❌ Not Started</td>
+<td>Not implemented</td>
+</tr>
+</tbody></table>
+<hr>
+<p><em>Document generated by comprehensive codebase analysis. All 80+ source files were reviewed.</em></p>

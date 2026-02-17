@@ -41,6 +41,7 @@ class LedgerService {
         // Retry loop for unique constraint violations
         let attempts = 0;
         const maxAttempts = 3;
+        const { journal_date, transaction_type, narration, entries, created_by } = data;
 
         while (attempts < maxAttempts) {
             try {

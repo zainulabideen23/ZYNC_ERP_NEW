@@ -102,15 +102,27 @@ class QuotationService {
 
     /**
      * Generate next quotation number
+     * Auto-syncs with actual max value in quotations table to ensure sequential numbering
      */
     async generateQuotationNumber(trx) {
         const sequence = await trx('sequences').where('name', 'quotation').forUpdate().first();
         if (!sequence) throw new AppError('Quotation sequence not found', 500);
 
-        const nextVal = sequence.current_value + 1;
+        // Get actual max quotation number from quotations table to stay in sync
+        const prefix = sequence.prefix || 'QUO-';
+        const maxResult = await trx.raw(
+            `SELECT COALESCE(MAX(CAST(REPLACE(quotation_number, ?, '') AS INTEGER)), 0) as max_num FROM quotations WHERE quotation_number LIKE ?`,
+            [prefix, prefix + '%']
+        );
+        const maxInTable = parseInt(maxResult.rows[0]?.max_num || 0);
+        
+        // Use the higher of sequence value or actual max from table
+        const baseValue = Math.max(sequence.current_value, maxInTable);
+        const nextVal = baseValue + 1;
+        
         await trx('sequences').where('name', 'quotation').update({ current_value: nextVal });
 
-        return `${sequence.prefix}${nextVal.toString().padStart(sequence.pad_length || 6, '0')}`;
+        return `${prefix}${nextVal.toString().padStart(sequence.pad_length || 6, '0')}`;
     }
 
     /**
@@ -122,14 +134,13 @@ class QuotationService {
 
         let query = this.db('quotations as q')
             .leftJoin('customers as c', 'q.customer_id', 'c.id')
-            .select('q.*', 'c.name as customer_name')
-            .where('q.is_deleted', false);
+            .select('q.*', 'c.name as customer_name');
 
         if (customer_id) query = query.where('q.customer_id', customer_id);
         // Only apply status filter if it's not 'all'
         if (status && status !== 'all') query = query.where('q.status', status);
 
-        const [{ count }] = await this.db('quotations').where('is_deleted', false).count();
+        const [{ count }] = await this.db('quotations').count();
         const quotations = await query.orderBy('q.quotation_date', 'desc').limit(limit).offset(offset);
 
         return {

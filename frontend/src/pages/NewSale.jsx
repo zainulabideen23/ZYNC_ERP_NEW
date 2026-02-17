@@ -383,7 +383,7 @@ function NewSale() {
             </main>
 
             {/* Floating Cart Toggle Button (visible when cart is closed) */}
-            <button 
+            <button
                 type="button"
                 className={`cart-toggle-fab ${cartOpen ? 'hidden' : ''} ${cart.length > 0 ? 'has-items' : ''}`}
                 onClick={toggleCart}

@@ -62,12 +62,12 @@ function NewPurchase() {
     const addToCart = useCallback((product) => {
         setCart(prev => {
             const existing = prev.find(item => item.product_id === product.id)
-            
+
             // Only auto-open cart on first item (when cart was empty)
             if (prev.length === 0) {
                 setCartOpen(true)
             }
-            
+
             if (existing) {
                 return prev.map(item =>
                     item.product_id === product.id
@@ -88,13 +88,9 @@ function NewPurchase() {
     }, [])
 
     const updateQuantity = useCallback((productId, qty) => {
-        if (qty <= 0) {
-            setCart(prev => prev.filter(item => item.product_id !== productId))
-        } else {
-            setCart(prev => prev.map(item =>
-                item.product_id === productId ? { ...item, quantity: qty } : item
-            ))
-        }
+        setCart(prev => prev.map(item =>
+            item.product_id === productId ? { ...item, quantity: Math.max(0, qty) } : item
+        ))
     }, [])
 
     const updateUnitPrice = useCallback((productId, price) => {
@@ -118,7 +114,7 @@ function NewPurchase() {
 
     // Calculate totals
     const { subtotal, discountAmount, taxAmount, total, balance } = useMemo(() => {
-        const sub = cart.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0)
+        const sub = cart.reduce((sum, item) => sum + (item.unit_price * (item.quantity || 0)), 0)
         const disc = globalDiscountType === 'percent'
             ? (sub * globalDiscount / 100)
             : globalDiscount
@@ -175,8 +171,10 @@ function NewPurchase() {
 
     // Submit purchase
     const handleSubmit = async () => {
-        if (cart.length === 0) {
-            toast.error('Add at least one item')
+        const validItems = cart.filter(item => item.quantity > 0)
+
+        if (validItems.length === 0) {
+            toast.error('Add at least one item with quantity > 0')
             return
         }
         if (!supplierId) {
@@ -194,7 +192,7 @@ function NewPurchase() {
                 supplier_id: supplierId,
                 purchase_date: new Date().toISOString(),
                 reference_number: referenceNumber,
-                items: cart.map(item => ({
+                items: validItems.map(item => ({
                     product_id: item.product_id,
                     quantity: item.quantity,
                     unit_cost: item.unit_price,
@@ -212,10 +210,10 @@ function NewPurchase() {
 
             if (response.data?.bill_number) {
                 toast.success(`✓ Purchase completed! Bill: ${response.data.bill_number}`)
-                
+
                 // Emit data sync event so other components can refresh
                 emit(DataSyncEvents.PURCHASE_CREATED, response.data)
-                
+
                 clearCart()
                 setTimeout(() => navigate('/purchases'), 1500)
             }
@@ -391,8 +389,10 @@ function NewPurchase() {
                                         <label>Cost</label>
                                         <input
                                             type="number"
-                                            value={item.unit_price}
+                                            value={item.unit_price === 0 ? '' : item.unit_price}
                                             onChange={(e) => updateUnitPrice(item.product_id, Number(e.target.value))}
+                                            onFocus={(e) => e.target.select()}
+                                            placeholder="0"
                                             className="form-input"
                                         />
                                     </div>
@@ -403,7 +403,8 @@ function NewPurchase() {
                                             <input
                                                 type="number"
                                                 value={item.quantity}
-                                                onChange={(e) => updateQuantity(item.product_id, Math.max(1, parseInt(e.target.value) || 1))}
+                                                onChange={(e) => updateQuantity(item.product_id, Math.max(0, parseInt(e.target.value) || 0))}
+                                                onFocus={(e) => e.target.select()}
                                                 min="1"
                                             />
                                             <button onClick={() => updateQuantity(item.product_id, item.quantity + 1)}>+</button>

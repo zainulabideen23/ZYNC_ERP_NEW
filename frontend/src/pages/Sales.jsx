@@ -3,27 +3,100 @@ import { Link } from 'react-router-dom'
 import { salesAPI } from '../services/api'
 import { format } from 'date-fns'
 import { useDataSync, DataSyncEvents } from '../utils/dataSync'
+import SalesFilters from '../components/SalesFilters'
+import SaleDetailModal from '../components/SaleDetailModal'
+import SalesStats from '../components/SalesStats'
 
 function Sales() {
     const [sales, setSales] = useState([])
     const [loading, setLoading] = useState(true)
+    const [filters, setFilters] = useState({ search: '', status: '', from_date: '', to_date: '' })
+    const [selectedSale, setSelectedSale] = useState(null)
+    const [pagination, setPagination] = useState({ page: 1, limit: 50, total: 0, pages: 1 })
+    const [aggregates, setAggregates] = useState(null)
+    const [selectedIds, setSelectedIds] = useState([])
 
-    useEffect(() => { loadData() }, [])
+    // Debounce search/filter updates to avoid too many API calls
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            loadData()
+        }, 500)
+        return () => clearTimeout(timer)
+    }, [filters])
 
-    // Subscribe to data sync events to refresh list when sales change
+    // Subscribe to data sync events to refresh list when sales change (e.g. from POS)
     useDataSync(DataSyncEvents.SALE_CREATED, () => {
         loadData()
     })
 
-    const loadData = async () => {
+    const loadData = async (page = 1) => {
+        setLoading(true)
         try {
-            const response = await salesAPI.list({ limit: 100 })
+            const response = await salesAPI.list({
+                page,
+                limit: 50,
+                ...filters
+            })
             setSales(response.data || [])
+            setPagination(response.pagination || { page: 1, limit: 50, total: 0, pages: 1 })
+            setAggregates(response.aggregates || null)
         } catch (error) {
             console.error('Failed to load sales:', error)
         } finally {
             setLoading(false)
         }
+    }
+
+    const handleFilterChange = (key, value) => {
+        setFilters(prev => ({ ...prev, [key]: value }))
+    }
+
+    const clearFilters = () => {
+        setFilters({ search: '', status: '', from_date: '', to_date: '' })
+    }
+
+    // Bulk Selection Logic
+    const handleSelectAll = (e) => {
+        if (e.target.checked) {
+            setSelectedIds(sales.map(s => s.id))
+        } else {
+            setSelectedIds([])
+        }
+    }
+
+    const handleSelectRow = (id, e) => {
+        e.stopPropagation();
+        setSelectedIds(prev =>
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        )
+    }
+
+    // Export CSV
+    const handleExportCSV = () => {
+        const selectedSales = sales.filter(s => selectedIds.includes(s.id));
+        if (selectedSales.length === 0) return;
+
+        const headers = ['Invoice', 'Date', 'Customer', 'Total', 'Paid', 'Due', 'Status'];
+        const rows = selectedSales.map(s => [
+            s.invoice_number,
+            format(new Date(s.sale_date), 'yyyy-MM-dd'),
+            s.customer_name || 'Walk-in',
+            s.total_amount,
+            s.amount_paid,
+            s.amount_due,
+            s.status
+        ]);
+
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `sales_export_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`;
+        link.click();
     }
 
     const formatCurrency = (value) => `Rs. ${Number(value).toLocaleString()}`
@@ -327,7 +400,7 @@ function Sales() {
         }
     }
 
-    if (loading) return <div className="page-container">Loading...</div>
+    if (loading && sales.length === 0) return <div className="page-container">Loading...</div>
 
     return (
         <div className="page-container">
@@ -340,10 +413,40 @@ function Sales() {
                     <Link to="/sales/new" className="btn btn-primary">+ New Sale</Link>
                 </div>
             </div>
+
+            <SalesStats aggregates={aggregates} />
+
+            <SalesFilters
+                filters={filters}
+                onChange={handleFilterChange}
+                onClear={clearFilters}
+            />
+
+            {selectedIds.length > 0 && (
+                <div className="flex items-center justify-between p-3 mb-4 card" style={{ background: 'var(--color-panel-2)', borderColor: 'var(--color-accent)' }}>
+                    <div className="flex items-center gap-4">
+                        <span className="font-bold text-accent">{selectedIds.length} Selected</span>
+                        <div className="text-sm text-muted">Select actions for these items</div>
+                    </div>
+                    <div className="flex gap-2">
+                        <button className="btn btn-secondary btn-sm" onClick={handleExportCSV}>
+                            📄 Export CSV
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <div className="card">
                 <table className="table">
                     <thead>
                         <tr>
+                            <th className="table-checkbox">
+                                <input
+                                    type="checkbox"
+                                    onChange={handleSelectAll}
+                                    checked={sales.length > 0 && selectedIds.length === sales.length}
+                                />
+                            </th>
                             <th>Invoice #</th>
                             <th>Date</th>
                             <th>Customer</th>
@@ -356,8 +459,20 @@ function Sales() {
                     </thead>
                     <tbody>
                         {sales.map((sale) => (
-                            <tr key={sale.id}>
-                                <td className="font-mono">{sale.invoice_number}</td>
+                            <tr
+                                key={sale.id}
+                                onClick={() => setSelectedSale(sale)}
+                                style={{ cursor: 'pointer' }}
+                                className={`hover:bg-panel-2 transition-colors ${selectedIds.includes(sale.id) ? 'bg-panel-2' : ''}`}
+                            >
+                                <td className="table-checkbox" onClick={(e) => e.stopPropagation()}>
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedIds.includes(sale.id)}
+                                        onChange={(e) => handleSelectRow(sale.id, e)}
+                                    />
+                                </td>
+                                <td className="font-mono text-accent font-bold">{sale.invoice_number}</td>
                                 <td>{format(new Date(sale.sale_date), 'dd/MM/yyyy')}</td>
                                 <td>{sale.customer_name || 'Walk-in'}</td>
                                 <td style={{ textAlign: 'right' }}>{formatCurrency(sale.total_amount)}</td>
@@ -383,7 +498,7 @@ function Sales() {
                                 <td>
                                     <button
                                         className="btn btn-ghost btn-sm"
-                                        onClick={() => handlePrintInvoice(sale)}
+                                        onClick={(e) => { e.stopPropagation(); handlePrintInvoice(sale); }}
                                         aria-label={`Print invoice ${sale.invoice_number}`}
                                     >
                                         🖨️ Print
@@ -391,10 +506,25 @@ function Sales() {
                                 </td>
                             </tr>
                         ))}
+                        {loading && sales.length > 0 && (
+                            <tr><td colSpan="9" className="text-center p-4">Updating...</td></tr>
+                        )}
+                        {sales.length === 0 && !loading && (
+                            <tr><td colSpan="9" className="text-center p-4 text-muted">No sales found matching criteria.</td></tr>
+                        )}
                     </tbody>
                 </table>
             </div>
+
+            {selectedSale && (
+                <SaleDetailModal
+                    saleId={selectedSale.id}
+                    onClose={() => setSelectedSale(null)}
+                    onPrint={handlePrintInvoice}
+                />
+            )}
         </div>
     )
 }
+
 export default Sales

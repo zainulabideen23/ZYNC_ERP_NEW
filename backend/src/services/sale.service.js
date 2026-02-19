@@ -221,11 +221,11 @@ class SaleService {
             [prefix, prefix + '%']
         );
         const maxInTable = parseInt(maxResult.rows[0]?.max_num || 0);
-        
+
         // Use the higher of sequence value or actual max from table
         const baseValue = Math.max(sequence.current_value, maxInTable);
         const nextVal = baseValue + 1;
-        
+
         await trx('sequences').where('name', 'invoice').update({ current_value: nextVal });
 
         return `${prefix}${nextVal.toString().padStart(sequence.pad_length || 6, '0')}`;
@@ -259,30 +259,69 @@ class SaleService {
      * List sales with pagination
      */
     async list(params) {
-        const { page = 1, limit = 50, from_date, to_date, customer_id, status } = params;
+        const { page = 1, limit = 50, from_date, to_date, customer_id, status, search, min_amount, max_amount } = params;
         const offset = (page - 1) * limit;
 
+        // Base query builder
+        const buildQuery = (builder) => {
+            if (status) builder.where('s.status', status);
+            if (customer_id) builder.where('s.customer_id', customer_id);
+            if (from_date) builder.where('s.sale_date', '>=', from_date);
+            if (to_date) builder.where('s.sale_date', '<=', to_date);
+            if (min_amount) builder.where('s.total_amount', '>=', min_amount);
+            if (max_amount) builder.where('s.total_amount', '<=', max_amount);
+
+            if (search) {
+                builder.where(function () {
+                    this.where('s.invoice_number', 'ilike', `%${search}%`)
+                        .orWhere('c.name', 'ilike', `%${search}%`);
+                });
+            }
+            return builder;
+        };
+
+        // Data Query
         let query = this.db('sales as s')
             .leftJoin('customers as c', 's.customer_id', 'c.id')
             .leftJoin('users as u', 's.created_by', 'u.id')
             .select('s.*', 'c.name as customer_name', 'c.phone_number as customer_phone', 'u.full_name as created_by_name')
             .where('s.is_deleted', false);
 
-        if (status) query = query.where('s.status', status);
-        if (customer_id) query = query.where('s.customer_id', customer_id);
-        if (from_date) query = query.where('s.sale_date', '>=', from_date);
-        if (to_date) query = query.where('s.sale_date', '<=', to_date);
+        query = buildQuery(query);
 
-        const countQuery = this.db('sales').where('is_deleted', false);
-        if (status) countQuery.where('status', status);
+        // Count Query
+        let countQuery = this.db('sales as s')
+            .leftJoin('customers as c', 's.customer_id', 'c.id')
+            .where('s.is_deleted', false);
 
-        const [{ count }] = await countQuery.count();
+        countQuery = buildQuery(countQuery);
+
+        const [{ count }] = await countQuery.count('s.id as count');
+
+        // Aggregates Query (Reusing filters)
+        let aggregatesQuery = this.db('sales as s')
+            .leftJoin('customers as c', 's.customer_id', 'c.id')
+            .where('s.is_deleted', false);
+
+        aggregatesQuery = buildQuery(aggregatesQuery);
+
+        const [aggregates] = await aggregatesQuery.sum({
+            total_sales: 's.total_amount',
+            total_paid: 's.amount_paid',
+            total_due: 's.amount_due'
+        });
 
         const sales = await query.orderBy('s.sale_date', 'desc').limit(limit).offset(offset);
 
         return {
             data: sales,
-            pagination: { page: parseInt(page), limit: parseInt(limit), total: parseInt(count), pages: Math.ceil(count / limit) }
+            pagination: { page: parseInt(page), limit: parseInt(limit), total: parseInt(count), pages: Math.ceil(count / limit) },
+            aggregates: {
+                total_sales: Number(aggregates?.total_sales || 0),
+                total_paid: Number(aggregates?.total_paid || 0),
+                total_due: Number(aggregates?.total_due || 0),
+                count: parseInt(count)
+            }
         };
     }
 }

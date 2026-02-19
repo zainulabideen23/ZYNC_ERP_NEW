@@ -743,6 +743,12 @@ a:hover {
   grid-column: span 2;
 }
 
+.modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-right: var(--space-2);
+}
+
 /* ─── Settings page specific ─── */
 .settings-tabs {
   display: flex;

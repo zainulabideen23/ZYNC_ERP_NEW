@@ -3,12 +3,12 @@ const router = express.Router();
 const db = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
 const ProductService = require('../services/product.service');
-
-const productService = new ProductService(db);
+const audit = require('../utils/audit');
 
 // Get all products with pagination
 router.get('/', authenticate, async (req, res, next) => {
     try {
+        const productService = new ProductService(db, req.tenantId);
         const { page = 1, limit = 50, search, category_id, active_only = true } = req.query;
 
         const result = await productService.getAll({
@@ -18,6 +18,14 @@ router.get('/', authenticate, async (req, res, next) => {
             category_id,
             active_only: active_only === 'true'
         });
+
+        // Strip cost_price from response for cashier role
+        if (req.user && req.user.role === 'cashier' && result.data) {
+            result.data = result.data.map(p => {
+                const { cost_price, ...rest } = p;
+                return rest;
+            });
+        }
 
         res.json({
             success: true,
@@ -31,7 +39,14 @@ router.get('/', authenticate, async (req, res, next) => {
 // Get single product
 router.get('/:id', authenticate, async (req, res, next) => {
     try {
+        const productService = new ProductService(db, req.tenantId);
         const product = await productService.getById(req.params.id);
+
+        // Strip cost_price from response for cashier role
+        if (req.user && req.user.role === 'cashier' && product) {
+            delete product.cost_price;
+        }
+
         res.json({
             success: true,
             data: product
@@ -44,7 +59,20 @@ router.get('/:id', authenticate, async (req, res, next) => {
 // Create product
 router.post('/', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
     try {
+        const productService = new ProductService(db, req.tenantId);
         const product = await productService.create(req.body, req.user.id);
+
+        // Audit product creation
+        await audit(db, {
+            userId: req.user.id,
+            action: 'create',
+            tableName: 'products',
+            recordId: product.id,
+            newValues: { id: product.id, code: product.code, name: product.name, retail_price: product.retail_price, category_id: product.category_id },
+            ip: req.ip,
+            tenantId: req.tenantId
+        });
+
         res.status(201).json({ success: true, data: product });
     } catch (error) {
         if (error.code === '23505') {
@@ -58,7 +86,24 @@ router.post('/', authenticate, authorize('admin', 'manager'), async (req, res, n
 // Update product
 router.put('/:id', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
     try {
+        const productService = new ProductService(db, req.tenantId);
+
+        // Fetch old values before update
+        const oldProduct = await productService.getById(req.params.id);
         const product = await productService.update(req.params.id, req.body, req.user.id);
+
+        // Audit product update
+        await audit(db, {
+            userId: req.user.id,
+            action: 'update',
+            tableName: 'products',
+            recordId: req.params.id,
+            oldValues: { name: oldProduct?.name, retail_price: oldProduct?.retail_price, cost_price: oldProduct?.cost_price, current_stock: oldProduct?.current_stock },
+            newValues: { name: product.name, retail_price: product.retail_price, cost_price: product.cost_price, current_stock: product.current_stock },
+            ip: req.ip,
+            tenantId: req.tenantId
+        });
+
         res.json({ success: true, data: product });
     } catch (error) {
         next(error);
@@ -68,26 +113,42 @@ router.put('/:id', authenticate, authorize('admin', 'manager'), async (req, res,
 // Delete (soft) product
 router.delete('/:id', authenticate, authorize('admin'), async (req, res, next) => {
     try {
+        const productService = new ProductService(db, req.tenantId);
+
+        // Fetch product before deletion
+        const oldProduct = await productService.getById(req.params.id);
         await productService.delete(req.params.id, req.user.id);
+
+        // Audit product deletion
+        await audit(db, {
+            userId: req.user.id,
+            action: 'delete',
+            tableName: 'products',
+            recordId: req.params.id,
+            oldValues: { id: oldProduct?.id, code: oldProduct?.code, name: oldProduct?.name },
+            newValues: { is_deleted: true, deleted_at: new Date().toISOString() },
+            ip: req.ip,
+            tenantId: req.tenantId
+        });
+
         res.json({ success: true, message: 'Product deleted successfully' });
     } catch (error) {
         next(error);
     }
 });
 
-module.exports = router;
-
-
 // Get product stock
-router.get('/:id/stock', authenticate, async (req, res, next) => {
+router.get('/:id/stock', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const movements = await db('stock_movements')
             .where('product_id', req.params.id)
+            .where('tenant_id', req.tenantId)
             .orderBy('created_at', 'desc')
             .limit(100);
 
         const totalStock = await db('stock_movements')
             .where('product_id', req.params.id)
+            .where('tenant_id', req.tenantId)
             .sum('quantity as total')
             .first();
 

@@ -4,12 +4,12 @@ const db = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
 const { AppError } = require('../middleware/errorHandler');
 const CustomerService = require('../services/customer.service');
-
-const customerService = new CustomerService(db);
+const audit = require('../utils/audit');
 
 // Get all customers
 router.get('/', authenticate, async (req, res, next) => {
     try {
+        const customerService = new CustomerService(db, req.tenantId);
         const result = await customerService.list(req.query);
         res.json({ success: true, ...result });
     } catch (error) {
@@ -21,7 +21,7 @@ router.get('/', authenticate, async (req, res, next) => {
 router.get('/:id', authenticate, async (req, res, next) => {
     try {
         const customer = await db('customers')
-            .where({ id: req.params.id, is_deleted: false })
+            .where({ id: req.params.id, is_deleted: false, tenant_id: req.tenantId })
             .first();
 
         if (!customer) throw new AppError('Customer not found', 404);
@@ -35,7 +35,20 @@ router.get('/:id', authenticate, async (req, res, next) => {
 // Create customer
 router.post('/', authenticate, authorize('admin', 'manager', 'cashier'), async (req, res, next) => {
     try {
+        const customerService = new CustomerService(db, req.tenantId);
         const customer = await customerService.create(req.body, req.user.id);
+
+        // Audit customer creation
+        await audit(db, {
+            userId: req.user.id,
+            action: 'create',
+            tableName: 'customers',
+            recordId: customer.id,
+            newValues: { id: customer.id, code: customer.code, name: customer.name, phone_number: customer.phone_number, credit_limit: customer.credit_limit },
+            ip: req.ip,
+            tenantId: req.tenantId
+        });
+
         res.status(201).json({ success: true, data: customer });
     } catch (error) {
         if (error.code === '23505') {
@@ -48,18 +61,73 @@ router.post('/', authenticate, authorize('admin', 'manager', 'cashier'), async (
 // Update customer
 router.put('/:id', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
     try {
-        const customer = await customerService.update(req.params.id, req.body, req.user.id);
+        // Only admin can change credit_limit
+        const updateData = { ...req.body };
+        if (req.user.role !== 'admin' && 'credit_limit' in updateData) {
+            delete updateData.credit_limit;
+        }
+
+        // Fetch old values before update
+        const oldCustomer = await db('customers')
+            .where({ id: req.params.id, is_deleted: false, tenant_id: req.tenantId })
+            .first();
+
+        const customerService = new CustomerService(db, req.tenantId);
+        const customer = await customerService.update(req.params.id, updateData, req.user.id);
+
+        // Audit customer update
+        await audit(db, {
+            userId: req.user.id,
+            action: 'update',
+            tableName: 'customers',
+            recordId: req.params.id,
+            oldValues: { name: oldCustomer?.name, phone_number: oldCustomer?.phone_number, credit_limit: oldCustomer?.credit_limit, is_active: oldCustomer?.is_active },
+            newValues: { name: customer.name, phone_number: customer.phone_number, credit_limit: customer.credit_limit, is_active: customer.is_active },
+            ip: req.ip,
+            tenantId: req.tenantId
+        });
+
         res.json({ success: true, data: customer });
     } catch (error) {
         next(error);
     }
 });
 
+// Delete customer (admin only)
+router.delete('/:id', authenticate, authorize('admin'), async (req, res, next) => {
+    try {
+        // Fetch customer before deletion
+        const oldCustomer = await db('customers')
+            .where({ id: req.params.id, tenant_id: req.tenantId })
+            .first();
+
+        await db('customers')
+            .where({ id: req.params.id, tenant_id: req.tenantId })
+            .update({ is_deleted: true, updated_at: new Date() });
+
+        // Audit customer deletion
+        await audit(db, {
+            userId: req.user.id,
+            action: 'delete',
+            tableName: 'customers',
+            recordId: req.params.id,
+            oldValues: { id: oldCustomer?.id, code: oldCustomer?.code, name: oldCustomer?.name },
+            newValues: { is_deleted: true, deleted_at: new Date().toISOString() },
+            ip: req.ip,
+            tenantId: req.tenantId
+        });
+
+        res.json({ success: true, message: 'Customer deleted successfully' });
+    } catch (error) {
+        next(error);
+    }
+});
+
 // Get customer ledger
-router.get('/:id/ledger', authenticate, async (req, res, next) => {
+router.get('/:id/ledger', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { from_date, to_date } = req.query;
-        const customer = await db('customers').where('id', req.params.id).first();
+        const customer = await db('customers').where('id', req.params.id).where('tenant_id', req.tenantId).first();
 
         if (!customer) throw new AppError('Customer not found', 404);
 

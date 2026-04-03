@@ -4,12 +4,12 @@ const db = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
 const { AppError } = require('../middleware/errorHandler');
 const SaleService = require('../services/sale.service');
-
-const saleService = new SaleService(db);
+const audit = require('../utils/audit');
 
 // Get all sales
-router.get('/', authenticate, async (req, res, next) => {
+router.get('/', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
     try {
+        const saleService = new SaleService(db, req.tenantId);
         const result = await saleService.list(req.query);
         res.json({ success: true, ...result });
     } catch (error) {
@@ -24,6 +24,7 @@ router.get('/:id', authenticate, async (req, res, next) => {
             .leftJoin('customers as c', 's.customer_id', 'c.id')
             .select('s.*', 'c.name as customer_name', 'c.phone_number as customer_phone', 'c.address_line1 as customer_address')
             .where('s.id', req.params.id)
+            .where('s.tenant_id', req.tenantId)
             .first();
 
         if (!sale) throw new AppError('Sale not found', 404);
@@ -43,7 +44,24 @@ router.get('/:id', authenticate, async (req, res, next) => {
 // Create sale
 router.post('/', authenticate, authorize('admin', 'manager', 'cashier'), async (req, res, next) => {
     try {
+        const saleService = new SaleService(db, req.tenantId);
         const sale = await saleService.createSale(req.body, req.user.id);
+
+        // Audit sale creation
+        await audit(db, {
+            userId: req.user.id,
+            action: 'create',
+            tableName: 'sales',
+            recordId: sale.id,
+            newValues: {
+                invoice_number: sale.invoice_number,
+                total_amount: sale.total_amount,
+                customer_id: sale.customer_id
+            },
+            ip: req.ip,
+            tenantId: req.tenantId
+        });
+
         res.status(201).json({ success: true, data: sale });
     } catch (error) {
         next(error);
@@ -59,6 +77,7 @@ router.get('/summary/today', authenticate, async (req, res, next) => {
             .whereRaw('sale_date::date = ?', [today])
             .where('status', 'completed')
             .where('is_deleted', false)
+            .where('tenant_id', req.tenantId)
             .select(
                 db.raw('COUNT(*) as total_invoices'),
                 db.raw('COALESCE(SUM(total_amount), 0) as total_sales'),
@@ -72,8 +91,5 @@ router.get('/summary/today', authenticate, async (req, res, next) => {
         next(error);
     }
 });
-
-module.exports = router;
-
 
 module.exports = router;

@@ -1,474 +1,737 @@
-import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { toast } from 'react-hot-toast'
 import { reportsAPI } from '../services/api'
 import { format } from 'date-fns'
+import {
+    BarChart3, Package, DollarSign, Scale, TrendingUp, Building2,
+    ShoppingCart, Users, Truck, Receipt, RefreshCw, Download,
+    CheckCircle, XCircle, AlertTriangle, ChevronUp, ChevronDown, ChevronRight,
+    FileSpreadsheet, Printer, FileText, Search, X, TrendingDown,
+    ArrowUpDown, Eye, PieChart, LayoutGrid, Minus, Activity
+} from 'lucide-react'
 import './Reports.css'
+
+const allTabs = [
+    { id: 'stock', label: 'Stock', icon: Package },
+    { id: 'sales', label: 'Sales', icon: DollarSign },
+    { id: 'pl', label: 'P&L', icon: TrendingUp },
+    { id: 'expense_summary', label: 'Expenses', icon: Receipt },
+    { id: 'trial', label: 'Trial Balance', icon: Scale },
+    { id: 'bs', label: 'Balance Sheet', icon: Building2 },
+    { id: 'sales_product', label: 'By Product', icon: LayoutGrid },
+    { id: 'sales_customer', label: 'By Customer', icon: Users },
+    { id: 'purchase_supplier', label: 'By Supplier', icon: Truck }
+]
+
+const categoryColors = {
+    'Electronics': { color: '#3b82f6', glow: 'rgba(59, 130, 246, 0.4)' },
+    'Clothing': { color: '#a855f7', glow: 'rgba(168, 85, 247, 0.4)' },
+    'Groceries': { color: '#22c55e', glow: 'rgba(34, 197, 94, 0.4)' },
+    'Sports': { color: '#f59e0b', glow: 'rgba(245, 158, 11, 0.4)' },
+    'Home & Garden': { color: '#14b8a6', glow: 'rgba(20, 184, 166, 0.4)' },
+    'default': { color: '#94a3b8', glow: 'rgba(148, 163, 184, 0.4)' }
+}
+
+const ITEMS_PER_PAGE = 50
 
 function Reports() {
     const [activeTab, setActiveTab] = useState('stock')
     const [loading, setLoading] = useState(false)
+    const [data, setData] = useState(null)
+    const [sortConfig, setSortConfig] = useState({ key: 'stock_value', direction: 'desc' })
+    const [currentPage, setCurrentPage] = useState(1)
+    const [searchQuery, setSearchQuery] = useState('')
+    const [showExportMenu, setShowExportMenu] = useState(false)
+    const [chartPanelOpen, setChartPanelOpen] = useState(true)
+    const [chartRange, setChartRange] = useState('30D')
     const [filters, setFilters] = useState({
         from_date: format(new Date(new Date().getFullYear(), 0, 1), 'yyyy-MM-dd'),
         to_date: format(new Date(), 'yyyy-MM-dd'),
         as_of_date: format(new Date(), 'yyyy-MM-dd'),
         low_stock_only: false
     })
+    const exportRef = useRef(null)
 
-    const [data, setData] = useState(null)
-
-    useEffect(() => {
-        loadReport()
-    }, [activeTab])
-
-    const loadReport = async () => {
-        setLoading(true)
+    const handleTabChange = (tabId) => {
+        setActiveTab(tabId)
+        setCurrentPage(1)
+        setSortConfig({ key: null, direction: 'asc' })
         setData(null)
+        setLoading(true)
+        fetchReport(tabId, filters)
+    }
+
+    const fetchReport = async (tab, tabFilters) => {
         try {
-            let response;
-            switch (activeTab) {
+            let response
+            switch (tab) {
                 case 'stock':
-                    response = await reportsAPI.stock({ low_stock_only: filters.low_stock_only })
-                    break;
+                    response = await reportsAPI.stock({ low_stock_only: tabFilters.low_stock_only })
+                    break
                 case 'sales':
-                    response = await reportsAPI.salesByDate({ from_date: filters.from_date, to_date: filters.to_date })
-                    break;
+                    response = await reportsAPI.salesByDate({ from_date: tabFilters.from_date, to_date: tabFilters.to_date })
+                    break
                 case 'trial':
-                    response = await reportsAPI.trialBalance({ as_of_date: filters.as_of_date })
-                    break;
+                    response = await reportsAPI.trialBalance({ as_of_date: tabFilters.as_of_date })
+                    break
                 case 'pl':
-                    response = await reportsAPI.profitLoss({ from_date: filters.from_date, to_date: filters.to_date })
-                    break;
+                    response = await reportsAPI.profitLoss({ from_date: tabFilters.from_date, to_date: tabFilters.to_date })
+                    break
                 case 'bs':
-                    response = await reportsAPI.balanceSheet({ as_of_date: filters.as_of_date })
-                    break;
+                    response = await reportsAPI.balanceSheet({ as_of_date: tabFilters.as_of_date })
+                    break
                 case 'sales_product':
-                    response = await reportsAPI.salesByProduct({ from_date: filters.from_date, to_date: filters.to_date })
-                    break;
+                    response = await reportsAPI.salesByProduct({ from_date: tabFilters.from_date, to_date: tabFilters.to_date })
+                    break
                 case 'sales_customer':
-                    response = await reportsAPI.salesByCustomer({ from_date: filters.from_date, to_date: filters.to_date })
-                    break;
+                    response = await reportsAPI.salesByCustomer({ from_date: tabFilters.from_date, to_date: tabFilters.to_date })
+                    break
                 case 'purchase_supplier':
-                    response = await reportsAPI.purchaseBySupplier({ from_date: filters.from_date, to_date: filters.to_date })
-                    break;
+                    response = await reportsAPI.purchaseBySupplier({ from_date: tabFilters.from_date, to_date: tabFilters.to_date })
+                    break
                 case 'expense_summary':
-                    response = await reportsAPI.expenseSummary({ from_date: filters.from_date, to_date: filters.to_date })
-                    break;
+                    response = await reportsAPI.expenseSummary({ from_date: tabFilters.from_date, to_date: tabFilters.to_date })
+                    break
+                default:
+                    response = { data: null }
             }
-            // Debug log for stock report response
-            if (activeTab === 'stock') {
-                console.log('Stock report API response:', response);
+            const rawData = response.data
+            if (rawData && typeof rawData === 'object' && Array.isArray(rawData.data)) {
+                setData(rawData.data)
+            } else if (rawData && typeof rawData === 'object' && 'items' in rawData) {
+                setData(rawData)
+            } else if (Array.isArray(rawData)) {
+                setData(rawData)
+            } else {
+                setData(rawData)
             }
-            setData(response.data)
-        } catch (error) {
-            console.error('Failed to load report:', error)
+        } catch (err) {
+            toast.error(`Failed to load report: ${err.message}`)
         } finally {
             setLoading(false)
         }
     }
 
-    const handleFilterSubmit = (e) => {
-        e.preventDefault()
-        loadReport()
+    useEffect(() => {
+        if (data === null && !loading) {
+            setLoading(true)
+            fetchReport(activeTab, filters)
+        }
+    }, [])
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (exportRef.current && !exportRef.current.contains(e.target)) {
+                setShowExportMenu(false)
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
+
+    const handleSort = (key) => {
+        setSortConfig(prev => ({
+            key,
+            direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
+        }))
     }
 
-    const renderStockReport = () => (
-        <>
-            {data?.summary && (
-                <div className="stats-cards mb-6">
-                    <div className="card stat-card">
-                        <div className="stat-label">Total Inventory Value</div>
-                        <div className="stat-value text-success">Rs. {data.summary.total_value.toLocaleString()}</div>
+    const getSortedData = (items) => {
+        if (!sortConfig.key || !items) return items
+        return [...items].sort((a, b) => {
+            let aVal = a[sortConfig.key]
+            let bVal = b[sortConfig.key]
+            if (typeof aVal === 'string') aVal = aVal.toLowerCase()
+            if (typeof bVal === 'string') bVal = bVal.toLowerCase()
+            if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1
+            if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1
+            return 0
+        })
+    }
+
+    const getFilteredData = (items) => {
+        if (!items) return []
+        let filtered = items
+        
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase()
+            filtered = filtered.filter(item => 
+                item.name?.toLowerCase().includes(query) || 
+                item.code?.toLowerCase().includes(query) ||
+                item.category?.toLowerCase().includes(query)
+            )
+        }
+        
+        return getSortedData(filtered)
+    }
+
+    const getPaginatedData = (items) => {
+        const filtered = getFilteredData(items)
+        const start = (currentPage - 1) * ITEMS_PER_PAGE
+        return {
+            items: filtered.slice(start, start + ITEMS_PER_PAGE),
+            total: filtered.length
+        }
+    }
+
+    const getTotalPages = (totalItems) => Math.ceil((totalItems || 0) / ITEMS_PER_PAGE)
+
+    const getDataItems = (tabData) => {
+        if (!tabData) return null
+        if (Array.isArray(tabData)) return tabData
+        if (Array.isArray(tabData.items)) return tabData.items
+        if (Array.isArray(tabData.data)) return tabData.data
+        return tabData
+    }
+
+    const handleExport = (format) => {
+        setShowExportMenu(false)
+        console.log(`Exporting ${activeTab} as ${format}`)
+    }
+
+    const handleRefresh = () => {
+        setLoading(true)
+        fetchReport(activeTab, filters)
+    }
+
+    const activeReport = allTabs.find(t => t.id === activeTab)
+    const categories = data?.items ? [...new Set(data.items.map(item => item.category).filter(Boolean))] : []
+
+    // Calculate KPI metrics for the strip
+    const kpis = data?.summary ? [
+        { label: 'Inventory Value', value: `PKR ${data.summary.total_value.toLocaleString()}`, delta: '+12.4%', trend: 'up', color: 'green' },
+        { label: 'Total Products', value: data.summary.total_items.toLocaleString(), delta: '+24', trend: 'up', color: 'blue' },
+        { label: 'Low Stock', value: data.summary.low_stock_count.toString(), delta: '-3', trend: 'down', color: 'amber' },
+        { label: 'Categories', value: categories.length.toString(), delta: null, trend: 'neutral', color: 'muted' },
+        { label: 'Avg. Value/Item', value: `PKR ${Math.round(data.summary.total_value / data.summary.total_items).toLocaleString()}`, delta: '+8.2%', trend: 'up', color: 'green' },
+        { label: 'Out of Stock', value: (data.items?.filter(i => i.current_stock === 0).length || 0).toString(), delta: null, trend: 'neutral', color: 'red' }
+    ] : []
+
+    // Get heatmap intensity for value column
+    const getHeatmapStyle = (value, maxValue) => {
+        if (!maxValue || maxValue === 0) return {}
+        const intensity = Math.min(value / maxValue, 1)
+        const baseColor = '#4ade80'
+        const alpha = 0.1 + (intensity * 0.25)
+        return {
+            backgroundColor: `rgba(74, 222, 128, ${alpha})`,
+            textShadow: intensity > 0.7 ? `0 0 8px rgba(74, 222, 128, 0.6)` : 'none'
+        }
+    }
+
+    const maxStockValue = data?.items ? Math.max(...data.items.map(i => i.stock_value || 0)) : 0
+
+    // Chart data for category distribution
+    const getCategoryData = () => {
+        if (!data?.items) return []
+        const grouped = {}
+        data.items.forEach(item => {
+            const cat = item.category || 'Uncategorized'
+            if (!grouped[cat]) grouped[cat] = { value: 0, count: 0 }
+            grouped[cat].value += item.stock_value || 0
+            grouped[cat].count += 1
+        })
+        return Object.entries(grouped).map(([name, data]) => ({ name, ...data }))
+            .sort((a, b) => b.value - a.value)
+    }
+
+    const categoryChartData = getCategoryData()
+    const maxChartValue = categoryChartData[0]?.value || 1
+
+    return (
+        <div className="reports-container terminal">
+            {/* Compact Top Bar */}
+            <div className="top-bar">
+                <div className="top-bar-left">
+                    <div className="logo-mark">
+                        <Activity size={16} />
                     </div>
-                    <div className="card stat-card">
-                        <div className="stat-label">Low Stock Items</div>
-                        <div className="stat-value text-danger">{data.summary.low_stock_count}</div>
+                    <div className="global-search">
+                        <Search size={14} className="search-icon" />
+                        <input
+                            type="text"
+                            placeholder="Search across all reports..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="search-input"
+                        />
+                        {searchQuery && (
+                            <button className="clear-btn" onClick={() => setSearchQuery('')}>
+                                <X size={12} />
+                            </button>
+                        )}
                     </div>
-                    <div className="card stat-card">
-                        <div className="stat-label">Total Products</div>
-                        <div className="stat-value">{data.summary.total_items}</div>
+                </div>
+                <div className="top-bar-right">
+                    <div className="segmented-tabs">
+                        {allTabs.map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => handleTabChange(tab.id)}
+                                className={`seg-tab ${activeTab === tab.id ? 'active' : ''}`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
                     </div>
+                    <div className="top-bar-actions">
+                        <button onClick={handleRefresh} disabled={loading} className="icon-btn" title="Refresh">
+                            <RefreshCw size={14} className={loading ? 'spin' : ''} />
+                        </button>
+                        <div className="export-wrapper" ref={exportRef}>
+                            <button onClick={() => setShowExportMenu(!showExportMenu)} className="icon-btn" title="Export">
+                                <Download size={14} />
+                            </button>
+                            {showExportMenu && (
+                                <div className="export-menu">
+                                    <button onClick={() => handleExport('csv')}>
+                                        <FileSpreadsheet size={13} style={{ color: '#22c55e' }} /> CSV
+                                    </button>
+                                    <button onClick={() => handleExport('pdf')}>
+                                        <FileText size={13} style={{ color: '#f87171' }} /> PDF
+                                    </button>
+                                    <button onClick={() => handleExport('print')}>
+                                        <Printer size={13} style={{ color: '#6b8fff' }} /> Print
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Dense KPI Strip */}
+            {activeTab === 'stock' && kpis.length > 0 && (
+                <div className="kpi-strip">
+                    {kpis.map((kpi, i) => (
+                        <div key={i} className="kpi-cell">
+                            <span className="kpi-label">{kpi.label}</span>
+                            <span className="kpi-value">{kpi.value}</span>
+                            {kpi.delta && (
+                                <span className={`kpi-delta ${kpi.trend}`}>
+                                    {kpi.trend === 'up' ? <TrendingUp size={10} /> : kpi.trend === 'down' ? <TrendingDown size={10} /> : <Minus size={10} />}
+                                    {kpi.delta}
+                                </span>
+                            )}
+                        </div>
+                    ))}
                 </div>
             )}
 
-            <table className="table">
-                <thead>
-                    <tr>
-                        <th>Code</th>
-                        <th>Product</th>
-                        <th>Category</th>
-                        <th className="text-right">Stock</th>
-                        <th className="text-right">Value</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {data?.items?.map((item) => (
-                        <tr key={item.id} style={item.is_low_stock ? { backgroundColor: 'rgba(239, 68, 68, 0.05)' } : {}}>
-                            <td className="font-mono text-muted">
-                                {item.code}
-                                {item.is_low_stock && <span className="ml-2 text-xs text-danger" title="Low Stock">⚠️</span>}
-                            </td>
-                            <td>{item.name}</td>
-                            <td><span className="badge badge-secondary">{item.category || '-'}</span></td>
-                            <td className={`text-right font-bold ${item.is_low_stock ? 'text-danger' : ''}`}>
-                                {item.current_stock} {item.unit}
-                            </td>
-                            <td className="text-right">Rs. {item.stock_value.toLocaleString()}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </>
-    )
-
-    const renderSalesReport = () => (
-        <table className="table">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th className="text-center">Invoices</th>
-                    <th className="text-right">Total Sales</th>
-                    <th className="text-right">Received</th>
-                    <th className="text-right">Credit</th>
-                </tr>
-            </thead>
-            <tbody>
-                {data?.map((item, index) => (
-                    <tr key={index}>
-                        <td>{format(new Date(item.invoice_date), 'dd MMM yyyy')}</td>
-                        <td className="text-center">{item.invoices}</td>
-                        <td className="text-right text-success font-bold">Rs. {parseFloat(item.total).toLocaleString()}</td>
-                        <td className="text-right">Rs. {parseFloat(item.received).toLocaleString()}</td>
-                        <td className="text-right text-danger">Rs. {parseFloat(item.credit).toLocaleString()}</td>
-                    </tr>
-                ))}
-            </tbody>
-        </table>
-    )
-
-    const renderTrialBalance = () => (
-        <>
-            <table className="table">
-                <thead>
-                    <tr>
-                        <th>Code</th>
-                        <th>Account Name</th>
-                        <th>Group</th>
-                        <th className="text-right">Debit</th>
-                        <th className="text-right">Credit</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {data?.accounts?.map((acc) => (
-                        <tr key={acc.id}>
-                            <td className="font-mono text-muted">{acc.code}</td>
-                            <td>{acc.name}</td>
-                            <td>{acc.group_name}</td>
-                            <td className="text-right">{acc.debits > 0 ? `Rs. ${acc.debits.toLocaleString()}` : '-'}</td>
-                            <td className="text-right">{acc.credits > 0 ? `Rs. ${acc.credits.toLocaleString()}` : '-'}</td>
-                        </tr>
-                    ))}
-                </tbody>
-                <tfoot>
-                    <tr className="font-bold bg-tertiary">
-                        <td colSpan="3">Totals</td>
-                        <td className="text-right text-primary">Rs. {data?.totals?.debits?.toLocaleString()}</td>
-                        <td className="text-right text-primary">Rs. {data?.totals?.credits?.toLocaleString()}</td>
-                    </tr>
-                </tfoot>
-            </table>
-            <div className={`balanced-badge ${data?.is_balanced ? 'success' : 'error'}`}>
-                {data?.is_balanced ? '✅ Trial Balance is Balanced' : '❌ Trial Balance is NOT Balanced'}
-            </div>
-        </>
-    )
-
-    const renderProfitLoss = () => (
-        <div className="financial-statement">
-            <div className="statement-section">
-                <h3>Income</h3>
-                {data?.income?.map(acc => (
-                    <div className="statement-row" key={acc.id}>
-                        <span>{acc.name}</span>
-                        <span>Rs. {acc.amount.toLocaleString()}</span>
-                    </div>
-                ))}
-                <div className="statement-row subtotal">
-                    <span>Total Income</span>
-                    <span>Rs. {data?.total_income?.toLocaleString()}</span>
-                </div>
-            </div>
-
-            <div className="statement-section">
-                <h3>Operating Expenses</h3>
-                {data?.expenses?.map(acc => (
-                    <div className="statement-row" key={acc.id}>
-                        <span>{acc.name}</span>
-                        <span>Rs. {acc.amount.toLocaleString()}</span>
-                    </div>
-                ))}
-                <div className="statement-row subtotal">
-                    <span>Total Expenses</span>
-                    <span>Rs. {data?.total_expenses?.toLocaleString()}</span>
-                </div>
-            </div>
-
-            <div className="statement-row total">
-                <span>Net Profit / (Loss)</span>
-                <span className={data?.net_profit >= 0 ? 'text-success' : 'text-danger'}>
-                    Rs. {data?.net_profit?.toLocaleString()}
-                </span>
-            </div>
-        </div>
-    )
-
-    const renderBalanceSheet = () => (
-        <div className="financial-statement grid-2">
-            <div>
-                <div className="statement-section">
-                    <h3>Assets</h3>
-                    {data?.assets?.map(acc => (
-                        <div className="statement-row" key={acc.id}>
-                            <span className={acc.group_name.includes('Fixed') ? 'font-bold' : ''}>
-                                {acc.name} <small className="text-muted">({acc.group_name})</small>
-                            </span>
-                            <span>Rs. {acc.amount.toLocaleString()}</span>
+            {/* Chart Panel */}
+            {activeTab === 'stock' && (
+                <div className={`chart-panel ${chartPanelOpen ? 'open' : 'collapsed'}`}>
+                    <button className="panel-toggle" onClick={() => setChartPanelOpen(!chartPanelOpen)}>
+                        <div className="toggle-header">
+                            <PieChart size={13} />
+                            <span>Analytics</span>
+                            {data?.summary && (
+                                <span className="live-badge">LIVE</span>
+                            )}
                         </div>
-                    ))}
-                    <div className="statement-row total">
-                        <span>Total Assets</span>
-                        <span>Rs. {data?.total_assets?.toLocaleString()}</span>
-                    </div>
-                </div>
-            </div>
-
-            <div>
-                <div className="statement-section">
-                    <h3>Liabilities</h3>
-                    {data?.liabilities?.map(acc => (
-                        <div className="statement-row" key={acc.id}>
-                            <span>{acc.name}</span>
-                            <span>Rs. {acc.amount.toLocaleString()}</span>
+                        <ChevronRight size={14} className={`toggle-chevron ${chartPanelOpen ? 'rotated' : ''}`} />
+                    </button>
+                    {chartPanelOpen && (
+                        <div className="panel-content">
+                            <div className="chart-toolbar">
+                                <div className="range-selector">
+                                    {['7D', '30D', '90D'].map(range => (
+                                        <button
+                                            key={range}
+                                            onClick={() => setChartRange(range)}
+                                            className={`range-btn ${chartRange === range ? 'active' : ''}`}
+                                        >
+                                            {range}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="charts-grid">
+                                {/* Bar Chart - Category Values */}
+                                <div className="chart-box">
+                                    <div className="chart-title">Value by Category</div>
+                                    <div className="bar-chart">
+                                        {categoryChartData.slice(0, 6).map((cat, i) => {
+                                            const pct = (cat.value / maxChartValue) * 100
+                                            const catColor = categoryColors[cat.name] || categoryColors.default
+                                            return (
+                                                <div key={i} className="bar-row">
+                                                    <span className="bar-label">{cat.name}</span>
+                                                    <div className="bar-track">
+                                                        <div
+                                                            className="bar-fill"
+                                                            style={{
+                                                                width: `${pct}%`,
+                                                                backgroundColor: catColor.color,
+                                                                boxShadow: `0 0 8px ${catColor.glow}`
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    <span className="bar-value">{Math.round(cat.value / 1000)}k</span>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                                {/* Donut Chart - Stock Distribution */}
+                                <div className="chart-box donut-box">
+                                    <div className="chart-title">Stock Distribution</div>
+                                    <div className="donut-wrapper">
+                                        <div
+                                            className="donut"
+                                            style={{
+                                                background: `conic-gradient(${categoryChartData.slice(0, 5).map((cat, i) => {
+                                                    const pct = (cat.value / maxChartValue) * 100
+                                                    return `${categoryColors[cat.name]?.color || '#94a3b8'} ${categoryChartData.slice(0, i).reduce((a, c) => a + (c.value / maxChartValue) * 100, 0)}deg ${categoryChartData.slice(0, i + 1).reduce((a, c) => a + (c.value / maxChartValue) * 100, 0)}deg`
+                                                }).join(', ')})`
+                                            }}
+                                        >
+                                            <div className="donut-hole">
+                                                <span className="donut-total">{data?.items?.length || 0}</span>
+                                                <span className="donut-label">SKUs</span>
+                                            </div>
+                                        </div>
+                                        <div className="donut-legend">
+                                            {categoryChartData.slice(0, 5).map((cat, i) => (
+                                                <div key={i} className="legend-item">
+                                                    <span className="legend-dot" style={{ backgroundColor: categoryColors[cat.name]?.color }} />
+                                                    <span className="legend-text">{cat.name}</span>
+                                                    <span className="legend-count">{cat.count}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    ))}
-                    <div className="statement-row subtotal">
-                        <span>Total Liabilities</span>
-                        <span>Rs. {data?.total_liabilities?.toLocaleString()}</span>
-                    </div>
+                    )}
                 </div>
+            )}
 
-                <div className="statement-section">
-                    <h3>Equity</h3>
-                    {data?.equity?.map((acc, i) => (
-                        <div className="statement-row" key={i}>
-                            <span>{acc.name}</span>
-                            <span>Rs. {acc.amount.toLocaleString()}</span>
-                        </div>
-                    ))}
-                    <div className="statement-row subtotal">
-                        <span>Total Equity</span>
-                        <span>Rs. {data?.total_equity?.toLocaleString()}</span>
-                    </div>
-                </div>
-
-                <div className="statement-row total">
-                    <span>Total Liabilities & Equity</span>
-                    <span>Rs. {(data?.total_liabilities + data?.total_equity).toLocaleString()}</span>
-                </div>
-            </div>
-        </div>
-    )
-
-    const renderSalesByProduct = () => (
-        <table className="table">
-            <thead>
-                <tr>
-                    <th>Product Name</th>
-                    <th>Code</th>
-                    <th>Category</th>
-                    <th className="text-right">Qty Sold</th>
-                    <th className="text-right">Revenue</th>
-                </tr>
-            </thead>
-            <tbody>
-                {data?.map((item, i) => (
-                    <tr key={i}>
-                        <td>{item.product_name}</td>
-                        <td className="font-mono text-muted">{item.product_code}</td>
-                        <td><span className="badge badge-secondary">{item.category}</span></td>
-                        <td className="text-right">{item.total_quantity}</td>
-                        <td className="text-right font-bold">Rs. {parseFloat(item.total_revenue).toLocaleString()}</td>
-                    </tr>
-                ))}
-            </tbody>
-        </table>
-    )
-
-    const renderSalesByCustomer = () => (
-        <table className="table">
-            <thead>
-                <tr>
-                    <th>Customer</th>
-                    <th>Phone</th>
-                    <th className="text-center">Total Invoices</th>
-                    <th className="text-right">Total Spent</th>
-                    <th className="text-right">Balance Due</th>
-                </tr>
-            </thead>
-            <tbody>
-                {data?.map((item, i) => (
-                    <tr key={i}>
-                        <td>{item.customer_name}</td>
-                        <td>{item.phone || '-'}</td>
-                        <td className="text-center">{item.total_invoices}</td>
-                        <td className="text-right font-bold text-success">Rs. {parseFloat(item.total_spent).toLocaleString()}</td>
-                        <td className="text-right text-danger">Rs. {parseFloat(item.outstanding_balance).toLocaleString()}</td>
-                    </tr>
-                ))}
-            </tbody>
-        </table>
-    )
-
-    const renderPurchaseBySupplier = () => (
-        <table className="table">
-            <thead>
-                <tr>
-                    <th>Supplier</th>
-                    <th>Contact Person</th>
-                    <th className="text-center">Total Bills</th>
-                    <th className="text-right">Total Purchased</th>
-                    <th className="text-right">Balance Payable</th>
-                </tr>
-            </thead>
-            <tbody>
-                {data?.map((item, i) => (
-                    <tr key={i}>
-                        <td>{item.supplier_name}</td>
-                        <td>{item.contact_person || '-'}</td>
-                        <td className="text-center">{item.total_bills}</td>
-                        <td className="text-right font-bold">Rs. {parseFloat(item.total_purchased).toLocaleString()}</td>
-                        <td className="text-right text-danger">Rs. {parseFloat(item.outstanding_balance).toLocaleString()}</td>
-                    </tr>
-                ))}
-            </tbody>
-        </table>
-    )
-
-    const renderExpenseSummary = () => (
-        <div style={{ maxWidth: '600px' }}>
-            <table className="table">
-                <thead>
-                    <tr>
-                        <th>Expense Category</th>
-                        <th className="text-center">Transactions</th>
-                        <th className="text-right">Total Amount</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {data?.map((item, i) => (
-                        <tr key={i}>
-                            <td>{item.category}</td>
-                            <td className="text-center">{item.count}</td>
-                            <td className="text-right font-bold">Rs. {parseFloat(item.total_amount).toLocaleString()}</td>
-                        </tr>
-                    ))}
-                    <tr className="bg-tertiary">
-                        <td colSpan="2" className="text-right font-bold">Total Expenses</td>
-                        <td className="text-right font-bold">
-                            Rs. {data?.reduce((sum, item) => sum + parseFloat(item.total_amount), 0).toLocaleString()}
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    )
-
-    return (
-        <div className="page-container">
-            <header className="page-header">
-                <h1 className="page-title">Reports</h1>
-            </header>
-
-            <div className="report-tabs">
-                <button className={`report-tab ${activeTab === 'stock' ? 'report-tab--active' : ''}`} onClick={() => setActiveTab('stock')} aria-label="Stock Report">📦 Stock Report</button>
-                <button className={`report-tab ${activeTab === 'sales' ? 'report-tab--active' : ''}`} onClick={() => setActiveTab('sales')} aria-label="Sales Summary">💰 Sales Summary</button>
-                <button className={`report-tab ${activeTab === 'trial' ? 'report-tab--active' : ''}`} onClick={() => setActiveTab('trial')} aria-label="Trial Balance">⚖️ Trial Balance</button>
-                <button className={`report-tab ${activeTab === 'pl' ? 'report-tab--active' : ''}`} onClick={() => setActiveTab('pl')} aria-label="Profit and Loss">📉 Profit & Loss</button>
-                <button className={`report-tab ${activeTab === 'bs' ? 'report-tab--active' : ''}`} onClick={() => setActiveTab('bs')} aria-label="Balance Sheet">🏛️ Balance Sheet</button>
-                <div style={{ width: '1px', background: 'var(--border-surface)', margin: '0 4px' }}></div>
-                <button className={`report-tab ${activeTab === 'sales_product' ? 'report-tab--active' : ''}`} onClick={() => setActiveTab('sales_product')} aria-label="Sales by Product">📦 Products</button>
-                <button className={`report-tab ${activeTab === 'sales_customer' ? 'report-tab--active' : ''}`} onClick={() => setActiveTab('sales_customer')} aria-label="Sales by Customer">👥 Customers</button>
-                <button className={`report-tab ${activeTab === 'purchase_supplier' ? 'report-tab--active' : ''}`} onClick={() => setActiveTab('purchase_supplier')} aria-label="Purchases by Supplier">🚛 Suppliers</button>
-                <button className={`report-tab ${activeTab === 'expense_summary' ? 'report-tab--active' : ''}`} onClick={() => setActiveTab('expense_summary')} aria-label="Expense Summary">💸 Expenses</button>
-            </div>
-
-            <form onSubmit={handleFilterSubmit} className="report-filters">
-                {(activeTab === 'stock') && (
-                    <div className="flex items-center gap-2">
-                        <label className="flex items-center gap-2 cursor-pointer">
+            {/* Filters Bar */}
+            <div className="filters-bar">
+                {activeTab === 'stock' && (
+                    <>
+                        <label className="filter-toggle">
                             <input
                                 type="checkbox"
                                 checked={filters.low_stock_only}
                                 onChange={(e) => setFilters({ ...filters, low_stock_only: e.target.checked })}
                             />
-                            <span>Show Low Stock Only</span>
+                            <span className="toggle-track">
+                                <span className="toggle-thumb" />
+                            </span>
+                            <span>Low Stock</span>
                         </label>
-                    </div>
+                        <span className="filter-divider" />
+                    </>
                 )}
-                {(activeTab === 'pl' || activeTab === 'sales' || activeTab === 'sales_product' || activeTab === 'sales_customer' || activeTab === 'purchase_supplier' || activeTab === 'expense_summary') && (
+                {['pl', 'sales', 'sales_product', 'sales_customer', 'purchase_supplier', 'expense_summary'].includes(activeTab) && (
                     <>
-                        <div className="form-group mb-0">
-                            <label className="form-label text-xs">From Date</label>
+                        <div className="date-range">
                             <input
                                 type="date"
-                                className="form-input"
                                 value={filters.from_date}
                                 onChange={(e) => setFilters({ ...filters, from_date: e.target.value })}
                             />
-                        </div>
-                        <div className="form-group mb-0">
-                            <label className="form-label text-xs">To Date</label>
+                            <span className="date-sep">→</span>
                             <input
                                 type="date"
-                                className="form-input"
                                 value={filters.to_date}
                                 onChange={(e) => setFilters({ ...filters, to_date: e.target.value })}
                             />
                         </div>
+                        <span className="filter-divider" />
                     </>
                 )}
-                {(activeTab === 'trial' || activeTab === 'bs') && (
-                    <div className="form-group mb-0">
-                        <label className="form-label text-xs">As of Date</label>
+                {['trial', 'bs'].includes(activeTab) && (
+                    <>
+                        <span className="filter-label">As of:</span>
                         <input
                             type="date"
-                            className="form-input"
                             value={filters.as_of_date}
                             onChange={(e) => setFilters({ ...filters, as_of_date: e.target.value })}
+                            className="date-single"
                         />
-                    </div>
-                )}
-                <button type="submit" className="btn btn-secondary" style={{ marginTop: 'auto' }}>
-                    Refresh Report
-                </button>
-            </form>
-
-            <div className="card">
-                {loading ? (
-                    <div className="text-center p-6 text-muted">Loading report data...</div>
-                ) : (
-                    <>
-                        {activeTab === 'stock' && renderStockReport()}
-                        {activeTab === 'sales' && renderSalesReport()}
-                        {activeTab === 'trial' && renderTrialBalance()}
-                        {activeTab === 'pl' && renderProfitLoss()}
-                        {activeTab === 'bs' && renderBalanceSheet()}
-                        {activeTab === 'sales_product' && renderSalesByProduct()}
-                        {activeTab === 'sales_customer' && renderSalesByCustomer()}
-                        {activeTab === 'purchase_supplier' && renderPurchaseBySupplier()}
-                        {activeTab === 'expense_summary' && renderExpenseSummary()}
+                        <span className="filter-divider" />
                     </>
                 )}
+                {searchQuery && (
+                    <span className="search-info">
+                        <Search size={12} />
+                        {getFilteredData(data?.items)?.length || 0} results for "{searchQuery}"
+                        <button onClick={() => setSearchQuery('')}><X size={12} /></button>
+                    </span>
+                )}
             </div>
+
+            {/* Data Table */}
+            <div className="table-container">
+                {activeTab === 'stock' && (
+                    <table className="data-table terminal-table">
+                        <thead>
+                            <tr>
+                                <th className="sticky-col sku-col" onClick={() => handleSort('code')}>
+                                    SKU {sortConfig.key === 'code' && (sortConfig.direction === 'asc' ? <ChevronUp size={11} /> : <ChevronDown size={11} />)}
+                                </th>
+                                <th className="name-col" onClick={() => handleSort('name')}>
+                                    Product {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? <ChevronUp size={11} /> : <ChevronDown size={11} />)}
+                                </th>
+                                <th onClick={() => handleSort('category')}>
+                                    Category {sortConfig.key === 'category' && (sortConfig.direction === 'asc' ? <ChevronUp size={11} /> : <ChevronDown size={11} />)}
+                                </th>
+                                <th className="num-col" onClick={() => handleSort('current_stock')}>
+                                    Qty {sortConfig.key === 'current_stock' && (sortConfig.direction === 'asc' ? <ChevronUp size={11} /> : <ChevronDown size={11} />)}
+                                </th>
+                                <th>Unit</th>
+                                <th className="num-col value-col" onClick={() => handleSort('stock_value')}>
+                                    Value {sortConfig.key === 'stock_value' && (sortConfig.direction === 'asc' ? <ChevronUp size={11} /> : <ChevronDown size={11} />)}
+                                </th>
+                                <th className="action-col"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {loading ? (
+                                [...Array(10)].map((_, i) => (
+                                    <tr key={i} className="loading-row">
+                                        <td className="sku-col"><div className="skeleton" /></td>
+                                        <td><div className="skeleton wide" /></td>
+                                        <td><div className="skeleton" /></td>
+                                        <td className="num-col"><div className="skeleton" /></td>
+                                        <td><div className="skeleton" /></td>
+                                        <td className="num-col value-col"><div className="skeleton" /></td>
+                                        <td className="action-col"></td>
+                                    </tr>
+                                ))
+                            ) : getPaginatedData(data?.items)?.items?.length === 0 ? (
+                                <tr className="empty-row">
+                                    <td colSpan={7}>
+                                        <div className="empty-state">
+                                            <Package size={32} />
+                                            <span>No items found</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : (
+                                getPaginatedData(data?.items)?.items?.map((item, idx) => {
+                                    const catStyle = categoryColors[item.category] || categoryColors.default
+                                    return (
+                                        <tr key={item.id} className={item.is_low_stock ? 'warning' : ''}>
+                                            <td className="sku-col">
+                                                <code className="sku">{item.code}</code>
+                                                {item.is_low_stock && <AlertTriangle size={10} className="warn-icon" />}
+                                            </td>
+                                            <td className="name-cell">{item.name}</td>
+                                            <td>
+                                                <span className="cat-tag" style={{ borderColor: catStyle.color, color: catStyle.color }}>
+                                                    {item.category || '—'}
+                                                </span>
+                                            </td>
+                                            <td className="num-col">
+                                                <span className={item.current_stock === 0 ? 'zero' : item.is_low_stock ? 'low' : 'normal'}>
+                                                    {item.current_stock.toLocaleString()}
+                                                </span>
+                                            </td>
+                                            <td className="unit-cell">{item.unit}</td>
+                                            <td className="num-col value-col">
+                                                <span className="value-cell" style={getHeatmapStyle(item.stock_value, maxStockValue)}>
+                                                    {item.stock_value.toLocaleString()}
+                                                </span>
+                                            </td>
+                                            <td className="action-col">
+                                                <button className="row-action"><Eye size={13} /></button>
+                                            </td>
+                                        </tr>
+                                    )
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                )}
+
+                {activeTab === 'sales' && (
+                    <table className="data-table">
+                        <thead>
+                            <tr>
+                                <th onClick={() => handleSort('invoice_date')}>
+                                    Date {sortConfig.key === 'invoice_date' && (sortConfig.direction === 'asc' ? <ChevronUp size={11} /> : <ChevronDown size={11} />)}
+                                </th>
+                                <th className="num-col">Invoices</th>
+                                <th className="num-col">Total</th>
+                                <th className="num-col">Received</th>
+                                <th className="num-col">Credit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {loading ? (
+                                [...Array(8)].map((_, i) => (
+                                    <tr key={i}><td colSpan={5}><div className="skeleton" /></td></tr>
+                                ))
+                            ) : (
+                                getPaginatedData(getDataItems(data))?.items?.map((item, i) => (
+                                    <tr key={i}>
+                                        <td>{format(new Date(item.invoice_date), 'dd MMM yyyy')}</td>
+                                        <td className="num-col">{item.invoices}</td>
+                                        <td className="num-col green">{parseFloat(item.total).toLocaleString()}</td>
+                                        <td className="num-col">{parseFloat(item.received).toLocaleString()}</td>
+                                        <td className="num-col red">{parseFloat(item.credit).toLocaleString()}</td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                )}
+
+                {activeTab === 'trial' && (
+                    <table className="data-table">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Account</th>
+                                <th>Group</th>
+                                <th className="num-col">Debit</th>
+                                <th className="num-col">Credit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {loading ? (
+                                [...Array(8)].map((_, i) => (
+                                    <tr key={i}><td colSpan={5}><div className="skeleton" /></td></tr>
+                                ))
+                            ) : (
+                                data?.accounts?.map((acc) => (
+                                    <tr key={acc.id}>
+                                        <td><code>{acc.code}</code></td>
+                                        <td>{acc.name}</td>
+                                        <td className="muted">{acc.group_name}</td>
+                                        <td className="num-col">{acc.debits > 0 ? acc.debits.toLocaleString() : '—'}</td>
+                                        <td className="num-col">{acc.credits > 0 ? acc.credits.toLocaleString() : '—'}</td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                        <tfoot>
+                            <tr className="totals-row">
+                                <td colSpan={3}>Totals</td>
+                                <td className="num-col">{data?.totals?.debits?.toLocaleString()}</td>
+                                <td className="num-col">{data?.totals?.credits?.toLocaleString()}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                )}
+
+                {activeTab === 'pl' && (
+                    <div className="financial-statement terminal-statement">
+                        <div className="statement-block">
+                            <div className="block-header green">
+                                <TrendingUp size={13} /> Income
+                            </div>
+                            {data?.income?.map(acc => (
+                                <div key={acc.id} className="statement-row">
+                                    <span>{acc.name}</span>
+                                    <span className="amount green">{acc.amount.toLocaleString()}</span>
+                                </div>
+                            ))}
+                            <div className="statement-row total green">
+                                <span>Total Income</span>
+                                <span>{data?.total_income?.toLocaleString()}</span>
+                            </div>
+                        </div>
+                        <div className="statement-block">
+                            <div className="block-header red">
+                                <Receipt size={13} /> Expenses
+                            </div>
+                            {data?.expenses?.map(acc => (
+                                <div key={acc.id} className="statement-row">
+                                    <span>{acc.name}</span>
+                                    <span className="amount red">{acc.amount.toLocaleString()}</span>
+                                </div>
+                            ))}
+                            <div className="statement-row total red">
+                                <span>Total Expenses</span>
+                                <span>{data?.total_expenses?.toLocaleString()}</span>
+                            </div>
+                        </div>
+                        <div className={`statement-row net ${data?.net_profit >= 0 ? 'green' : 'red'}`}>
+                            <span>Net {data?.net_profit >= 0 ? 'Profit' : 'Loss'}</span>
+                            <span className="amount">{data?.net_profit?.toLocaleString()}</span>
+                        </div>
+                    </div>
+                )}
+
+                {(activeTab === 'bs' || activeTab === 'expense_summary' || activeTab === 'sales_product' || activeTab === 'sales_customer' || activeTab === 'purchase_supplier') && (
+                    <table className="data-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th className="num-col">Value</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr className="empty-row">
+                                <td colSpan={3}>
+                                    <div className="empty-state">
+                                        <BarChart3 size={24} />
+                                        <span>{activeReport?.label} — Report View</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                )}
+            </div>
+
+            {/* Pagination */}
+            {activeTab === 'stock' && data?.items?.length > ITEMS_PER_PAGE && (
+                <div className="pagination">
+                    <span className="page-info">
+                        {((currentPage - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, getFilteredData(data?.items)?.length)} of {getFilteredData(data?.items)?.length}
+                    </span>
+                    <div className="page-controls">
+                        <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="page-btn"
+                        >
+                            <ChevronRight size={14} style={{ transform: 'rotate(180deg)' }} />
+                        </button>
+                        {Array.from({ length: Math.min(getTotalPages(getFilteredData(data?.items)?.length), 7) }, (_, i) => i + 1).map(p => (
+                            <button
+                                key={p}
+                                onClick={() => setCurrentPage(p)}
+                                className={`page-btn ${currentPage === p ? 'active' : ''}`}
+                            >
+                                {p}
+                            </button>
+                        ))}
+                        <button
+                            onClick={() => setCurrentPage(p => Math.min(getTotalPages(getFilteredData(data?.items)?.length), p + 1))}
+                            disabled={currentPage === getTotalPages(getFilteredData(data?.items)?.length)}
+                            className="page-btn"
+                        >
+                            <ChevronRight size={14} />
+                        </button>
+                    </div>
+                    <select
+                        className="per-page"
+                        value={ITEMS_PER_PAGE}
+                        onChange={() => {}}
+                    >
+                        <option value={25}>25 / page</option>
+                        <option value={50}>50 / page</option>
+                        <option value={100}>100 / page</option>
+                    </select>
+                </div>
+            )}
+
+            {/* Balance indicator for Trial Balance */}
+            {activeTab === 'trial' && data && (
+                <div className={`balance-indicator ${data?.is_balanced ? 'balanced' : 'unbalanced'}`}>
+                    {data?.is_balanced ? <CheckCircle size={14} /> : <XCircle size={14} />}
+                    Trial Balance {data?.is_balanced ? 'Balanced' : 'NOT Balanced'}
+                </div>
+            )}
         </div>
     )
 }

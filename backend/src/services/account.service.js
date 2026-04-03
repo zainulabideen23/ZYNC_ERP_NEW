@@ -1,8 +1,14 @@
 const { AppError } = require('../middleware/errorHandler');
 
 class AccountService {
-    constructor(db) {
+    constructor(db, tenantId) {
         this.db = db;
+        this.tenantId = tenantId;
+    }
+
+    /** Tenant-scoped query helper */
+    tdb(table, trx = null) {
+        return (trx || this.db)(table).where(`${table}.tenant_id`, this.tenantId);
     }
 
     /**
@@ -12,7 +18,7 @@ class AccountService {
         const { code, name, group_id, account_type, opening_balance = 0, notes } = data;
 
         // Verify group exists
-        const group = await this.db('account_groups').where('id', group_id).first();
+        const group = await this.tdb('account_groups').where('id', group_id).first();
         if (!group) throw new AppError('Account group not found', 404);
 
         const [account] = await this.db('accounts').insert({
@@ -23,7 +29,8 @@ class AccountService {
             opening_balance,
             current_balance: opening_balance,
             notes,
-            created_by: userId
+            created_by: userId,
+            tenant_id: this.tenantId
         }).returning('*');
 
         return account;
@@ -36,6 +43,7 @@ class AccountService {
         const account = await this.db('accounts as a')
             .leftJoin('account_groups as g', 'a.group_id', 'g.id')
             .select('a.*', 'g.name as group_name')
+            .where('a.tenant_id', this.tenantId)
             .where('a.id', id)
             .first();
 
@@ -48,8 +56,8 @@ class AccountService {
      * List accounts by group
      */
     async listGroupsWithAccounts() {
-        const groups = await this.db('account_groups').orderBy('sequence_order').orderBy('name');
-        const accounts = await this.db('accounts').where('is_active', true).orderBy('code');
+        const groups = await this.tdb('account_groups').orderBy('sequence_order').orderBy('name');
+        const accounts = await this.tdb('accounts').where('is_active', true).orderBy('code');
 
         return groups.map(group => ({
             ...group,
@@ -65,6 +73,7 @@ class AccountService {
             .leftJoin('ledger_entries as le', 'a.id', 'le.account_id')
             .leftJoin('journals as j', 'le.journal_id', 'j.id')
             .leftJoin('account_groups as g', 'a.group_id', 'g.id')
+            .where('a.tenant_id', this.tenantId)
             .select(
                 'a.id',
                 'a.code',
@@ -75,6 +84,7 @@ class AccountService {
                 this.db.raw('SUM(CASE WHEN le.entry_type = \'debit\' AND (j.journal_date IS NULL OR j.journal_date <= ?) THEN le.amount ELSE 0 END) as total_debit', [asOfDate]),
                 this.db.raw('SUM(CASE WHEN le.entry_type = \'credit\' AND (j.journal_date IS NULL OR j.journal_date <= ?) THEN le.amount ELSE 0 END) as total_credit', [asOfDate])
             )
+            .where('a.tenant_id', this.tenantId)
             .where('a.is_active', true)
             .groupBy('a.id', 'a.code', 'a.name', 'a.account_type', 'a.opening_balance', 'g.name')
             .orderBy('a.code');

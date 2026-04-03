@@ -1,6 +1,6 @@
 
 exports.up = function (knex) {
-    return knex.schema.raw("ALTER TYPE sale_status ADD VALUE 'returned'");
+    return knex.schema.raw("ALTER TYPE sale_status ADD VALUE IF NOT EXISTS 'returned'");
 };
 
 exports.down = function (knex) {

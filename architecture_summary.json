@@ -1,0 +1,2210 @@
+{
+  "totalFiles": 183,
+  "totalLinesRead": 30028,
+  "structure": {
+    "backend\\database\\migrations\\20260118000000_create_initial_schema.js": {
+      "totalLines": 560
+    },
+    "backend\\database\\migrations\\20260118000001_add_purchase_status.js": {
+      "totalLines": 9
+    },
+    "backend\\database\\migrations\\20260118000002_add_sale_status.js": {
+      "totalLines": 9
+    },
+    "backend\\database\\migrations\\20260126115121_update_products_table.js": {
+      "totalLines": 37
+    },
+    "backend\\database\\migrations\\20260127103945_professional_schema_v1.js": {
+      "totalLines": 673
+    },
+    "backend\\database\\migrations\\20260127111356_add_sequences_table.js": {
+      "totalLines": 32
+    },
+    "backend\\database\\migrations\\20260127111659_add_code_to_account_groups.js": {
+      "totalLines": 32
+    },
+    "backend\\database\\migrations\\20260127113203_add_cnic_and_company_to_people.js": {
+      "totalLines": 33
+    },
+    "backend\\database\\migrations\\20260127113313_add_missing_columns_v1.js": {
+      "totalLines": 35
+    },
+    "backend\\database\\migrations\\20260127113653_fix_sales_date_check.js": {
+      "totalLines": 31
+    },
+    "backend\\database\\migrations\\20260127113826_drop_redundant_triggers.js": {
+      "totalLines": 22
+    },
+    "backend\\database\\migrations\\20260127114531_add_last_login_to_users.js": {
+      "totalLines": 21
+    },
+    "backend\\database\\migrations\\20260127115901_restore_expenses_and_categories.js": {
+      "totalLines": 56
+    },
+    "backend\\database\\migrations\\20260130100000_fix_sales_overpayment.js": {
+      "totalLines": 84
+    },
+    "backend\\database\\migrations\\20260130120000_drop_sales_check1.js": {
+      "totalLines": 92
+    },
+    "backend\\database\\migrations\\20260206100000_drop_purchases_check1.js": {
+      "totalLines": 54
+    },
+    "backend\\database\\migrations\\20260302100000_fix_account_groups.js": {
+      "totalLines": 120
+    },
+    "backend\\database\\migrations\\20260302100001_fix_accounts.js": {
+      "totalLines": 112
+    },
+    "backend\\database\\migrations\\20260302100002_add_ledger_safeguards.js": {
+      "totalLines": 89
+    },
+    "backend\\database\\migrations\\20260303100000_add_multi_tenancy.js": {
+      "totalLines": 262
+    },
+    "backend\\database\\migrations\\20260304100000_add_platform_admins.js": {
+      "totalLines": 65,
+      "imports": [
+        "const bcrypt = require('bcrypt');"
+      ]
+    },
+    "backend\\database\\migrations\\20260304200000_remove_viewer_role.js": {
+      "totalLines": 36
+    },
+    "backend\\database\\migrations\\20260304200001_add_phone_format_constraints.js": {
+      "totalLines": 111
+    },
+    "backend\\database\\migrations\\20260304200002_fix_sequences_table.js": {
+      "totalLines": 72
+    },
+    "backend\\database\\migrations\\20260304200003_extend_audit_action_enum.js": {
+      "totalLines": 20
+    },
+    "backend\\database\\migrations\\20260304200004_make_audit_user_id_nullable.js": {
+      "totalLines": 16
+    },
+    "backend\\database\\migrations\\20260305100000_add_onboarding_and_company_info.js": {
+      "totalLines": 49
+    },
+    "backend\\database\\migrations\\20260305110000_create_brands_table.js": {
+      "totalLines": 20
+    },
+    "backend\\database\\migrations\\20260306100000_separate_company_info.js": {
+      "totalLines": 122
+    },
+    "backend\\database\\migrations\\20260306200000_layer2_reference_data.js": {
+      "totalLines": 190
+    },
+    "backend\\database\\migrations\\20260307100000_fix_units_unique_constraints.js": {
+      "totalLines": 23
+    },
+    "backend\\database\\seeds\\001_seed_data.js": {
+      "totalLines": 407,
+      "imports": [
+        "const bcrypt = require('bcrypt');"
+      ]
+    },
+    "backend\\knexfile.js": {
+      "totalLines": 46,
+      "exports": [
+        "module.exports = {"
+      ],
+      "imports": [
+        "require('dotenv').config();"
+      ]
+    },
+    "backend\\scripts\\add_missing_sequences.js": {
+      "totalLines": 41,
+      "imports": [
+        "require('dotenv').config({ path: require('path').join(__dirname, '../.env') });",
+        "const db = require('../src/config/database');"
+      ]
+    },
+    "backend\\scripts\\backup_data.js": {
+      "totalLines": 35,
+      "imports": [
+        "const knex = require('../src/config/database');",
+        "const fs = require('fs');",
+        "const path = require('path');"
+      ]
+    },
+    "backend\\scripts\\check_sequences.js": {
+      "totalLines": 38,
+      "imports": [
+        "require('dotenv').config({ path: require('path').join(__dirname, '../.env') });",
+        "const db = require('../src/config/database');"
+      ]
+    },
+    "backend\\scripts\\check_sequences_schema.js": {
+      "totalLines": 18,
+      "imports": [
+        "const path = require('path');",
+        "const knex = require('knex')(require(path.join(__dirname, '..', 'knexfile')).development);"
+      ]
+    },
+    "backend\\scripts\\check_sequence_exact.js": {
+      "totalLines": 25,
+      "imports": [
+        "const path = require('path');",
+        "require('dotenv').config({ path: path.join(__dirname, '../.env') });",
+        "const db = require('../src/config/database');"
+      ]
+    },
+    "backend\\scripts\\check_tenant_state.js": {
+      "totalLines": 36,
+      "imports": [
+        "const db = require('../src/config/database');"
+      ]
+    },
+    "backend\\scripts\\cleanup_transactions.js": {
+      "totalLines": 132,
+      "imports": [
+        "const path = require('path');",
+        "const readline = require('readline');",
+        "const knex = require(path.join(__dirname, '..', 'src', 'config', 'database'));"
+      ]
+    },
+    "backend\\scripts\\clear_data.js": {
+      "totalLines": 53,
+      "imports": [
+        "const path = require('path');",
+        "require('dotenv').config({ path: path.join(__dirname, '../.env') });",
+        "const db = require('../src/config/database');"
+      ]
+    },
+    "backend\\scripts\\debug_columns.js": {
+      "totalLines": 26,
+      "imports": [
+        "const path = require('path');",
+        "require('dotenv').config({ path: path.join(__dirname, '..', '.env') });",
+        "const knex = require(path.join(__dirname, '..', 'src', 'config', 'database'));"
+      ]
+    },
+    "backend\\scripts\\fake_migrations.js": {
+      "totalLines": 45,
+      "imports": [
+        "const path = require('path');",
+        "require('dotenv').config({ path: path.join(__dirname, '../.env') });",
+        "const db = require('../src/config/database');"
+      ]
+    },
+    "backend\\scripts\\fix_invoice_sequence.js": {
+      "totalLines": 91,
+      "imports": [
+        "const path = require('path');",
+        "require('dotenv').config({ path: path.join(__dirname, '..', '.env') });",
+        "const knex = require(path.join(__dirname, '..', 'src', 'config', 'database'));"
+      ]
+    },
+    "backend\\scripts\\insert_sequences.js": {
+      "totalLines": 48,
+      "imports": [
+        "require('dotenv').config({ path: require('path').join(__dirname, '../.env') });",
+        "const db = require('../src/config/database');"
+      ]
+    },
+    "backend\\scripts\\list_tables.js": {
+      "totalLines": 15,
+      "imports": [
+        "const knex = require('knex');",
+        "const config = require('../knexfile');"
+      ]
+    },
+    "backend\\scripts\\list_tables_quick.js": {
+      "totalLines": 5,
+      "imports": [
+        "const db = require('../src/config/database');"
+      ]
+    },
+    "backend\\scripts\\migrate_to_new_schema.js": {
+      "totalLines": 145,
+      "imports": [
+        "const knex = require('../src/config/database');",
+        "const fs = require('fs');",
+        "const path = require('path');",
+        "const bcrypt = require('bcrypt');"
+      ]
+    },
+    "backend\\scripts\\perf_test.js": {
+      "totalLines": 52,
+      "imports": [
+        "const db = require('../src/config/database');",
+        "const { v4: uuidv4 } = require('uuid');"
+      ]
+    },
+    "backend\\scripts\\reset_password.js": {
+      "totalLines": 23,
+      "imports": [
+        "require('dotenv').config();",
+        "const bcrypt = require('bcrypt');",
+        "const db = require('../src/config/database');"
+      ]
+    },
+    "backend\\scripts\\seed_categories.js": {
+      "totalLines": 30,
+      "imports": [
+        "const path = require('path');",
+        "require('dotenv').config({ path: path.join(__dirname, '../.env') });",
+        "const db = require('../src/config/database');"
+      ]
+    },
+    "backend\\scripts\\seed_database.js": {
+      "totalLines": 27,
+      "imports": [
+        "const fs = require('fs');",
+        "const path = require('path');",
+        "const db = require('../src/config/database');"
+      ]
+    },
+    "backend\\scripts\\seed_dummy_products.js": {
+      "totalLines": 107,
+      "imports": [
+        "const path = require('path');",
+        "require('dotenv').config({ path: path.join(__dirname, '../.env') });",
+        "const db = require('../src/config/database');"
+      ]
+    },
+    "backend\\scripts\\show_company_info.js": {
+      "totalLines": 15,
+      "imports": [
+        "const knex = require('knex');",
+        "const config = require('../knexfile');"
+      ]
+    },
+    "backend\\scripts\\show_database.js": {
+      "totalLines": 48,
+      "imports": [
+        "const path = require('path');",
+        "require('dotenv').config({ path: path.join(__dirname, '../.env') });",
+        "const db = require('../src/config/database');"
+      ]
+    },
+    "backend\\scripts\\sync_all_sequences.js": {
+      "totalLines": 114,
+      "imports": [
+        "const knex = require('knex');",
+        "const config = require('../knexfile');"
+      ]
+    },
+    "backend\\scripts\\sync_sequences.js": {
+      "totalLines": 65,
+      "imports": [
+        "const path = require('path');",
+        "require('dotenv').config({ path: path.join(__dirname, '..', '.env') });",
+        "const knex = require(path.join(__dirname, '..', 'src', 'config', 'database'));"
+      ]
+    },
+    "backend\\scripts\\verify_endpoints.js": {
+      "totalLines": 103,
+      "imports": [
+        "const axios = require('axios');",
+        "const jwt = require('jsonwebtoken');",
+        "const knex = require('knex');",
+        "const config = require('../knexfile');"
+      ]
+    },
+    "backend\\scripts\\verify_fixes.js": {
+      "totalLines": 32,
+      "imports": [
+        "const path = require('path');",
+        "const knex = require('knex')(require(path.join(__dirname, '..', 'knexfile')).development);"
+      ]
+    },
+    "backend\\scripts\\verify_ledger.js": {
+      "totalLines": 83,
+      "imports": [
+        "require('dotenv').config();",
+        "const knex = require('../src/config/database');",
+        "const { format } = require('date-fns');"
+      ]
+    },
+    "backend\\scripts\\verify_schema.js": {
+      "totalLines": 211,
+      "imports": [
+        "const knex = require('knex');",
+        "const config = require('../knexfile');",
+        "const ProductService = require('../src/services/product.service');",
+        "const SaleService = require('../src/services/sale.service');",
+        "const PurchaseService = require('../src/services/purchase.service');",
+        "const CustomerService = require('../src/services/customer.service');",
+        "const SupplierService = require('../src/services/supplier.service');",
+        "const LedgerService = require('../src/services/ledger.service');"
+      ]
+    },
+    "backend\\src\\config\\database.js": {
+      "totalLines": 12,
+      "exports": [
+        "module.exports = db;"
+      ],
+      "imports": [
+        "const knex = require('knex');",
+        "const knexConfig = require('../../knexfile');"
+      ]
+    },
+    "backend\\src\\index.js": {
+      "totalLines": 123,
+      "exports": [
+        "module.exports = app;"
+      ],
+      "imports": [
+        "require('dotenv').config();",
+        "const express = require('express');",
+        "const cors = require('cors');",
+        "const helmet = require('helmet');",
+        "const morgan = require('morgan');",
+        "const { errorHandler } = require('./middleware/errorHandler');",
+        "const { resolveTenant } = require('./middleware/tenant');",
+        "const { authenticate } = require('./middleware/auth');",
+        "const logger = require('./utils/logger');",
+        "const db = require('./config/database');",
+        "const authRoutes = require('./routes/auth.routes');",
+        "const productRoutes = require('./routes/product.routes');",
+        "const customerRoutes = require('./routes/customer.routes');",
+        "const supplierRoutes = require('./routes/supplier.routes');",
+        "const categoryRoutes = require('./routes/category.routes');",
+        "const brandRoutes = require('./routes/brand.routes');",
+        "const saleRoutes = require('./routes/sale.routes');",
+        "const purchaseRoutes = require('./routes/purchase.routes');",
+        "const accountRoutes = require('./routes/account.routes');",
+        "const reportRoutes = require('./routes/report.routes');",
+        "const expenseRoutes = require('./routes/expense.routes');",
+        "const journalRoutes = require('./routes/journal.routes');",
+        "const userRoutes = require('./routes/user.routes');",
+        "const backupRoutes = require('./routes/backup.routes');",
+        "const stockRoutes = require('./routes/stock.routes');",
+        "const quotationRoutes = require('./routes/quotation.routes');",
+        "const unitRoutes = require('./routes/unit.routes');",
+        "const tenantRoutes = require('./routes/tenants.routes');",
+        "const dashboardRoutes = require('./routes/dashboard.routes');",
+        "const auditlogRoutes = require('./routes/auditlog.routes');",
+        "const onboardingRoutes = require('./routes/onboarding.routes');",
+        "const settingsRoutes = require('./routes/settings.routes');"
+      ]
+    },
+    "backend\\src\\middleware\\auth.js": {
+      "totalLines": 64,
+      "exports": [
+        "module.exports = { authenticate, authorize };"
+      ],
+      "functions": [
+        "const authorize = (...allowedRoles) => {"
+      ],
+      "imports": [
+        "const jwt = require('jsonwebtoken');",
+        "const { AppError } = require('./errorHandler');",
+        "const db = require('../config/database');"
+      ]
+    },
+    "backend\\src\\middleware\\errorHandler.js": {
+      "totalLines": 69,
+      "exports": [
+        "module.exports = { AppError, errorHandler };"
+      ],
+      "functions": [
+        "const errorHandler = (err, req, res, next) => {"
+      ],
+      "imports": [
+        "const logger = require('../utils/logger');"
+      ],
+      "classes": [
+        "class AppError extends Error {"
+      ]
+    },
+    "backend\\src\\middleware\\platformAuth.js": {
+      "totalLines": 80,
+      "exports": [
+        "module.exports = { platformSecretAuth, platformJwtAuth };"
+      ],
+      "functions": [
+        "const platformSecretAuth = (req, res, next) => {"
+      ],
+      "imports": [
+        "const jwt = require('jsonwebtoken');",
+        "const { AppError } = require('./errorHandler');",
+        "const db = require('../config/database');"
+      ]
+    },
+    "backend\\src\\middleware\\tenant.js": {
+      "totalLines": 57,
+      "exports": [
+        "module.exports = { resolveTenant };"
+      ],
+      "imports": [
+        "const { AppError } = require('./errorHandler');",
+        "const db = require('../config/database');"
+      ]
+    },
+    "backend\\src\\routes\\account.routes.js": {
+      "totalLines": 99,
+      "exports": [
+        "module.exports = router;"
+      ],
+      "imports": [
+        "const express = require('express');",
+        "const db = require('../config/database');",
+        "const { authenticate, authorize } = require('../middleware/auth');",
+        "const { AppError } = require('../middleware/errorHandler');",
+        "const AccountService = require('../services/account.service');"
+      ]
+    },
+    "backend\\src\\routes\\auditlog.routes.js": {
+      "totalLines": 162,
+      "exports": [
+        "module.exports = router;"
+      ],
+      "functions": [
+        "function safeJson(val) {",
+        "const applyFilters = (qb, { joinUsers = false } = {}) => {"
+      ],
+      "imports": [
+        "const express = require('express');",
+        "const db = require('../config/database');",
+        "const { authenticate, authorize } = require('../middleware/auth');"
+      ]
+    },
+    "backend\\src\\routes\\auth.routes.js": {
+      "totalLines": 182,
+      "exports": [
+        "module.exports = router;"
+      ],
+      "imports": [
+        "const express = require('express');",
+        "const bcrypt = require('bcrypt');",
+        "const jwt = require('jsonwebtoken');",
+        "const { v4: uuid } = require('uuid');",
+        "const db = require('../config/database');",
+        "const { AppError } = require('../middleware/errorHandler');",
+        "const { authenticate } = require('../middleware/auth');",
+        "const audit = require('../utils/audit');"
+      ]
+    },
+    "backend\\src\\routes\\backup.routes.js": {
+      "totalLines": 67,
+      "exports": [
+        "module.exports = router;"
+      ],
+      "imports": [
+        "const express = require('express');",
+        "const backupService = require('../services/backup.service');",
+        "const { authenticate, authorize } = require('../middleware/auth');",
+        "const path = require('path');",
+        "const db = require('../config/database');",
+        "const audit = require('../utils/audit');"
+      ]
+    },
+    "backend\\src\\routes\\brand.routes.js": {
+      "totalLines": 131,
+      "exports": [
+        "module.exports = router;"
+      ],
+      "imports": [
+        "const express = require('express');",
+        "const db = require('../config/database');",
+        "const { authenticate, authorize } = require('../middleware/auth');",
+        "const { AppError } = require('../middleware/errorHandler');",
+        "const audit = require('../utils/audit');"
+      ]
+    },
+    "backend\\src\\routes\\category.routes.js": {
+      "totalLines": 191,
+      "exports": [
+        "module.exports = router;"
+      ],
+      "functions": [
+        "const buildTree = (flat, parentId = null) =>"
+      ],
+      "imports": [
+        "const express = require('express');",
+        "const db = require('../config/database');",
+        "const { authenticate, authorize } = require('../middleware/auth');",
+        "const { AppError } = require('../middleware/errorHandler');",
+        "const audit = require('../utils/audit');"
+      ]
+    },
+    "backend\\src\\routes\\customer.routes.js": {
+      "totalLines": 178,
+      "exports": [
+        "module.exports = router;"
+      ],
+      "imports": [
+        "const express = require('express');",
+        "const db = require('../config/database');",
+        "const { authenticate, authorize } = require('../middleware/auth');",
+        "const { AppError } = require('../middleware/errorHandler');",
+        "const CustomerService = require('../services/customer.service');",
+        "const audit = require('../utils/audit');"
+      ]
+    },
+    "backend\\src\\routes\\dashboard.routes.js": {
+      "totalLines": 75,
+      "exports": [
+        "module.exports = router;"
+      ],
+      "imports": [
+        "const express = require('express');",
+        "const db = require('../config/database');",
+        "const { authenticate, authorize } = require('../middleware/auth');"
+      ]
+    },
+    "backend\\src\\routes\\expense.routes.js": {
+      "totalLines": 104,
+      "exports": [
+        "module.exports = router;"
+      ],
+      "imports": [
+        "const express = require('express');",
+        "const db = require('../config/database');",
+        "const { authenticate, authorize } = require('../middleware/auth');",
+        "const { AppError } = require('../middleware/errorHandler');",
+        "const ExpenseService = require('../services/expense.service');",
+        "const LedgerService = require('../services/ledger.service');",
+        "const audit = require('../utils/audit');"
+      ]
+    },
+    "backend\\src\\routes\\journal.routes.js": {
+      "totalLines": 91,
+      "exports": [
+        "module.exports = router;"
+      ],
+      "functions": [
+        "const totalDebit = (entries || []).filter(e => e.entry_type === 'debit').reduce((s, e) => s + parseF",
+        "const totalCredit = (entries || []).filter(e => e.entry_type === 'credit').reduce((s, e) => s + pars"
+      ],
+      "imports": [
+        "const express = require('express');",
+        "const db = require('../config/database');",
+        "const { authenticate, authorize } = require('../middleware/auth');",
+        "const LedgerService = require('../services/ledger.service');",
+        "const audit = require('../utils/audit');"
+      ]
+    },
+    "backend\\src\\routes\\onboarding.routes.js": {
+      "totalLines": 90,
+      "exports": [
+        "module.exports = router;"
+      ],
+      "imports": [
+        "const express = require('express');",
+        "const db = require('../config/database');",
+        "const { authorize } = require('../middleware/auth');",
+        "const { AppError } = require('../middleware/errorHandler');"
+      ]
+    },
+    "backend\\src\\routes\\platform.auth.routes.js": {
+      "totalLines": 183,
+      "exports": [
+        "module.exports = router;"
+      ],
+      "functions": [
+        "function checkRateLimit(ip) {"
+      ],
+      "imports": [
+        "const express = require('express');",
+        "const jwt = require('jsonwebtoken');",
+        "const bcrypt = require('bcrypt');",
+        "const db = require('../config/database');",
+        "const { AppError } = require('../middleware/errorHandler');",
+        "const { platformJwtAuth } = require('../middleware/platformAuth');",
+        "const logger = require('../utils/logger');"
+      ]
+    },
+    "backend\\src\\routes\\product.routes.js": {
+      "totalLines": 168,
+      "exports": [
+        "module.exports = router;"
+      ],
+      "imports": [
+        "const express = require('express');",
+        "const db = require('../config/database');",
+        "const { authenticate, authorize } = require('../middleware/auth');",
+        "const ProductService = require('../services/product.service');",
+        "const audit = require('../utils/audit');"
+      ]
+    },
+    "backend\\src\\routes\\purchase.routes.js": {
+      "totalLines": 68,
+      "exports": [
+        "module.exports = router;"
+      ],
+      "imports": [
+        "const express = require('express');",
+        "const db = require('../config/database');",
+        "const { authenticate, authorize } = require('../middleware/auth');",
+        "const { AppError } = require('../middleware/errorHandler');",
+        "const PurchaseService = require('../services/purchase.service');",
+        "const audit = require('../utils/audit');"
+      ]
+    },
+    "backend\\src\\routes\\quotation.routes.js": {
+      "totalLines": 102,
+      "exports": [
+        "module.exports = router;"
+      ],
+      "imports": [
+        "const express = require('express');",
+        "const db = require('../config/database');",
+        "const QuotationService = require('../services/quotation.service');",
+        "const { authenticate, authorize } = require('../middleware/auth');",
+        "const { AppError } = require('../middleware/errorHandler');",
+        "const audit = require('../utils/audit');"
+      ]
+    },
+    "backend\\src\\routes\\report.routes.js": {
+      "totalLines": 290,
+      "exports": [
+        "module.exports = router;"
+      ],
+      "imports": [
+        "const express = require('express');",
+        "const db = require('../config/database');",
+        "const { authenticate, authorize } = require('../middleware/auth');",
+        "const ReportService = require('../services/report.service');"
+      ]
+    },
+    "backend\\src\\routes\\sale.routes.js": {
+      "totalLines": 96,
+      "exports": [
+        "module.exports = router;"
+      ],
+      "imports": [
+        "const express = require('express');",
+        "const db = require('../config/database');",
+        "const { authenticate, authorize } = require('../middleware/auth');",
+        "const { AppError } = require('../middleware/errorHandler');",
+        "const SaleService = require('../services/sale.service');",
+        "const audit = require('../utils/audit');"
+      ]
+    },
+    "backend\\src\\routes\\settings.routes.js": {
+      "totalLines": 198,
+      "exports": [
+        "module.exports = router;"
+      ],
+      "imports": [
+        "const express = require('express');",
+        "const db = require('../config/database');",
+        "const { authorize } = require('../middleware/auth');",
+        "const { AppError } = require('../middleware/errorHandler');",
+        "const audit = require('../utils/audit');"
+      ]
+    },
+    "backend\\src\\routes\\stock.routes.js": {
+      "totalLines": 132,
+      "exports": [
+        "module.exports = router;"
+      ],
+      "imports": [
+        "const express = require('express');",
+        "const db = require('../config/database');",
+        "const StockService = require('../services/stock.service');",
+        "const { authenticate, authorize } = require('../middleware/auth');",
+        "const { AppError } = require('../middleware/errorHandler');",
+        "const audit = require('../utils/audit');"
+      ]
+    },
+    "backend\\src\\routes\\supplier.routes.js": {
+      "totalLines": 173,
+      "exports": [
+        "module.exports = router;"
+      ],
+      "imports": [
+        "const express = require('express');",
+        "const db = require('../config/database');",
+        "const { authenticate, authorize } = require('../middleware/auth');",
+        "const { AppError } = require('../middleware/errorHandler');",
+        "const SupplierService = require('../services/supplier.service');",
+        "const audit = require('../utils/audit');"
+      ]
+    },
+    "backend\\src\\routes\\tenants.routes.js": {
+      "totalLines": 412,
+      "exports": [
+        "module.exports = router;"
+      ],
+      "imports": [
+        "const express = require('express');",
+        "const jwt = require('jsonwebtoken');",
+        "const db = require('../config/database');",
+        "const { AppError } = require('../middleware/errorHandler');",
+        "const { platformSecretAuth, platformJwtAuth } = require('../middleware/platformAuth');",
+        "const { provisionTenant } = require('../services/tenantProvisioningService');",
+        "const logger = require('../utils/logger');",
+        "const platformAuthRoutes = require('./platform.auth.routes');"
+      ]
+    },
+    "backend\\src\\routes\\unit.routes.js": {
+      "totalLines": 270,
+      "exports": [
+        "module.exports = router;"
+      ],
+      "imports": [
+        "const express = require('express');",
+        "const db = require('../config/database');",
+        "const { authenticate, authorize } = require('../middleware/auth');",
+        "const { AppError } = require('../middleware/errorHandler');",
+        "const audit = require('../utils/audit');"
+      ]
+    },
+    "backend\\src\\routes\\user.routes.js": {
+      "totalLines": 161,
+      "exports": [
+        "module.exports = router;"
+      ],
+      "imports": [
+        "const express = require('express');",
+        "const bcrypt = require('bcrypt');",
+        "const db = require('../config/database');",
+        "const { authenticate, authorize } = require('../middleware/auth');",
+        "const { AppError } = require('../middleware/errorHandler');",
+        "const audit = require('../utils/audit');",
+        "const { phoneRule } = require('../validators/phone.validator');",
+        "const { validationResult } = require('express-validator');"
+      ]
+    },
+    "backend\\src\\services\\account.service.js": {
+      "totalLines": 140,
+      "exports": [
+        "module.exports = AccountService;"
+      ],
+      "imports": [
+        "const { AppError } = require('../middleware/errorHandler');"
+      ],
+      "classes": [
+        "class AccountService {"
+      ]
+    },
+    "backend\\src\\services\\audit.service.js": {
+      "totalLines": 67,
+      "exports": [
+        "module.exports = AuditService;"
+      ],
+      "classes": [
+        "class AuditService {"
+      ]
+    },
+    "backend\\src\\services\\backup.service.js": {
+      "totalLines": 90,
+      "exports": [
+        "module.exports = new BackupService();"
+      ],
+      "imports": [
+        "const { exec } = require('child_process');",
+        "const path = require('path');",
+        "const fs = require('fs');",
+        "const logger = require('../utils/logger');"
+      ],
+      "classes": [
+        "class BackupService {"
+      ]
+    },
+    "backend\\src\\services\\customer.service.js": {
+      "totalLines": 138,
+      "exports": [
+        "module.exports = CustomerService;"
+      ],
+      "imports": [
+        "const { AppError } = require('../middleware/errorHandler');"
+      ],
+      "classes": [
+        "class CustomerService {"
+      ]
+    },
+    "backend\\src\\services\\expense.service.js": {
+      "totalLines": 150,
+      "exports": [
+        "module.exports = ExpenseService;"
+      ],
+      "imports": [
+        "const { AppError } = require('../middleware/errorHandler');"
+      ],
+      "classes": [
+        "class ExpenseService {"
+      ]
+    },
+    "backend\\src\\services\\ledger.service.js": {
+      "totalLines": 280,
+      "exports": [
+        "module.exports = LedgerService;"
+      ],
+      "imports": [
+        "const { AppError } = require('../middleware/errorHandler');"
+      ],
+      "classes": [
+        "class LedgerService {"
+      ]
+    },
+    "backend\\src\\services\\product.service.js": {
+      "totalLines": 259,
+      "exports": [
+        "module.exports = ProductService;"
+      ],
+      "functions": [
+        "const parseNumeric = (val) => {",
+        "const parseInteger = (val) => {"
+      ],
+      "imports": [
+        "const { AppError } = require('../middleware/errorHandler');"
+      ],
+      "classes": [
+        "class ProductService {"
+      ]
+    },
+    "backend\\src\\services\\purchase.service.js": {
+      "totalLines": 263,
+      "exports": [
+        "module.exports = PurchaseService;"
+      ],
+      "imports": [
+        "const { AppError } = require('../middleware/errorHandler');",
+        "const StockService = require('./stock.service');",
+        "const LedgerService = require('./ledger.service');"
+      ],
+      "classes": [
+        "class PurchaseService {"
+      ]
+    },
+    "backend\\src\\services\\quotation.service.js": {
+      "totalLines": 159,
+      "exports": [
+        "module.exports = QuotationService;"
+      ],
+      "imports": [
+        "const { AppError } = require('../middleware/errorHandler');"
+      ],
+      "classes": [
+        "class QuotationService {"
+      ]
+    },
+    "backend\\src\\services\\report.service.js": {
+      "totalLines": 327,
+      "exports": [
+        "module.exports = ReportService;"
+      ],
+      "imports": [
+        "const { AppError } = require('../middleware/errorHandler');"
+      ],
+      "classes": [
+        "class ReportService {"
+      ]
+    },
+    "backend\\src\\services\\sale.service.js": {
+      "totalLines": 336,
+      "exports": [
+        "module.exports = SaleService;"
+      ],
+      "functions": [
+        "const buildQuery = (builder) => {"
+      ],
+      "imports": [
+        "const { AppError } = require('../middleware/errorHandler');",
+        "const StockService = require('./stock.service');",
+        "const LedgerService = require('./ledger.service');"
+      ],
+      "classes": [
+        "class SaleService {"
+      ]
+    },
+    "backend\\src\\services\\sequence.service.js": {
+      "totalLines": 48,
+      "exports": [
+        "module.exports = SequenceService;"
+      ],
+      "imports": [
+        "const logger = require('../utils/logger');"
+      ],
+      "classes": [
+        "class SequenceService {"
+      ]
+    },
+    "backend\\src\\services\\stock.service.js": {
+      "totalLines": 217,
+      "exports": [
+        "module.exports = StockService;"
+      ],
+      "imports": [
+        "const { AppError } = require('../middleware/errorHandler');"
+      ],
+      "classes": [
+        "class StockService {"
+      ]
+    },
+    "backend\\src\\services\\supplier.service.js": {
+      "totalLines": 136,
+      "exports": [
+        "module.exports = SupplierService;"
+      ],
+      "imports": [
+        "const { AppError } = require('../middleware/errorHandler');"
+      ],
+      "classes": [
+        "class SupplierService {"
+      ]
+    },
+    "backend\\src\\services\\tenantProvisioningService.js": {
+      "totalLines": 235,
+      "exports": [
+        "module.exports = { provisionTenant };"
+      ],
+      "imports": [
+        "const bcrypt = require('bcrypt');",
+        "const db = require('../config/database');",
+        "const { AppError } = require('../middleware/errorHandler');",
+        "const logger = require('../utils/logger');"
+      ]
+    },
+    "backend\\src\\utils\\audit.js": {
+      "totalLines": 55,
+      "exports": [
+        "module.exports = audit;"
+      ],
+      "imports": [
+        "const { v4: uuid } = require('uuid');",
+        "const logger = require('./logger');"
+      ]
+    },
+    "backend\\src\\utils\\logger.js": {
+      "totalLines": 34,
+      "exports": [
+        "module.exports = logger;"
+      ],
+      "imports": [
+        "const winston = require('winston');"
+      ]
+    },
+    "backend\\src\\utils\\tenantQuery.js": {
+      "totalLines": 68,
+      "exports": [
+        "module.exports = { tdb, tenantScope, tInsert };"
+      ],
+      "functions": [
+        "const tdb = (tableName, tenantId, trx = null) => {",
+        "const tenantScope = (tenantId) => {",
+        "const tInsert = (tableName, data, tenantId, trx = null) => {",
+        "const addTenant = (row) => ({ ...row, tenant_id: tenantId });"
+      ],
+      "imports": [
+        "*   const { tdb } = require('../utils/tenantQuery');",
+        "const db = require('../config/database');"
+      ]
+    },
+    "backend\\src\\validators\\phone.validator.js": {
+      "totalLines": 71,
+      "exports": [
+        "module.exports = { phoneRule, validatePakistaniPhone };"
+      ],
+      "functions": [
+        "const validatePakistaniPhone = (value) => {",
+        "const phoneRule = (fieldName, optional = false) => {"
+      ],
+      "imports": [
+        "const { body } = require('express-validator');"
+      ]
+    },
+    "backend\\tests\\auth.test.js": {
+      "totalLines": 117,
+      "imports": [
+        "const request = require('supertest');",
+        "const express = require('express');",
+        "bcrypt = require('bcrypt');",
+        "jwt = require('jsonwebtoken');",
+        "const authRoutes = require('../src/routes/auth.routes');",
+        "const { errorHandler } = require('../src/middleware/errorHandler');"
+      ]
+    },
+    "backend\\tests\\financials.test.js": {
+      "totalLines": 101,
+      "imports": [
+        "const request = require('supertest');",
+        "const express = require('express');",
+        "const reportRoutes = require('../src/routes/report.routes');",
+        "const { errorHandler } = require('../src/middleware/errorHandler');"
+      ]
+    },
+    "backend\\tests\\inventory.test.js": {
+      "totalLines": 120,
+      "imports": [
+        "const request = require('supertest');",
+        "const express = require('express');",
+        "const productRoutes = require('../src/routes/product.routes');",
+        "const { errorHandler } = require('../src/middleware/errorHandler');"
+      ]
+    },
+    "backend\\tests\\layer2.test.js": {
+      "totalLines": 796,
+      "functions": [
+        "function createMockDb() {",
+        "const setChainData = (data) => { _chainResolveData = data; };",
+        "function buildApp(routePath, routes) {"
+      ],
+      "imports": [
+        "const request = require('supertest');",
+        "const express = require('express');",
+        "const { errorHandler } = require('../src/middleware/errorHandler');",
+        "app = buildApp('/api/brands', require('../src/routes/brand.routes'));",
+        "app = buildApp('/api/units', require('../src/routes/unit.routes'));",
+        "app = buildApp('/api/categories', require('../src/routes/category.routes'));",
+        "const { errorHandler } = require('../src/middleware/errorHandler');",
+        "app.use('/api/settings', require('../src/routes/settings.routes'));",
+        "ProductService = require('../src/services/product.service');"
+      ]
+    },
+    "backend\\tests\\purchasing.test.js": {
+      "totalLines": 80,
+      "imports": [
+        "const request = require('supertest');",
+        "const express = require('express');",
+        "const purchaseRoutes = require('../src/routes/purchase.routes');",
+        "const { errorHandler } = require('../src/middleware/errorHandler');"
+      ]
+    },
+    "backend\\tests\\sales.test.js": {
+      "totalLines": 157,
+      "imports": [
+        "const request = require('supertest');",
+        "const express = require('express');",
+        "const saleRoutes = require('../src/routes/sale.routes');",
+        "const { errorHandler } = require('../src/middleware/errorHandler');"
+      ]
+    },
+    "backend\\tests\\security.test.js": {
+      "totalLines": 96,
+      "imports": [
+        "const request = require('supertest');",
+        "const express = require('express');",
+        "const { authenticate, authorize } = require('../src/middleware/auth');",
+        "const { errorHandler } = require('../src/middleware/errorHandler');",
+        "const jwt = require('jsonwebtoken');",
+        "const jwt = require('jsonwebtoken');",
+        "const authRoutes = require('../src/routes/auth.routes');"
+      ]
+    },
+    "frontend\\src\\App.jsx": {
+      "totalLines": 196,
+      "exports": [
+        "export default App"
+      ],
+      "functions": [
+        "function ProtectedRoute({ children }) {",
+        "function RoleRoute({ children, roles }) {",
+        "function PlatformProtectedRoute({ children }) {",
+        "function ImpersonationHandler() {",
+        "function OnboardingGuard({ children }) {",
+        "function App() {"
+      ],
+      "imports": [
+        "import { Routes, Route, Navigate, useSearchParams, useNavigate } from 'react-router-dom'",
+        "import { useEffect } from 'react'",
+        "import { useAuthStore } from './store/auth.store'",
+        "import { usePlatformAuthStore } from './store/platform.auth.store'",
+        "import Layout from './components/Layout'",
+        "import ImpersonationBanner from './components/ImpersonationBanner'",
+        "import Login from './pages/Login'",
+        "import Dashboard from './pages/Dashboard'",
+        "import Products from './pages/Products'",
+        "import Customers from './pages/Customers'",
+        "import Suppliers from './pages/Suppliers'",
+        "import Sales from './pages/Sales'",
+        "import NewSale from './pages/NewSale'",
+        "import Purchases from './pages/Purchases'",
+        "import NewPurchase from './pages/NewPurchase'",
+        "import Expenses from './pages/Expenses'",
+        "import Journals from './pages/Journals'",
+        "import Reports from './pages/Reports'",
+        "import Settings from './pages/Settings'",
+        "import Accounts from './pages/Accounts'",
+        "import LedgerView from './pages/LedgerView'",
+        "import StockAdjustment from './pages/StockAdjustment'",
+        "import Quotations from './pages/Quotations'",
+        "import Users from './pages/Users'",
+        "import AuditLogs from './pages/AuditLogs'",
+        "import Units from './pages/Units'",
+        "import SetupWizard from './pages/setup/SetupWizard'",
+        "import PlatformLayout from './components/platform/PlatformLayout'",
+        "import PlatformLogin from './pages/platform/PlatformLogin'",
+        "import PlatformDashboard from './pages/platform/PlatformDashboard'",
+        "import ClientsList from './pages/platform/ClientsList'",
+        "import NewClient from './pages/platform/NewClient'",
+        "import ClientDetail from './pages/platform/ClientDetail'"
+      ]
+    },
+    "frontend\\src\\components\\CategorySelector.jsx": {
+      "totalLines": 152,
+      "exports": [
+        "export default CategorySelector"
+      ],
+      "functions": [
+        "function CategorySelector({ value, onChange, categories = [], onCategoriesChange, error }) {",
+        "const flattenForSelect = (cats, depth = 0) => {",
+        "const buildTree = (flat, parentId = null) =>"
+      ],
+      "imports": [
+        "import { useState, useRef, useEffect } from 'react'",
+        "import { categoriesAPI } from '../services/api'",
+        "import toast from 'react-hot-toast'"
+      ]
+    },
+    "frontend\\src\\components\\ImpersonationBanner.jsx": {
+      "totalLines": 84,
+      "exports": [
+        "export default function ImpersonationBanner() {"
+      ],
+      "functions": [
+        "const handleExit = () => {"
+      ],
+      "imports": [
+        "import { useAuthStore } from '../store/auth.store'"
+      ]
+    },
+    "frontend\\src\\components\\InvoicePDF.jsx": {
+      "totalLines": 285,
+      "exports": [
+        "export function generateInvoicePDF(saleData, companyName = 'ZYNC ERP') {",
+        "export function InvoicePDFButton({ saleData, variant = 'primary' }) {"
+      ],
+      "functions": [
+        "const handlePrintPDF = () => {"
+      ],
+      "imports": [
+        "import html2pdf from 'html2pdf.js'"
+      ]
+    },
+    "frontend\\src\\components\\Layout.jsx": {
+      "totalLines": 163,
+      "exports": [
+        "export default Layout"
+      ],
+      "functions": [
+        "function Layout() {",
+        "const handleLogout = () => {",
+        "const openNewInvoice = () => {"
+      ],
+      "imports": [
+        "import { useState } from 'react'",
+        "import { Outlet, NavLink, useNavigate } from 'react-router-dom'",
+        "import { useAuthStore } from '../store/auth.store'",
+        "import {",
+        "import './Layout.css'"
+      ]
+    },
+    "frontend\\src\\components\\platform\\PlatformLayout.jsx": {
+      "totalLines": 154,
+      "exports": [
+        "export default function PlatformLayout() {"
+      ],
+      "functions": [
+        "const handleLogout = () => {"
+      ],
+      "imports": [
+        "import { Outlet, NavLink, useNavigate } from 'react-router-dom'",
+        "import { usePlatformAuthStore } from '../../store/platform.auth.store'",
+        "import { LayoutDashboard, Building2, Settings, LogOut, Shield } from 'lucide-react'"
+      ]
+    },
+    "frontend\\src\\components\\pos\\BarcodeInput.jsx": {
+      "totalLines": 120,
+      "exports": [
+        "export default function BarcodeInput({ onScan, products, isActive = true }) {"
+      ],
+      "functions": [
+        "const handleKeyPress = (e) => {",
+        "const handleScan = (code) => {",
+        "const handleManualSubmit = (e) => {",
+        "const handleKeyDown = (e) => {"
+      ],
+      "imports": [
+        "import { useEffect, useRef, useState } from 'react'"
+      ]
+    },
+    "frontend\\src\\components\\pos\\CartSidebar.jsx": {
+      "totalLines": 373,
+      "exports": [
+        "export default function CartSidebar({"
+      ],
+      "functions": [
+        "const handleKeyDown = (e) => {",
+        "const handleRowClick = (productId) => {",
+        "const handleRowKeyDown = (e, productId, index) => {"
+      ],
+      "imports": [
+        "import { useState, useEffect, useRef, useCallback } from 'react'",
+        "import { QuantityStepper } from './POSControls'",
+        "import QuickAmountButtons from './QuickAmountButtons'",
+        "import { PaymentToggle } from './POSControls'",
+        "import './pos.css'"
+      ]
+    },
+    "frontend\\src\\components\\pos\\CustomerSelector.jsx": {
+      "totalLines": 159,
+      "exports": [
+        "export default function CustomerSelector({"
+      ],
+      "functions": [
+        "const handleSelect = (customer) => {",
+        "const handleKeyDown = (e) => {",
+        "const handleBlur = (e) => {"
+      ],
+      "imports": [
+        "import { useState, useMemo, useRef, useEffect } from 'react'",
+        "import './pos.css'"
+      ]
+    },
+    "frontend\\src\\components\\pos\\index.js": {
+      "totalLines": 8,
+      "exports": [
+        "export { default as ProductCard } from './ProductCard'",
+        "export { default as CustomerSelector } from './CustomerSelector'",
+        "export { default as CartSidebar } from './CartSidebar'",
+        "export { default as QuickAmountButtons } from './QuickAmountButtons'",
+        "export { default as BarcodeInput } from './BarcodeInput'",
+        "export { QuantityStepper, PaymentToggle, CategoryTabs } from './POSControls'"
+      ]
+    },
+    "frontend\\src\\components\\pos\\POSControls.jsx": {
+      "totalLines": 153,
+      "exports": [
+        "export function QuantityStepper({ value, onChange, min = 1, max }) {",
+        "export function PaymentToggle({ value, onChange }) {",
+        "export function CategoryTabs({ categories, activeCategory, onChange }) {"
+      ],
+      "functions": [
+        "const handleDecrement = () => {",
+        "const handleIncrement = () => {",
+        "const handleInputChange = (e) => {",
+        "const handleInputBlur = () => {",
+        "const handleKeyDown = (e) => {"
+      ],
+      "imports": [
+        "import { useState, useEffect } from 'react'",
+        "import './pos.css'"
+      ]
+    },
+    "frontend\\src\\components\\pos\\ProductCard.jsx": {
+      "totalLines": 123,
+      "exports": [
+        "export default ProductCard"
+      ],
+      "functions": [
+        "const handleClick = () => {",
+        "const handleKeyDown = (e) => {"
+      ],
+      "imports": [
+        "import { memo, useState, useEffect, useRef } from 'react'",
+        "import './pos.css'"
+      ]
+    },
+    "frontend\\src\\components\\pos\\QuickAmountButtons.jsx": {
+      "totalLines": 44,
+      "exports": [
+        "export default function QuickAmountButtons({ total, onSelect, selectedAmount }) {"
+      ],
+      "imports": [
+        "import './pos.css'"
+      ]
+    },
+    "frontend\\src\\components\\SaleDetailModal.jsx": {
+      "totalLines": 154,
+      "exports": [
+        "export default SaleDetailModal;"
+      ],
+      "functions": [
+        "const SaleDetailModal = ({ saleId, onClose, onPrint }) => {",
+        "const fCr = (val) => `Rs. ${Number(val).toLocaleString()}`;"
+      ],
+      "imports": [
+        "import React, { useEffect, useState } from 'react';",
+        "import { salesAPI } from '../services/api';",
+        "import { format } from 'date-fns';"
+      ]
+    },
+    "frontend\\src\\components\\SalesFilters.jsx": {
+      "totalLines": 71,
+      "exports": [
+        "export default SalesFilters;"
+      ],
+      "functions": [
+        "const SalesFilters = ({ filters, onChange, onClear }) => {"
+      ],
+      "imports": [
+        "import React from 'react';"
+      ]
+    },
+    "frontend\\src\\components\\SalesStats.jsx": {
+      "totalLines": 40,
+      "exports": [
+        "export default SalesStats;"
+      ],
+      "functions": [
+        "const SalesStats = ({ aggregates }) => {",
+        "const fCr = (val) => `Rs. ${Number(val).toLocaleString()}`;"
+      ],
+      "imports": [
+        "import React from 'react';"
+      ]
+    },
+    "frontend\\src\\components\\ui\\Badge.jsx": {
+      "totalLines": 96,
+      "exports": [
+        "export default function Badge({ variant = 'default', children, className = '' }) {"
+      ],
+      "imports": [
+        "import React from 'react'"
+      ]
+    },
+    "frontend\\src\\components\\ui\\Button.jsx": {
+      "totalLines": 55,
+      "exports": [
+        "export default function Button({"
+      ],
+      "imports": [
+        "import React from 'react'",
+        "import { Loader2 } from 'lucide-react'"
+      ]
+    },
+    "frontend\\src\\components\\ui\\EmptyState.jsx": {
+      "totalLines": 29,
+      "exports": [
+        "export default function EmptyState({ icon: Icon, title, subtitle, action, className = '' }) {"
+      ],
+      "imports": [
+        "import React from 'react'"
+      ]
+    },
+    "frontend\\src\\components\\ui\\FilterBar.jsx": {
+      "totalLines": 116,
+      "exports": [
+        "export default function FilterBar({"
+      ],
+      "imports": [
+        "import React from 'react'",
+        "import { Search, X, Download } from 'lucide-react'"
+      ]
+    },
+    "frontend\\src\\components\\ui\\Input.jsx": {
+      "totalLines": 83,
+      "exports": [
+        "export default function Input({"
+      ],
+      "functions": [
+        "const renderInput = () => {"
+      ],
+      "imports": [
+        "import React from 'react'",
+        "import { ChevronDown } from 'lucide-react'"
+      ]
+    },
+    "frontend\\src\\components\\ui\\StatCard.jsx": {
+      "totalLines": 67,
+      "exports": [
+        "export default function StatCard({ label, value, sublabel, accentColor = 'var(--blue)', icon: Icon, "
+      ],
+      "imports": [
+        "import React from 'react'"
+      ]
+    },
+    "frontend\\src\\components\\ui\\Table.jsx": {
+      "totalLines": 110,
+      "exports": [
+        "export function Table({ children, className = '' }) {",
+        "export function Thead({ children }) {",
+        "export function Tbody({ children }) {",
+        "export function Tr({ children, onClick, className = '' }) {",
+        "export function Th({ children, className = '', style = {} }) {",
+        "export function Td({ children, className = '', style = {} }) {",
+        "export function TFoot({ children }) {",
+        "export function TablePagination({ totalDocs, limit, page, setPage }) {"
+      ],
+      "imports": [
+        "import React from 'react'"
+      ]
+    },
+    "frontend\\src\\components\\UnitSelector.jsx": {
+      "totalLines": 156,
+      "exports": [
+        "export default UnitSelector"
+      ],
+      "functions": [
+        "function UnitSelector({ value, onChange, units = [], onUnitsChange, error }) {"
+      ],
+      "imports": [
+        "import { useState, useRef, useEffect } from 'react'",
+        "import { unitsAPI } from '../services/api'",
+        "import toast from 'react-hot-toast'"
+      ]
+    },
+    "frontend\\src\\main.jsx": {
+      "totalLines": 30,
+      "imports": [
+        "import React from 'react'",
+        "import ReactDOM from 'react-dom/client'",
+        "import { HashRouter } from 'react-router-dom'",
+        "import { Toaster } from 'react-hot-toast'",
+        "import App from './App'",
+        "import './tokens.css'",
+        "import './index.css'"
+      ]
+    },
+    "frontend\\src\\pages\\Accounts.jsx": {
+      "totalLines": 125,
+      "exports": [
+        "export default Accounts"
+      ],
+      "functions": [
+        "function Accounts() {"
+      ],
+      "imports": [
+        "import { useState, useEffect } from 'react'",
+        "import { Link } from 'react-router-dom'",
+        "import { toast } from 'react-hot-toast'",
+        "import { accountsAPI } from '../services/api'"
+      ]
+    },
+    "frontend\\src\\pages\\AuditLogs.jsx": {
+      "totalLines": 600,
+      "exports": [
+        "export default AuditLogs"
+      ],
+      "functions": [
+        "function CustomSelect({ label, value, onChange, options, placeholder = 'All' }) {",
+        "const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }",
+        "function CopyableId({ value }) {",
+        "const handleCopy = (e) => {",
+        "function TimeCell({ dateString }) {",
+        "function AuditLogs() {",
+        "const handleSearch = (e) => {",
+        "const clearFilters = () => {"
+      ],
+      "imports": [
+        "import React, { useState, useEffect, useRef } from 'react'",
+        "import { useNavigate } from 'react-router-dom'",
+        "import { auditLogsAPI } from '../services/api'",
+        "import { useAuthStore } from '../store/auth.store'",
+        "import { formatActivity, timeAgo, formatIP } from '../utils/activityFormatter'",
+        "import {",
+        "import toast from 'react-hot-toast'"
+      ]
+    },
+    "frontend\\src\\pages\\Customers.jsx": {
+      "totalLines": 182,
+      "exports": [
+        "export default Customers"
+      ],
+      "functions": [
+        "function Customers() {",
+        "const resetForm = () => {",
+        "const openEditModal = (customer) => {"
+      ],
+      "imports": [
+        "import { useState, useEffect } from 'react'",
+        "import { Link } from 'react-router-dom'",
+        "import { toast } from 'react-hot-toast'",
+        "import { customersAPI } from '../services/api'",
+        "import { useAuthStore } from '../store/auth.store'",
+        "import { can } from '../utils/permissions'",
+        "import { formatPakistaniPhone } from '../utils/phoneFormat'"
+      ]
+    },
+    "frontend\\src\\pages\\Dashboard.jsx": {
+      "totalLines": 803,
+      "exports": [
+        "export default Dashboard"
+      ],
+      "functions": [
+        "const resolveIcon = (action, tableName) =>",
+        "const Counter = ({ value, duration = 1000, prefix = '', className = '' }) => {",
+        "const animate = (timestamp) => {",
+        "function Dashboard() {",
+        "const handleClickOutside = (e) => {",
+        "const formatCurrency = (val) => new Intl.NumberFormat('en-PK', { style: 'currency', currency: 'PKR',",
+        "const getGreeting = () => {",
+        "const getMaxChartValue = () => {",
+        "const getDonutGradient = () => {",
+        "const handleSearch = (e) => {",
+        "const getAlertCount = () => {",
+        "const getActivityTitle = () => {",
+        "const trend = (() => {",
+        "function DashboardSkeleton() {"
+      ],
+      "imports": [
+        "import { useState, useEffect, useRef } from 'react'",
+        "import { Link, useNavigate } from 'react-router-dom'",
+        "import { reportsAPI, dashboardAPI } from '../services/api'",
+        "import { format } from 'date-fns'",
+        "import { useDataSync, DataSyncEvents } from '../utils/dataSync'",
+        "import { useAuthStore } from '../store/auth.store'",
+        "import { formatActivity, getActionColor, timeAgo, formatIP } from '../utils/activityFormatter'",
+        "import { onboardingAPI } from '../services/api'",
+        "import {",
+        "import toast from 'react-hot-toast'",
+        "import './Dashboard.css'"
+      ]
+    },
+    "frontend\\src\\pages\\Expenses.jsx": {
+      "totalLines": 263,
+      "exports": [
+        "export default Expenses"
+      ],
+      "functions": [
+        "function Expenses() {"
+      ],
+      "imports": [
+        "import { useState, useEffect } from 'react'",
+        "import { toast } from 'react-hot-toast'",
+        "import { expensesAPI, accountsAPI } from '../services/api'",
+        "import { format } from 'date-fns'"
+      ]
+    },
+    "frontend\\src\\pages\\Journals.jsx": {
+      "totalLines": 295,
+      "exports": [
+        "export default Journals"
+      ],
+      "functions": [
+        "function Journals() {",
+        "const handleAddRow = () => {",
+        "const handleRemoveRow = (index) => {",
+        "const handleEntryChange = (index, field, value) => {"
+      ],
+      "imports": [
+        "import { useState, useEffect } from 'react'",
+        "import { toast } from 'react-hot-toast'",
+        "import { format } from 'date-fns'",
+        "import { journalsAPI, accountsAPI } from '../services/api'"
+      ]
+    },
+    "frontend\\src\\pages\\LedgerView.jsx": {
+      "totalLines": 172,
+      "exports": [
+        "export default LedgerView"
+      ],
+      "functions": [
+        "function LedgerView({ type }) { // type: 'customer' | 'supplier'",
+        "const printLedger = () => {"
+      ],
+      "imports": [
+        "import { useState, useEffect } from 'react'",
+        "import { useParams, useNavigate } from 'react-router-dom'",
+        "import { customersAPI, suppliersAPI, accountsAPI } from '../services/api'",
+        "import { format } from 'date-fns'",
+        "import { toast } from 'react-hot-toast'"
+      ]
+    },
+    "frontend\\src\\pages\\Login.jsx": {
+      "totalLines": 98,
+      "exports": [
+        "export default Login"
+      ],
+      "functions": [
+        "function Login() {"
+      ],
+      "imports": [
+        "import { useState } from 'react'",
+        "import { useNavigate } from 'react-router-dom'",
+        "import { toast } from 'react-hot-toast'",
+        "import { useAuthStore } from '../store/auth.store'",
+        "import { authAPI } from '../services/api'",
+        "import './Login.css'"
+      ]
+    },
+    "frontend\\src\\pages\\NewPurchase.jsx": {
+      "totalLines": 1016,
+      "exports": [
+        "export default NewPurchase"
+      ],
+      "functions": [
+        "function NewPurchase() {",
+        "const handleKeyDown = (e) => {"
+      ],
+      "imports": [
+        "import { useState, useEffect, useRef, useMemo, useCallback } from 'react'",
+        "import { useNavigate } from 'react-router-dom'",
+        "import { toast } from 'react-hot-toast'",
+        "import { productsAPI, suppliersAPI, purchasesAPI, categoriesAPI } from '../services/api'",
+        "import { ProductCard } from '../components/pos'",
+        "import { emit, DataSyncEvents } from '../utils/dataSync'",
+        "import '../components/pos/pos.css'"
+      ]
+    },
+    "frontend\\src\\pages\\NewSale.jsx": {
+      "totalLines": 696,
+      "exports": [
+        "export default NewSale"
+      ],
+      "functions": [
+        "function NewSale() {",
+        "const handleKeyDown = (e) => {"
+      ],
+      "imports": [
+        "import { useState, useEffect, useRef, useMemo, useCallback } from 'react'",
+        "import { toast } from 'react-hot-toast'",
+        "import { productsAPI, customersAPI, salesAPI, quotationsAPI, categoriesAPI } from '../services/api'",
+        "import { emit, DataSyncEvents } from '../utils/dataSync'",
+        "import { useNavigate, useLocation } from 'react-router-dom'",
+        "import { useCartStore } from '../store/cart.store'",
+        "import {",
+        "import '../components/pos/pos.css'"
+      ]
+    },
+    "frontend\\src\\pages\\platform\\ClientDetail.jsx": {
+      "totalLines": 350,
+      "exports": [
+        "export default function ClientDetail() {"
+      ],
+      "functions": [
+        "function getStatusInfo(t) {",
+        "function formatDate(d) {",
+        "function formatCurrency(v) {",
+        "function DetailRow({ label, value, mono, capitalize, statusColor }) {",
+        "function ActionButton({ icon: Icon, label, color, onClick }) {"
+      ],
+      "imports": [
+        "import { useState, useEffect } from 'react'",
+        "import { useParams, useNavigate } from 'react-router-dom'",
+        "import { platformTenantsAPI } from '../../services/platform.api'",
+        "import {",
+        "import toast from 'react-hot-toast'"
+      ]
+    },
+    "frontend\\src\\pages\\platform\\ClientsList.jsx": {
+      "totalLines": 409,
+      "exports": [
+        "export default function ClientsList() {"
+      ],
+      "functions": [
+        "const formatDate = (d) => {",
+        "const getStatusInfo = (t) => {",
+        "function EditModal({ tenant, onClose, onSaved }) {",
+        "function ConfirmDialog({ title, message, confirmLabel, danger, onConfirm, onCancel }) {",
+        "function Field({ label, value, onChange, type = 'text' }) {",
+        "function IconBtn({ children, onClick, title, color = '#94a3b8' }) {"
+      ],
+      "imports": [
+        "import { useState, useEffect, useMemo } from 'react'",
+        "import { useNavigate } from 'react-router-dom'",
+        "import { platformTenantsAPI } from '../../services/platform.api'",
+        "import { Search, Plus, Eye, Pencil, Power, X, Building2 } from 'lucide-react'",
+        "import toast from 'react-hot-toast'"
+      ]
+    },
+    "frontend\\src\\pages\\platform\\NewClient.jsx": {
+      "totalLines": 370,
+      "exports": [
+        "export default function NewClient() {"
+      ],
+      "functions": [
+        "const updateField = (field, value) => {",
+        "const validateStep1 = () => {",
+        "const validateStep2 = () => {",
+        "const copyText = (key, text) => {",
+        "function FormField({ label, error, hint, style, children }) {",
+        "function CopyRow({ label, value, copied, onCopy, mono }) {"
+      ],
+      "imports": [
+        "import { useState, useRef } from 'react'",
+        "import { useNavigate } from 'react-router-dom'",
+        "import { platformTenantsAPI } from '../../services/platform.api'",
+        "import { Building2, ArrowLeft, Copy, Check, UserPlus, ChevronRight } from 'lucide-react'",
+        "import toast from 'react-hot-toast'"
+      ]
+    },
+    "frontend\\src\\pages\\platform\\PlatformDashboard.jsx": {
+      "totalLines": 259,
+      "exports": [
+        "export default function PlatformDashboard() {"
+      ],
+      "functions": [
+        "const formatDate = (d) => {",
+        "const daysUntil = (d) => {",
+        "function StatusBadge({ active }) {",
+        "function PlanBadge({ plan }) {"
+      ],
+      "imports": [
+        "import { useState, useEffect } from 'react'",
+        "import { useNavigate } from 'react-router-dom'",
+        "import { platformDashboardAPI } from '../../services/platform.api'",
+        "import { Building2, Users, AlertTriangle, DollarSign, TrendingUp, Clock } from 'lucide-react'"
+      ]
+    },
+    "frontend\\src\\pages\\platform\\PlatformLogin.jsx": {
+      "totalLines": 184,
+      "exports": [
+        "export default function PlatformLogin() {"
+      ],
+      "imports": [
+        "import { useState } from 'react'",
+        "import { useNavigate } from 'react-router-dom'",
+        "import { usePlatformAuthStore } from '../../store/platform.auth.store'",
+        "import { platformAuthAPI } from '../../services/platform.api'",
+        "import { Shield, Eye, EyeOff } from 'lucide-react'"
+      ]
+    },
+    "frontend\\src\\pages\\Products.jsx": {
+      "totalLines": 711,
+      "exports": [
+        "export default Products"
+      ],
+      "functions": [
+        "function Products() {",
+        "const resetForm = () => {",
+        "const openCreateView = () => {",
+        "const openEditView = (product) => {",
+        "const handleCancel = () => {",
+        "const handleFormChange = (field, value) => {"
+      ],
+      "imports": [
+        "import { useState, useEffect, useMemo } from 'react'",
+        "import { toast } from 'react-hot-toast'",
+        "import { productsAPI, categoriesAPI, suppliersAPI, unitsAPI, brandsAPI } from '../services/api'",
+        "import { useDataSync, DataSyncEvents } from '../utils/dataSync'",
+        "import { useAuthStore } from '../store/auth.store'",
+        "import { can } from '../utils/permissions'",
+        "import UnitSelector from '../components/UnitSelector'",
+        "import CategorySelector from '../components/CategorySelector'"
+      ]
+    },
+    "frontend\\src\\pages\\Purchases.jsx": {
+      "totalLines": 370,
+      "exports": [
+        "export default Purchases"
+      ],
+      "functions": [
+        "function Purchases() {",
+        "const formatCurrency = (value) => `Rs. ${Number(value).toLocaleString()}`"
+      ],
+      "imports": [
+        "import { useState, useEffect, useMemo } from 'react'",
+        "import { useNavigate } from 'react-router-dom'",
+        "import { purchasesAPI } from '../services/api'",
+        "import { format } from 'date-fns'",
+        "import { useDataSync, DataSyncEvents } from '../utils/dataSync'",
+        "import { Printer, RotateCcw, X, ShoppingBag, Banknote, AlertCircle, FileText, Plus } from 'lucide-re",
+        "import Button from '../components/ui/Button'",
+        "import Badge from '../components/ui/Badge'",
+        "import EmptyState from '../components/ui/EmptyState'",
+        "import StatCard from '../components/ui/StatCard'",
+        "import FilterBar from '../components/ui/FilterBar'",
+        "import { Table, Thead, Tbody, Tr, Th, Td } from '../components/ui/Table'",
+        "import Input from '../components/ui/Input'"
+      ]
+    },
+    "frontend\\src\\pages\\Quotations.jsx": {
+      "totalLines": 593,
+      "exports": [
+        "export default Quotations"
+      ],
+      "functions": [
+        "function Quotations() {",
+        "const getStatusBadge = (status) => {",
+        "const handleItemChange = (index, field, value) => {",
+        "const handleAddItem = () => {",
+        "const handleRemoveItem = (index) => {",
+        "const formatCurrency = (value) => `Rs. ${Number(value).toLocaleString()}`",
+        "function CreateQuotationModal({ show, onClose, customers, products, formData, setFormData, onAddItem"
+      ],
+      "imports": [
+        "import { useState, useEffect } from 'react'",
+        "import { toast } from 'react-hot-toast'",
+        "import { format } from 'date-fns'",
+        "import { quotationsAPI, productsAPI, customersAPI } from '../services/api'",
+        "import { useNavigate } from 'react-router-dom'"
+      ]
+    },
+    "frontend\\src\\pages\\Reports.jsx": {
+      "totalLines": 477,
+      "exports": [
+        "export default Reports"
+      ],
+      "functions": [
+        "function Reports() {",
+        "const handleFilterSubmit = (e) => {",
+        "const renderStockReport = () => (",
+        "const renderSalesReport = () => (",
+        "const renderTrialBalance = () => (",
+        "const renderProfitLoss = () => (",
+        "const renderBalanceSheet = () => (",
+        "const renderSalesByProduct = () => (",
+        "const renderSalesByCustomer = () => (",
+        "const renderPurchaseBySupplier = () => (",
+        "const renderExpenseSummary = () => ("
+      ],
+      "imports": [
+        "import { useState, useEffect } from 'react'",
+        "import { Link } from 'react-router-dom'",
+        "import { reportsAPI } from '../services/api'",
+        "import { format } from 'date-fns'",
+        "import './Reports.css'"
+      ]
+    },
+    "frontend\\src\\pages\\Sales.jsx": {
+      "totalLines": 365,
+      "exports": [
+        "export default Sales"
+      ],
+      "functions": [
+        "function Sales() {",
+        "const clearFilters = () => {",
+        "const handleSelectAll = (e) => {",
+        "const handleSelectRow = (id, e) => {",
+        "const handleExportCSV = () => {",
+        "const formatCurrency = (value) => `Rs. ${Number(value).toLocaleString()}`"
+      ],
+      "imports": [
+        "import { useState, useEffect } from 'react'",
+        "import { Link } from 'react-router-dom'",
+        "import { salesAPI } from '../services/api'",
+        "import { format } from 'date-fns'",
+        "import { useDataSync, DataSyncEvents } from '../utils/dataSync'",
+        "import SaleDetailModal from '../components/SaleDetailModal'",
+        "import { Printer, TrendingUp, FileText, Banknote, AlertCircle, ShoppingCart } from 'lucide-react'",
+        "import StatCard from '../components/ui/StatCard'",
+        "import FilterBar from '../components/ui/FilterBar'",
+        "import Button from '../components/ui/Button'",
+        "import Badge from '../components/ui/Badge'",
+        "import { Table, Thead, Tbody, Tr, Th, Td, TablePagination } from '../components/ui/Table'"
+      ]
+    },
+    "frontend\\src\\pages\\Settings.jsx": {
+      "totalLines": 616,
+      "exports": [
+        "export default Settings"
+      ],
+      "functions": [
+        "function Settings() {",
+        "const handleDownloadBackup = (filename) => {",
+        "const handleEditBalance = (type, id, currentValue) => {"
+      ],
+      "imports": [
+        "import { useState, useEffect } from 'react'",
+        "import { useNavigate } from 'react-router-dom'",
+        "import { toast } from 'react-hot-toast'",
+        "import { useAuthStore } from '../store/auth.store'",
+        "import { customersAPI, suppliersAPI, backupAPI, settingsAPI } from '../services/api'"
+      ]
+    },
+    "frontend\\src\\pages\\setup\\SetupWizard.jsx": {
+      "totalLines": 232,
+      "exports": [
+        "export default SetupWizard"
+      ],
+      "functions": [
+        "function SetupWizard() {",
+        "const handlePopState = (e) => {",
+        "const renderStep = () => {"
+      ],
+      "imports": [
+        "import { useState, useEffect, useCallback } from 'react'",
+        "import { useNavigate, useSearchParams } from 'react-router-dom'",
+        "import { useAuthStore } from '../../store/auth.store'",
+        "import { onboardingAPI } from '../../services/api'",
+        "import toast from 'react-hot-toast'",
+        "import {",
+        "import Step1Company from './steps/Step1Company'",
+        "import Step2Categories from './steps/Step2Categories'",
+        "import Step3Brands from './steps/Step3Brands'",
+        "import Step4Units from './steps/Step4Units'"
+      ]
+    },
+    "frontend\\src\\pages\\setup\\steps\\Step1Company.jsx": {
+      "totalLines": 340,
+      "exports": [
+        "export default Step1Company"
+      ],
+      "functions": [
+        "function Step1Company({ onContinue, saving, setSaving }) {",
+        "const handleChange = (field, value) => {",
+        "const handleFocus = (e) => {",
+        "const handleBlur = (e) => {"
+      ],
+      "imports": [
+        "import { useState, useEffect } from 'react'",
+        "import { settingsAPI } from '../../../services/api'",
+        "import { onboardingAPI } from '../../../services/api'",
+        "import { useAuthStore } from '../../../store/auth.store'",
+        "import toast from 'react-hot-toast'",
+        "import { ChevronRight, Loader2, ChevronDown, ChevronUp } from 'lucide-react'"
+      ]
+    },
+    "frontend\\src\\pages\\setup\\steps\\Step2Categories.jsx": {
+      "totalLines": 291,
+      "exports": [
+        "export default Step2Categories"
+      ],
+      "functions": [
+        "function Step2Categories({ onContinue, saving }) {",
+        "const getChildren = (parentId) => categories.filter(c => c.parent_id === parentId)",
+        "const handleKeyDown = (e, callback) => {"
+      ],
+      "imports": [
+        "import { useState, useEffect } from 'react'",
+        "import { categoriesAPI } from '../../../services/api'",
+        "import toast from 'react-hot-toast'",
+        "import { Plus, X, ChevronRight, Loader2, FolderOpen } from 'lucide-react'"
+      ]
+    },
+    "frontend\\src\\pages\\setup\\steps\\Step3Brands.jsx": {
+      "totalLines": 194,
+      "exports": [
+        "export default Step3Brands"
+      ],
+      "functions": [
+        "function Step3Brands({ onContinue, saving }) {",
+        "const handleKeyDown = (e) => {"
+      ],
+      "imports": [
+        "import { useState, useEffect } from 'react'",
+        "import { brandsAPI } from '../../../services/api'",
+        "import toast from 'react-hot-toast'",
+        "import { Plus, X, ChevronRight, Loader2, Award } from 'lucide-react'"
+      ]
+    },
+    "frontend\\src\\pages\\setup\\steps\\Step4Units.jsx": {
+      "totalLines": 265,
+      "exports": [
+        "export default Step4Units"
+      ],
+      "functions": [
+        "function Step4Units({ onContinue, saving }) {"
+      ],
+      "imports": [
+        "import { useState, useEffect } from 'react'",
+        "import { unitsAPI } from '../../../services/api'",
+        "import toast from 'react-hot-toast'",
+        "import { Plus, X, ChevronRight, Loader2, Check, Ruler } from 'lucide-react'"
+      ]
+    },
+    "frontend\\src\\pages\\setup\\steps\\Step6Complete.jsx": {
+      "totalLines": 154,
+      "exports": [
+        "export default Step5Complete"
+      ],
+      "functions": [
+        "function Step5Complete({ skippedSteps }) {"
+      ],
+      "imports": [
+        "import { useState, useEffect } from 'react'",
+        "import { useNavigate } from 'react-router-dom'",
+        "import { useAuthStore } from '../../../store/auth.store'",
+        "import { onboardingAPI } from '../../../services/api'",
+        "import toast from 'react-hot-toast'",
+        "import {"
+      ]
+    },
+    "frontend\\src\\pages\\StockAdjustment.jsx": {
+      "totalLines": 363,
+      "exports": [
+        "export default StockAdjustment"
+      ],
+      "functions": [
+        "function StockAdjustment() {",
+        "const addAdjustment = () => {",
+        "const removeAdjustment = (id) => {",
+        "const getReasonDisplay = (reason) => {"
+      ],
+      "imports": [
+        "import { useState, useEffect } from 'react'",
+        "import { toast } from 'react-hot-toast'",
+        "import { productsAPI, stockAPI } from '../services/api'"
+      ]
+    },
+    "frontend\\src\\pages\\Suppliers.jsx": {
+      "totalLines": 113,
+      "exports": [
+        "export default Suppliers"
+      ],
+      "functions": [
+        "function Suppliers() {"
+      ],
+      "imports": [
+        "import { useState, useEffect } from 'react'",
+        "import { Link } from 'react-router-dom'",
+        "import { toast } from 'react-hot-toast'",
+        "import { suppliersAPI } from '../services/api'",
+        "import { formatPakistaniPhone } from '../utils/phoneFormat'"
+      ]
+    },
+    "frontend\\src\\pages\\Units.jsx": {
+      "totalLines": 232,
+      "exports": [
+        "export default Units"
+      ],
+      "functions": [
+        "function Units() {",
+        "const handleEdit = (unit) => {",
+        "const cancelEdit = () => {"
+      ],
+      "imports": [
+        "import { useState, useEffect } from 'react'",
+        "import { toast } from 'react-hot-toast'",
+        "import { unitsAPI } from '../services/api'"
+      ]
+    },
+    "frontend\\src\\pages\\Users.jsx": {
+      "totalLines": 887,
+      "exports": [
+        "export default Users"
+      ],
+      "functions": [
+        "const getInitials = (name) => {",
+        "const getPasswordStrength = (pw) => {",
+        "function UserAvatar({ name, role, size = 32 }) {",
+        "function ToggleSwitch({ checked, onChange, disabled }) {",
+        "function ConfirmDialog({ message, onConfirm, onCancel }) {",
+        "function Users() {",
+        "const openEditModal = (user) => {",
+        "const openPasswordModal = (user) => {",
+        "const resetForm = () => {",
+        "const validateUsername = (val) => {"
+      ],
+      "imports": [
+        "import { useState, useEffect, useMemo } from 'react'",
+        "import { toast } from 'react-hot-toast'",
+        "import { usersAPI } from '../services/api'",
+        "import { useAuthStore } from '../store/auth.store'",
+        "import { formatPakistaniPhone, getPhoneError } from '../utils/phoneFormat'",
+        "import {"
+      ]
+    },
+    "frontend\\src\\services\\api.js": {
+      "totalLines": 216,
+      "exports": [
+        "export const authAPI = {",
+        "export const productsAPI = {",
+        "export const customersAPI = {",
+        "export const suppliersAPI = {",
+        "export const categoriesAPI = {",
+        "export const brandsAPI = {",
+        "export const companiesAPI = brandsAPI",
+        "export const salesAPI = {",
+        "export const purchasesAPI = {",
+        "export const accountsAPI = {",
+        "export const expensesAPI = {",
+        "export const journalsAPI = {",
+        "export const reportsAPI = {",
+        "export const unitsAPI = {",
+        "export const usersAPI = {",
+        "export const backupAPI = {",
+        "export const stockAPI = {",
+        "export const quotationsAPI = {",
+        "export const dashboardAPI = {",
+        "export const auditLogsAPI = {",
+        "export const onboardingAPI = {",
+        "export const settingsAPI = {",
+        "export default api"
+      ],
+      "imports": [
+        "import axios from 'axios'",
+        "import { useAuthStore } from '../store/auth.store'"
+      ]
+    },
+    "frontend\\src\\services\\platform.api.js": {
+      "totalLines": 67,
+      "exports": [
+        "export const platformAuthAPI = {",
+        "export const platformTenantsAPI = {",
+        "export const platformDashboardAPI = {",
+        "export default platformApi"
+      ],
+      "imports": [
+        "import axios from 'axios'",
+        "import { usePlatformAuthStore } from '../store/platform.auth.store'"
+      ]
+    },
+    "frontend\\src\\store\\auth.store.js": {
+      "totalLines": 53,
+      "exports": [
+        "export const useAuthStore = create("
+      ],
+      "imports": [
+        "import { create } from 'zustand'",
+        "import { persist } from 'zustand/middleware'"
+      ]
+    },
+    "frontend\\src\\store\\cart.store.js": {
+      "totalLines": 236,
+      "exports": [
+        "export const useCartStore = create("
+      ],
+      "imports": [
+        "import { create } from 'zustand'",
+        "import { persist } from 'zustand/middleware'"
+      ]
+    },
+    "frontend\\src\\store\\platform.auth.store.js": {
+      "totalLines": 40,
+      "exports": [
+        "export const usePlatformAuthStore = create("
+      ],
+      "imports": [
+        "import { create } from 'zustand'",
+        "import { persist } from 'zustand/middleware'"
+      ]
+    },
+    "frontend\\src\\utils\\activityFormatter.js": {
+      "totalLines": 239,
+      "exports": [
+        "export { formatActivity, getActionColor, getActionIcon, getActivityIcon, timeAgo, formatIP };"
+      ],
+      "functions": [
+        "const formatActivity = (log) => {",
+        "const getActionColor = (action) => {",
+        "const getActivityIcon = (action, tableName) => {",
+        "const getActionIcon = (action, tableName) => {",
+        "const timeAgo = (dateString) => {",
+        "const formatIP = (ip) => {"
+      ],
+      "imports": [
+        "import {"
+      ]
+    },
+    "frontend\\src\\utils\\dataSync.js": {
+      "totalLines": 69,
+      "exports": [
+        "export const DataSyncEvents = {",
+        "export function subscribe(event, callback) {",
+        "export function emit(event, data = null) {",
+        "export function useDataSync(event, callback) {"
+      ],
+      "imports": [
+        "import { useEffect } from 'react'"
+      ]
+    },
+    "frontend\\src\\utils\\permissions.js": {
+      "totalLines": 92,
+      "exports": [
+        "export const can = (userRole, permission) => {",
+        "export const canAny = (userRole, permissions) => {",
+        "export default PERMISSIONS;"
+      ]
+    },
+    "frontend\\src\\utils\\phoneFormat.js": {
+      "totalLines": 88,
+      "exports": [
+        "export const formatPakistaniPhone = (value) => {",
+        "export const validatePakistaniPhone = (value) => {",
+        "export const getPhoneError = (value) => {"
+      ]
+    },
+    "frontend\\vite.config.js": {
+      "totalLines": 30,
+      "exports": [
+        "export default defineConfig({"
+      ],
+      "imports": [
+        "import { defineConfig } from 'vite'",
+        "import react from '@vitejs/plugin-react'",
+        "import path from 'path'"
+      ]
+    },
+    "scripts\\read_codebase.js": {
+      "totalLines": 81,
+      "functions": [
+        "function parseFile(filePath) {",
+        "function walk(dir, fileList = []) {"
+      ],
+      "imports": [
+        "const fs = require('fs');",
+        "const path = require('path');",
+        "if (trimmed.startsWith('import ') || trimmed.includes('require(')) {"
+      ]
+    }
+  }
+}

@@ -3,6 +3,8 @@ const router = express.Router();
 const backupService = require('../services/backup.service');
 const { authenticate, authorize } = require('../middleware/auth');
 const path = require('path');
+const db = require('../config/database');
+const audit = require('../utils/audit');
 
 // List backups
 router.get('/', authenticate, authorize('admin'), async (req, res, next) => {
@@ -18,6 +20,20 @@ router.get('/', authenticate, authorize('admin'), async (req, res, next) => {
 router.post('/', authenticate, authorize('admin'), async (req, res, next) => {
     try {
         const backup = await backupService.createBackup();
+
+        // Audit backup creation
+        try {
+            await audit(db, {
+                userId: req.user.id,
+                action: 'create',
+                tableName: 'backup',
+                recordId: backup.filename || 'backup',
+                newValues: { filename: backup.filename, created_at: new Date().toISOString() },
+                ip: req.ip,
+                tenantId: req.tenantId || req.user?.tenantId
+            });
+        } catch (e) { /* audit failure ok */ }
+
         res.status(201).json({ success: true, data: backup });
     } catch (error) {
         next(error);

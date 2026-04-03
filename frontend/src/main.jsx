@@ -6,6 +6,19 @@ import App from './App'
 import './tokens.css'
 import './index.css'
 
+// Read theme from localStorage (defaults to dark)
+const savedTheme = localStorage.getItem('zync-theme')
+let theme = 'dark'
+try {
+    if (savedTheme) {
+        const parsed = JSON.parse(savedTheme)
+        theme = parsed?.state?.theme || 'dark'
+    }
+} catch (e) {
+    theme = 'dark'
+}
+document.documentElement.setAttribute('data-theme', theme)
+
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
         <HashRouter>
@@ -15,9 +28,12 @@ ReactDOM.createRoot(document.getElementById('root')).render(
                 toastOptions={{
                     duration: 3000,
                     style: {
-                        background: '#15202a',
-                        color: '#E6EEF6',
-                        border: '1px solid rgba(255,255,255,0.04)',
+                        background: 'var(--color-panel)',
+                        color: 'var(--color-text)',
+                        border: '1px solid var(--border-surface)',
+                        boxShadow: 'var(--elevation-2)',
+                        borderRadius: '8px',
+                        fontSize: '0.875rem',
                     },
                 }}
             />

@@ -1,8 +1,9 @@
 const { AppError } = require('../middleware/errorHandler');
 
 class CustomerService {
-    constructor(db) {
+    constructor(db, tenantId) {
         this.db = db;
+        this.tenantId = tenantId;
     }
 
     /**
@@ -25,12 +26,13 @@ class CustomerService {
         return await this.db.transaction(async (trx) => {
             // 1. Create GL Account for Customer (under Trade Receivables - usually Asset)
             // Account Group Code for Receivables: 1200 or similar
-            const group = await trx('account_groups').where('code', '1200').first();
+            const group = await trx('account_groups').where('code', '1200').where('tenant_id', this.tenantId).first();
             if (!group) throw new AppError('Receivables account group (1200) not found', 500);
 
             // Generate Account Code: 1201, 1202, ...
             const lastAccount = await trx('accounts')
                 .where('group_id', group.id)
+                .where('tenant_id', this.tenantId)
                 .orderBy('code', 'desc')
                 .first();
 
@@ -39,7 +41,7 @@ class CustomerService {
                 : '1201';
 
             // Ensure Uniqueness (Collision Resistant)
-            while (await trx('accounts').where('code', nextCode).first()) {
+            while (await trx('accounts').where('code', nextCode).where('tenant_id', this.tenantId).first()) {
                 nextCode = (parseInt(nextCode) + 1).toString();
             }
 
@@ -51,7 +53,8 @@ class CustomerService {
                 opening_balance: opening_balance,
                 current_balance: opening_balance,
                 is_system: false,
-                created_by: userId
+                created_by: userId,
+                tenant_id: this.tenantId
             }).returning('*');
 
             // 2. Create Customer Record
@@ -68,7 +71,8 @@ class CustomerService {
                 opening_balance,
                 current_balance: opening_balance,
                 account_id: account.id,
-                created_by: userId
+                created_by: userId,
+                tenant_id: this.tenantId
             }).returning('*');
 
             return customer;
@@ -80,7 +84,7 @@ class CustomerService {
      */
     async update(id, data, userId) {
         const [customer] = await this.db('customers')
-            .where({ id, is_deleted: false })
+            .where({ id, is_deleted: false, tenant_id: this.tenantId })
             .update({
                 ...data,
                 updated_at: new Date(),
@@ -107,7 +111,7 @@ class CustomerService {
         const { page = 1, limit = 50, search, active_only = true } = params;
         const offset = (page - 1) * limit;
 
-        let query = this.db('customers').where('is_deleted', false);
+        let query = this.db('customers').where('is_deleted', false).where('tenant_id', this.tenantId);
 
         if (active_only) query = query.where('is_active', true);
 
@@ -120,7 +124,7 @@ class CustomerService {
             });
         }
 
-        const [{ count }] = await this.db('customers').where('is_deleted', false).count();
+        const [{ count }] = await this.db('customers').where('is_deleted', false).where('tenant_id', this.tenantId).count();
         const customers = await query.orderBy('name').limit(limit).offset(offset);
 
         return {

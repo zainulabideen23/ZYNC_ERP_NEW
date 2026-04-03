@@ -3,9 +3,8 @@ import { Link } from 'react-router-dom'
 import { salesAPI } from '../services/api'
 import { format } from 'date-fns'
 import { useDataSync, DataSyncEvents } from '../utils/dataSync'
-import SalesFilters from '../components/SalesFilters'
 import SaleDetailModal from '../components/SaleDetailModal'
-import SalesStats from '../components/SalesStats'
+import { Printer, TrendingUp, FileText, Banknote, AlertCircle, ShoppingCart, Plus, Search, X, Download, CornerDownLeft, Eye, TrendingDown } from 'lucide-react'
 
 function Sales() {
     const [sales, setSales] = useState([])
@@ -15,21 +14,20 @@ function Sales() {
     const [pagination, setPagination] = useState({ page: 1, limit: 50, total: 0, pages: 1 })
     const [aggregates, setAggregates] = useState(null)
     const [selectedIds, setSelectedIds] = useState([])
+    const [showBulkActions, setShowBulkActions] = useState(false)
 
-    // Debounce search/filter updates to avoid too many API calls
     useEffect(() => {
         const timer = setTimeout(() => {
             loadData()
         }, 500)
         return () => clearTimeout(timer)
-    }, [filters])
+    }, [filters, pagination.page])
 
-    // Subscribe to data sync events to refresh list when sales change (e.g. from POS)
     useDataSync(DataSyncEvents.SALE_CREATED, () => {
         loadData()
     })
 
-    const loadData = async (page = 1) => {
+    const loadData = async (page = pagination.page) => {
         setLoading(true)
         try {
             const response = await salesAPI.list({
@@ -47,37 +45,36 @@ function Sales() {
         }
     }
 
-    const handleFilterChange = (key, value) => {
-        setFilters(prev => ({ ...prev, [key]: value }))
-    }
-
     const clearFilters = () => {
         setFilters({ search: '', status: '', from_date: '', to_date: '' })
     }
 
-    // Bulk Selection Logic
     const handleSelectAll = (e) => {
         if (e.target.checked) {
             setSelectedIds(sales.map(s => s.id))
+            setShowBulkActions(true)
         } else {
             setSelectedIds([])
+            setShowBulkActions(false)
         }
     }
 
     const handleSelectRow = (id, e) => {
-        e.stopPropagation();
-        setSelectedIds(prev =>
-            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-        )
+        e.stopPropagation()
+        const newSelected = e.target.checked
+            ? [...selectedIds, id]
+            : selectedIds.filter(x => x !== id)
+        setSelectedIds(newSelected)
+        setShowBulkActions(newSelected.length > 0)
     }
 
-    // Export CSV
     const handleExportCSV = () => {
-        const selectedSales = sales.filter(s => selectedIds.includes(s.id));
-        if (selectedSales.length === 0) return;
+        const selectedSales = sales.filter(s => selectedIds.includes(s.id))
+        const dataToExport = selectedSales.length > 0 ? selectedSales : sales
+        if (dataToExport.length === 0) return
 
-        const headers = ['Invoice', 'Date', 'Customer', 'Total', 'Paid', 'Due', 'Status'];
-        const rows = selectedSales.map(s => [
+        const headers = ['Invoice', 'Date', 'Customer', 'Total', 'Paid', 'Due', 'Status']
+        const rows = dataToExport.map(s => [
             s.invoice_number,
             format(new Date(s.sale_date), 'yyyy-MM-dd'),
             s.customer_name || 'Walk-in',
@@ -85,295 +82,62 @@ function Sales() {
             s.amount_paid,
             s.amount_due,
             s.status
-        ]);
+        ])
 
-        const csvContent = [
-            headers.join(','),
-            ...rows.map(row => row.join(','))
-        ].join('\n');
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `sales_export_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`;
-        link.click();
+        const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+        const link = document.createElement('a')
+        link.href = URL.createObjectURL(blob)
+        link.download = `sales_export_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`
+        link.click()
     }
 
     const formatCurrency = (value) => `Rs. ${Number(value).toLocaleString()}`
 
-    // Direct print using hidden iframe (no new window)
     const handlePrintInvoice = async (sale) => {
         try {
             const response = await salesAPI.get(sale.id)
             const data = response.data
 
-            // Create professional printable invoice HTML
             const printContent = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Invoice-${data.invoice_number}</title>
-                    <style>
-                        * { margin: 0; padding: 0; box-sizing: border-box; }
-                        body { 
-                            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; 
-                            padding: 40px; 
-                            max-width: 800px; 
-                            margin: 0 auto; 
-                            color: #1a1a2e;
-                            line-height: 1.5;
-                        }
-                        
-                        /* Header Section */
-                        .invoice-header {
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: flex-start;
-                            margin-bottom: 40px;
-                            padding-bottom: 25px;
-                            border-bottom: 3px solid #2563eb;
-                        }
-                        .company-info h1 { 
-                            font-size: 32px; 
-                            font-weight: 700; 
-                            color: #2563eb;
-                            letter-spacing: -0.5px;
-                        }
-                        .company-info p { 
-                            color: #64748b; 
-                            font-size: 13px;
-                            margin-top: 4px;
-                        }
-                        .invoice-title {
-                            text-align: right;
-                        }
-                        .invoice-title h2 {
-                            font-size: 28px;
-                            font-weight: 300;
-                            color: #64748b;
-                            text-transform: uppercase;
-                            letter-spacing: 3px;
-                        }
-                        .invoice-title .invoice-number {
-                            font-size: 18px;
-                            font-weight: 600;
-                            color: #1a1a2e;
-                            margin-top: 5px;
-                        }
-                        
-                        /* Billing Section */
-                        .billing-section {
-                            display: flex;
-                            justify-content: space-between;
-                            margin-bottom: 35px;
-                            gap: 40px;
-                        }
-                        .billing-box {
-                            flex: 1;
-                            padding: 20px;
-                            background: #f8fafc;
-                            border-radius: 8px;
-                            border-left: 4px solid #2563eb;
-                        }
-                        .billing-box h3 {
-                            font-size: 11px;
-                            text-transform: uppercase;
-                            letter-spacing: 1px;
-                            color: #64748b;
-                            margin-bottom: 10px;
-                            font-weight: 600;
-                        }
-                        .billing-box p {
-                            font-size: 15px;
-                            color: #1a1a2e;
-                        }
-                        .billing-box .highlight {
-                            font-weight: 600;
-                            font-size: 16px;
-                        }
-                        
-                        /* Table */
-                        table { 
-                            width: 100%; 
-                            border-collapse: collapse; 
-                            margin-bottom: 30px;
-                        }
-                        thead tr {
-                            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-                        }
-                        th { 
-                            padding: 14px 16px; 
-                            text-align: left; 
-                            font-weight: 600;
-                            color: #ffffff;
-                            font-size: 12px;
-                            text-transform: uppercase;
-                            letter-spacing: 0.5px;
-                        }
-                        td { 
-                            padding: 16px; 
-                            border-bottom: 1px solid #e2e8f0;
-                            font-size: 14px;
-                        }
-                        tbody tr:hover { background: #f8fafc; }
-                        tbody tr:last-child td { border-bottom: 2px solid #e2e8f0; }
-                        .text-right { text-align: right; }
-                        .text-center { text-align: center; }
-                        .item-name { font-weight: 500; }
-                        
-                        /* Totals Section */
-                        .totals-wrapper {
-                            display: flex;
-                            justify-content: flex-end;
-                        }
-                        .totals {
-                            width: 320px;
-                            background: #f8fafc;
-                            border-radius: 8px;
-                            padding: 20px;
-                        }
-                        .totals .row { 
-                            display: flex; 
-                            justify-content: space-between; 
-                            padding: 10px 0;
-                            font-size: 14px;
-                        }
-                        .totals .row span:first-child { color: #64748b; }
-                        .totals .row span:last-child { font-weight: 500; }
-                        .totals .row.subtotal { border-bottom: 1px dashed #cbd5e1; }
-                        .totals .row.total { 
-                            font-size: 20px; 
-                            font-weight: 700; 
-                            color: #1a1a2e;
-                            border-top: 2px solid #2563eb;
-                            margin-top: 10px;
-                            padding-top: 15px;
-                        }
-                        .totals .row.total span:first-child { color: #1a1a2e; }
-                        .totals .row.paid { color: #16a34a; }
-                        .totals .row.paid span { color: #16a34a !important; font-weight: 600; }
-                        .totals .row.due { color: #dc2626; }
-                        .totals .row.due span { color: #dc2626 !important; font-weight: 600; }
-                        .totals .row.change { color: #2563eb; }
-                        .totals .row.change span { color: #2563eb !important; }
-                        
-                        /* Status Badge */
-                        .status-badge {
-                            display: inline-block;
-                            padding: 6px 16px;
-                            border-radius: 20px;
-                            font-size: 12px;
-                            font-weight: 600;
-                            text-transform: uppercase;
-                            letter-spacing: 0.5px;
-                        }
-                        .status-paid { background: #dcfce7; color: #16a34a; }
-                        .status-partial { background: #fef3c7; color: #d97706; }
-                        .status-unpaid { background: #fee2e2; color: #dc2626; }
-                        
-                        /* Footer */
-                        .footer {
-                            margin-top: 50px;
-                            padding-top: 25px;
-                            border-top: 1px solid #e2e8f0;
-                            text-align: center;
-                        }
-                        .footer .thanks {
-                            font-size: 18px;
-                            color: #2563eb;
-                            font-weight: 500;
-                            margin-bottom: 8px;
-                        }
-                        .footer .meta {
-                            font-size: 11px;
-                            color: #94a3b8;
-                        }
-                        
-                        /* Print Styles */
-                        @media print { 
-                            body { padding: 20px; }
-                            .billing-box { background: #f8fafc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                            thead tr { background: #2563eb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                            th { color: #ffffff !important; }
-                            .totals { background: #f8fafc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                            .status-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="invoice-header">
-                        <div class="company-info">
-                            <h1>ZYNC</h1>
-                            <p>Enterprise Resource Planning</p>
-                        </div>
-                        <div class="invoice-title">
-                            <h2>Invoice</h2>
-                            <div class="invoice-number">${data.invoice_number}</div>
-                        </div>
-                    </div>
-                    
-                    <div class="billing-section">
-                        <div class="billing-box">
-                            <h3>Bill To</h3>
-                            <p class="highlight">${data.customer_name || 'Walk-in Customer'}</p>
-                        </div>
-                        <div class="billing-box">
-                            <h3>Invoice Date</h3>
-                            <p class="highlight">${format(new Date(data.sale_date), 'MMMM dd, yyyy')}</p>
-                            <p style="margin-top: 5px; font-size: 13px; color: #64748b;">${format(new Date(data.sale_date), 'hh:mm a')}</p>
-                        </div>
-                        <div class="billing-box">
-                            <h3>Status</h3>
-                            <span class="status-badge ${Number(data.amount_due) === 0 ? 'status-paid' : Number(data.amount_paid) > 0 ? 'status-partial' : 'status-unpaid'}">
-                                ${Number(data.amount_due) === 0 ? 'Paid' : Number(data.amount_paid) > 0 ? 'Partial' : 'Unpaid'}
-                            </span>
-                        </div>
-                    </div>
-                    
-                    <table>
-                        <thead>
-                            <tr>
-                                <th style="width: 50px;">#</th>
-                                <th>Description</th>
-                                <th class="text-center" style="width: 80px;">Qty</th>
-                                <th class="text-right" style="width: 120px;">Unit Price</th>
-                                <th class="text-right" style="width: 130px;">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${(data.items || []).map((item, i) => `
-                                <tr>
-                                    <td class="text-center">${i + 1}</td>
-                                    <td class="item-name">${item.product_name || item.name}</td>
-                                    <td class="text-center">${item.quantity}</td>
-                                    <td class="text-right">Rs. ${Number(item.unit_price).toLocaleString()}</td>
-                                    <td class="text-right"><strong>Rs. ${Number(item.line_total || item.quantity * item.unit_price).toLocaleString()}</strong></td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                    
-                    <div class="totals-wrapper">
-                        <div class="totals">
-                            <div class="row subtotal"><span>Subtotal</span><span>Rs. ${Number(data.subtotal).toLocaleString()}</span></div>
-                            ${Number(data.discount_amount) > 0 ? `<div class="row"><span>Discount</span><span>- Rs. ${Number(data.discount_amount).toLocaleString()}</span></div>` : ''}
-                            ${Number(data.tax_amount) > 0 ? `<div class="row"><span>Tax</span><span>+ Rs. ${Number(data.tax_amount).toLocaleString()}</span></div>` : ''}
-                            <div class="row total"><span>Total</span><span>Rs. ${Number(data.total_amount).toLocaleString()}</span></div>
-                            <div class="row paid"><span>Amount Paid</span><span>Rs. ${Number(data.amount_paid).toLocaleString()}</span></div>
-                            ${Number(data.return_to_customer) > 0 ? `<div class="row change"><span>Change Given</span><span>Rs. ${Number(data.return_to_customer).toLocaleString()}</span></div>` : ''}
-                            ${Number(data.amount_due) > 0 ? `<div class="row due"><span>Balance Due</span><span>Rs. ${Number(data.amount_due).toLocaleString()}</span></div>` : ''}
-                        </div>
-                    </div>
-                    
-                    <div class="footer">
-                        <p class="thanks">Thank you for your business!</p>
-                        <p class="meta">Invoice generated on ${format(new Date(), 'MMMM dd, yyyy')} at ${format(new Date(), 'hh:mm a')}</p>
-                    </div>
-                </body>
-                </html>
-            `
+                <!DOCTYPE html><html><head><title>Invoice-${data.invoice_number}</title><style>
+                *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;padding:40px;max-width:800px;margin:0 auto;color:#1a1a2e;line-height:1.5}
+                .invoice-header{display:flex;justify-content:space-between;margin-bottom:40px;padding-bottom:25px;border-bottom:3px solid #3b82f6}
+                .company-info h1{font-size:32px;font-weight:700;color:#3b82f6}.company-info p{color:#64748b;font-size:13px;margin-top:4px}
+                .invoice-title{text-align:right}.invoice-title h2{font-size:28px;font-weight:300;color:#64748b;text-transform:uppercase;letter-spacing:3px}
+                .invoice-title .invoice-number{font-size:18px;font-weight:600;color:#1a1a2e;margin-top:5px}
+                .billing-section{display:flex;justify-content:space-between;margin-bottom:35px;gap:40px}
+                .billing-box{flex:1;padding:20px;background:#f8fafc;border-radius:8px;border-left:4px solid #3b82f6}
+                .billing-box h3{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-bottom:10px;font-weight:600}
+                .billing-box p{font-size:15px;color:#1a1a2e}.billing-box .highlight{font-weight:600;font-size:16px}
+                table{width:100%;border-collapse:collapse;margin-bottom:30px}thead tr{background:#3b82f6}
+                th{padding:14px 16px;text-align:left;font-weight:600;color:#fff;font-size:12px;text-transform:uppercase}
+                td{padding:16px;border-bottom:1px solid #e2e8f0;font-size:14px}.text-right{text-align:right}.text-center{text-align:center}
+                .totals-wrapper{display:flex;justify-content:flex-end}.totals{width:320px;background:#f8fafc;border-radius:8px;padding:20px}
+                .totals .row{display:flex;justify-content:space-between;padding:10px 0;font-size:14px}
+                .totals .row.total{font-size:20px;font-weight:700;border-top:2px solid #3b82f6;margin-top:10px;padding-top:15px}
+                .status-badge{display:inline-block;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;text-transform:uppercase}
+                .status-paid{background:#dcfce7;color:#16a34a}.status-partial{background:#fef3c7;color:#d97706}.status-unpaid{background:#fee2e2;color:#dc2626}
+                .footer{margin-top:50px;padding-top:25px;border-top:1px solid #e2e8f0;text-align:center}
+                .footer .thanks{font-size:18px;color:#3b82f6;font-weight:500;margin-bottom:8px}.footer .meta{font-size:11px;color:#94a3b8}
+                @media print{body{padding:20px}.billing-box,.totals,thead tr{background:#f8fafc!important;-webkit-print-color-adjust:exact}.status-badge{-webkit-print-color-adjust:exact}}
+                </style></head><body>
+                <div class="invoice-header"><div class="company-info"><h1>ZYNC</h1><p>Enterprise Resource Planning</p></div>
+                <div class="invoice-title"><h2>Invoice</h2><div class="invoice-number">${data.invoice_number}</div></div></div>
+                <div class="billing-section">
+                <div class="billing-box"><h3>Bill To</h3><p class="highlight">${data.customer_name || 'Walk-in Customer'}</p></div>
+                <div class="billing-box"><h3>Invoice Date</h3><p class="highlight">${format(new Date(data.sale_date), 'MMMM dd, yyyy')}</p></div>
+                <div class="billing-box"><h3>Status</h3><span class="status-badge ${Number(data.amount_due) === 0 ? 'status-paid' : Number(data.amount_paid) > 0 ? 'status-partial' : 'status-unpaid'}">${Number(data.amount_due) === 0 ? 'Paid' : Number(data.amount_paid) > 0 ? 'Partial' : 'Unpaid'}</span></div></div>
+                <table><thead><tr><th>#</th><th>Description</th><th class="text-center">Qty</th><th class="text-right">Price</th><th class="text-right">Amount</th></tr></thead><tbody>
+                ${(data.items || []).map((item, i) => `<tr><td class="text-center">${i+1}</td><td>${item.product_name||item.name}</td><td class="text-center">${item.quantity}</td><td class="text-right">Rs. ${Number(item.unit_price).toLocaleString()}</td><td class="text-right"><strong>Rs. ${Number(item.line_total||item.quantity*item.unit_price).toLocaleString()}</strong></td></tr>`).join('')}
+                </tbody></table>
+                <div class="totals-wrapper"><div class="totals">
+                <div class="row subtotal"><span>Subtotal</span><span>Rs. ${Number(data.subtotal).toLocaleString()}</span></div>
+                <div class="row total"><span>Total</span><span>Rs. ${Number(data.total_amount).toLocaleString()}</span></div>
+                <div class="row"><span>Paid</span><span>Rs. ${Number(data.amount_paid).toLocaleString()}</span></div>
+                <div class="row"><span>Due</span><span>Rs. ${Number(data.amount_due).toLocaleString()}</span></div></div></div>
+                <div class="footer"><p class="thanks">Thank you for your business!</p><p class="meta">Generated ${format(new Date(),'dd/MM/yyyy HH:mm')}</p></div></body></html>`
 
-            // Use hidden iframe for direct printing (no new window)
             let printFrame = document.getElementById('print-frame')
             if (!printFrame) {
                 printFrame = document.createElement('iframe')
@@ -381,141 +145,557 @@ function Sales() {
                 printFrame.style.cssText = 'position:absolute;left:-9999px;width:0;height:0;border:none;'
                 document.body.appendChild(printFrame)
             }
-
             const frameDoc = printFrame.contentWindow || printFrame.contentDocument
             const doc = frameDoc.document || frameDoc
-            doc.open()
-            doc.write(printContent)
-            doc.close()
-
-            // Wait for content to load then print
-            printFrame.onload = () => {
-                frameDoc.focus()
-                frameDoc.print()
-            }
-
+            doc.open(); doc.write(printContent); doc.close()
+            printFrame.onload = () => { frameDoc.focus(); frameDoc.print() }
         } catch (error) {
             console.error('Failed to print invoice:', error)
-            alert('Failed to print invoice. Please try again.')
         }
     }
 
-    if (loading && sales.length === 0) return <div className="page-container">Loading...</div>
+    // Status Badge with proper colors
+    const StatusBadge = ({ status }) => {
+        const styles = {
+            completed: { bg: 'rgba(16, 185, 129, 0.15)', color: '#10b981', label: 'Paid' },
+            paid: { bg: 'rgba(16, 185, 129, 0.15)', color: '#10b981', label: 'Paid' },
+            confirmed: { bg: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', label: 'Confirmed' },
+            pending: { bg: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', label: 'Pending' },
+            partial: { bg: 'rgba(139, 92, 246, 0.15)', color: '#8b5cf6', label: 'Partial' },
+            cancelled: { bg: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', label: 'Cancelled' },
+        }
+        const s = styles[status] || { bg: 'rgba(100, 116, 139, 0.15)', color: '#64748b', label: status || 'N/A' }
+        return (
+            <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                padding: '4px 10px', borderRadius: '6px',
+                fontSize: '11px', fontWeight: 600,
+                backgroundColor: s.bg, color: s.color, letterSpacing: '0.02em'
+            }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: s.color }} />
+                {s.label}
+            </span>
+        )
+    }
+
+    // Metric Card Component
+    const MetricCard = ({ label, value, icon: Icon, color, subtext, trend }) => (
+        <div style={{
+            background: 'var(--color-panel)',
+            border: '1px solid var(--border-surface)',
+            borderRadius: '12px',
+            padding: '20px',
+            flex: 1,
+            minWidth: 0,
+            position: 'relative',
+            overflow: 'hidden',
+            transition: 'all 0.2s'
+        }}
+        onMouseEnter={e => {
+            e.currentTarget.style.borderColor = color + '40'
+            e.currentTarget.style.transform = 'translateY(-2px)'
+        }}
+        onMouseLeave={e => {
+            e.currentTarget.style.borderColor = 'var(--border-surface)'
+            e.currentTarget.style.transform = 'translateY(0)'
+        }}
+        >
+            {/* Decorative circle */}
+            <div style={{
+                position: 'absolute', top: '-20px', right: '-20px',
+                width: '100px', height: '100px', borderRadius: '50%',
+                background: `radial-gradient(circle, ${color}15 0%, transparent 70%)`
+            }} />
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', position: 'relative' }}>
+                <span style={{
+                    fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)',
+                    textTransform: 'uppercase', letterSpacing: '0.05em'
+                }}>{label}</span>
+                <div style={{
+                    width: '32px', height: '32px', borderRadius: '8px',
+                    background: color + '20', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center'
+                }}>
+                    <Icon size={16} color={color} />
+                </div>
+            </div>
+            
+            <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-text)', marginBottom: '4px', letterSpacing: '-0.02em' }}>
+                {value}
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--color-hint)' }}>{subtext}</span>
+                {trend && (
+                    <span style={{ 
+                        fontSize: '11px', fontWeight: 500, 
+                        color: trend > 0 ? '#10b981' : '#ef4444',
+                        display: 'flex', alignItems: 'center', gap: '2px'
+                    }}>
+                        {trend > 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                        {Math.abs(trend)}%
+                    </span>
+                )}
+            </div>
+        </div>
+    )
 
     return (
-        <div className="page-container">
-            <div className="page-header">
-                <h1 className="page-title">Sales</h1>
-                <div className="flex gap-2">
-                    <button className="btn btn-secondary" onClick={() => window.open('/#/pos', '_blank', 'width=1200,height=800')}>
-                        🖥️ Launch POS
+        <div style={{
+            padding: '24px',
+            maxWidth: '1400px',
+            margin: '0 auto',
+            background: 'var(--color-bg)',
+            minHeight: '100vh'
+        }}>
+            {/* Page Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{
+                        width: '44px', height: '44px', borderRadius: '10px',
+                        background: 'rgba(59, 130, 246, 0.12)',
+                        border: '1px solid rgba(59, 130, 246, 0.2)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                        <ShoppingCart size={20} color="var(--blue)" />
+                    </div>
+                    <div>
+                        <h1 style={{ fontSize: '22px', fontWeight: 600, color: 'var(--color-text)', margin: 0, letterSpacing: '-0.01em' }}>Sales</h1>
+                        <p style={{ fontSize: '13px', color: 'var(--color-hint)', marginTop: '2px' }}>Track and manage all your sales</p>
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                        onClick={() => window.open('/#/pos', '_blank', 'width=1200,height=800')}
+                        style={{
+                            height: '38px', padding: '0 14px',
+                            borderRadius: '8px', border: '1px solid var(--border-surface)',
+                            background: 'transparent', color: 'var(--color-text-dim)',
+                            fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '6px'
+                        }}
+                    >
+                        Launch POS
                     </button>
-                    <Link to="/sales/new" className="btn btn-primary">+ New Sale</Link>
+                    <Link to="/sales/new" style={{ textDecoration: 'none' }}>
+                        <button style={{
+                            height: '38px', padding: '0 16px',
+                            borderRadius: '8px', border: 'none',
+                            background: 'var(--blue)', color: '#fff',
+                            fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)'
+                        }}>
+                            <Plus size={16} />
+                            New Sale
+                        </button>
+                    </Link>
                 </div>
             </div>
 
-            <SalesStats aggregates={aggregates} />
+            {/* Metrics Row */}
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
+                <MetricCard
+                    label="Total Revenue"
+                    value={formatCurrency(aggregates?.total_revenue || 0)}
+                    icon={TrendingUp}
+                    color="#3b82f6"
+                    subtext="This month"
+                    trend={12}
+                />
+                <MetricCard
+                    label="Invoices"
+                    value={aggregates?.total_invoices || 0}
+                    icon={FileText}
+                    color="#8b5cf6"
+                    subtext="Total"
+                />
+                <MetricCard
+                    label="Received"
+                    value={formatCurrency(aggregates?.total_paid || 0)}
+                    icon={Banknote}
+                    color="#10b981"
+                    subtext="Collected"
+                />
+                <MetricCard
+                    label="Pending"
+                    value={formatCurrency(aggregates?.total_due || 0)}
+                    icon={AlertCircle}
+                    color="#f59e0b"
+                    subtext="Outstanding"
+                />
+            </div>
 
-            <SalesFilters
-                filters={filters}
-                onChange={handleFilterChange}
-                onClear={clearFilters}
-            />
+            {/* Toolbar */}
+            <div style={{
+                display: 'flex', alignItems: 'center', gap: '12px',
+                background: 'var(--color-panel)',
+                borderRadius: '12px', padding: '14px 16px',
+                marginBottom: '16px', border: '1px solid var(--border-surface)'
+            }}>
+                {/* Search */}
+                <div style={{ position: 'relative', flex: '0 0 260px' }}>
+                    <Search size={15} style={{
+                        position: 'absolute', left: '12px', top: '50%',
+                        transform: 'translateY(-50%)', color: 'var(--color-hint)'
+                    }} />
+                    <input
+                        type="text"
+                        placeholder="Search invoices, customers..."
+                        value={filters.search}
+                        onChange={(e) => setFilters({...filters, search: e.target.value})}
+                        style={{
+                            width: '100%', height: '36px',
+                            background: 'var(--color-panel-2)',
+                            border: '1px solid var(--border-surface)',
+                            borderRadius: '8px', paddingLeft: '36px', paddingRight: '12px',
+                            fontSize: '13px', color: 'var(--color-text)',
+                            outline: 'none'
+                        }}
+                        onFocus={e => e.target.style.borderColor = 'var(--blue)'}
+                        onBlur={e => e.target.style.borderColor = 'var(--border-surface)'}
+                    />
+                </div>
 
-            {selectedIds.length > 0 && (
-                <div className="flex items-center justify-between p-3 mb-4 card" style={{ background: 'var(--color-panel-2)', borderColor: 'var(--color-accent)' }}>
-                    <div className="flex items-center gap-4">
-                        <span className="font-bold text-accent">{selectedIds.length} Selected</span>
-                        <div className="text-sm text-muted">Select actions for these items</div>
-                    </div>
-                    <div className="flex gap-2">
-                        <button className="btn btn-secondary btn-sm" onClick={handleExportCSV}>
-                            📄 Export CSV
-                        </button>
-                    </div>
+                {/* Status Filter */}
+                <select
+                    value={filters.status}
+                    onChange={(e) => setFilters({...filters, status: e.target.value})}
+                    style={{
+                        height: '36px', background: 'var(--color-panel-2)',
+                        border: '1px solid var(--border-surface)',
+                        borderRadius: '8px', paddingLeft: '12px', paddingRight: '28px',
+                        fontSize: '13px', color: 'var(--color-text)',
+                        outline: 'none', cursor: 'pointer', appearance: 'none'
+                    }}
+                >
+                    <option value="">All Statuses</option>
+                    <option value="completed">Completed</option>
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+
+                {/* Date Range */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <input
+                        type="date"
+                        value={filters.from_date}
+                        onChange={(e) => setFilters({...filters, from_date: e.target.value})}
+                        style={{
+                            height: '36px', background: 'var(--color-panel-2)',
+                            border: '1px solid var(--border-surface)',
+                            borderRadius: '8px', paddingLeft: '10px', paddingRight: '10px',
+                            fontSize: '13px', color: 'var(--color-text)',
+                            outline: 'none', colorScheme: 'dark'
+                        }}
+                    />
+                    <span style={{ color: 'var(--color-hint)', fontSize: '12px' }}>—</span>
+                    <input
+                        type="date"
+                        value={filters.to_date}
+                        onChange={(e) => setFilters({...filters, to_date: e.target.value})}
+                        style={{
+                            height: '36px', background: 'var(--color-panel-2)',
+                            border: '1px solid var(--border-surface)',
+                            borderRadius: '8px', paddingLeft: '10px', paddingRight: '10px',
+                            fontSize: '13px', color: 'var(--color-text)',
+                            outline: 'none', colorScheme: 'dark'
+                        }}
+                    />
+                </div>
+
+                {(filters.search || filters.status || filters.from_date || filters.to_date) && (
+                    <button
+                        onClick={clearFilters}
+                        style={{
+                            height: '36px', padding: '0 10px',
+                            borderRadius: '8px', border: 'none',
+                            background: 'transparent', color: 'var(--color-muted)',
+                            fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+                        }}
+                    >
+                        <X size={13} /> Clear
+                    </button>
+                )}
+
+                <div style={{ flex: 1 }} />
+
+                {/* Export */}
+                <button
+                    onClick={handleExportCSV}
+                    style={{
+                        height: '36px', padding: '0 12px',
+                        borderRadius: '8px', border: '1px solid var(--border-surface)',
+                        background: 'transparent', color: 'var(--color-muted)',
+                        fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '6px'
+                    }}
+                >
+                    <Download size={14} /> Export
+                </button>
+            </div>
+
+            {/* Bulk Actions */}
+            {showBulkActions && selectedIds.length > 0 && (
+                <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '12px 16px', borderRadius: '10px',
+                    background: 'rgba(59, 130, 246, 0.1)',
+                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                    marginBottom: '16px'
+                }}>
+                    <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--blue)' }}>
+                        {selectedIds.length} selected
+                    </span>
+                    <button
+                        onClick={() => { setSelectedIds([]); setShowBulkActions(false) }}
+                        style={{
+                            padding: '6px 12px', borderRadius: '6px',
+                            border: 'none', background: 'var(--color-panel-2)',
+                            color: 'var(--color-muted)', fontSize: '12px', cursor: 'pointer'
+                        }}
+                    >
+                        Clear
+                    </button>
                 </div>
             )}
 
-            <div className="card">
-                <table className="table">
+            {/* Table */}
+            <div style={{
+                background: 'var(--color-panel)',
+                borderRadius: '12px', border: '1px solid var(--border-surface)',
+                overflow: 'hidden'
+            }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
-                        <tr>
-                            <th className="table-checkbox">
+                        <tr style={{ background: 'var(--color-panel-2)', borderBottom: '1px solid var(--border-surface)' }}>
+                            <th style={{ width: '44px', padding: '12px 16px' }}>
                                 <input
                                     type="checkbox"
-                                    onChange={handleSelectAll}
                                     checked={sales.length > 0 && selectedIds.length === sales.length}
+                                    onChange={handleSelectAll}
+                                    style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: 'var(--blue)' }}
                                 />
                             </th>
-                            <th>Invoice #</th>
-                            <th>Date</th>
-                            <th>Customer</th>
-                            <th style={{ textAlign: 'right' }}>Total</th>
-                            <th style={{ textAlign: 'right' }}>Paid</th>
-                            <th style={{ textAlign: 'right' }}>Due/Return</th>
-                            <th>Status</th>
-                            <th>Action</th>
+                            <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Invoice</th>
+                            <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</th>
+                            <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Customer</th>
+                            <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total</th>
+                            <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Paid</th>
+                            <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Due</th>
+                            <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
+                            <th style={{ width: '100px', padding: '12px 16px' }}></th>
                         </tr>
                     </thead>
                     <tbody>
-                        {sales.map((sale) => (
+                        {loading && sales.length === 0 ? (
+                            <>
+                                {[1, 2, 3, 4, 5].map(i => (
+                                    <tr key={i} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                                        <td style={{ padding: '14px 16px' }}>
+                                            <div style={{ width: '16px', height: '16px', background: 'var(--color-panel-2)', borderRadius: '4px' }} />
+                                        </td>
+                                        <td style={{ padding: '14px 16px' }}>
+                                            <div style={{ width: '80px', height: '14px', background: 'var(--color-panel-2)', borderRadius: '4px' }} />
+                                        </td>
+                                        <td style={{ padding: '14px 16px' }}>
+                                            <div style={{ width: '90px', height: '14px', background: 'var(--color-panel-2)', borderRadius: '4px' }} />
+                                        </td>
+                                        <td style={{ padding: '14px 16px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <div style={{ width: '28px', height: '28px', background: 'var(--color-panel-2)', borderRadius: '6px' }} />
+                                                <div style={{ width: '100px', height: '14px', background: 'var(--color-panel-2)', borderRadius: '4px' }} />
+                                            </div>
+                                        </td>
+                                        <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                                            <div style={{ width: '70px', height: '14px', background: 'var(--color-panel-2)', borderRadius: '4px', marginLeft: 'auto' }} />
+                                        </td>
+                                        <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                                            <div style={{ width: '60px', height: '14px', background: 'var(--color-panel-2)', borderRadius: '4px', marginLeft: 'auto' }} />
+                                        </td>
+                                        <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                                            <div style={{ width: '50px', height: '14px', background: 'var(--color-panel-2)', borderRadius: '4px', marginLeft: 'auto' }} />
+                                        </td>
+                                        <td style={{ padding: '14px 16px' }}>
+                                            <div style={{ width: '60px', height: '24px', background: 'var(--color-panel-2)', borderRadius: '6px' }} />
+                                        </td>
+                                        <td style={{ padding: '14px 16px' }}>
+                                            <div style={{ width: '60px', height: '30px', background: 'var(--color-panel-2)', borderRadius: '6px', marginLeft: 'auto' }} />
+                                        </td>
+                                    </tr>
+                                ))}
+                            </>
+                        ) : sales.length === 0 ? (
+                            <tr>
+                                <td colSpan={9} style={{ padding: '80px 16px', textAlign: 'center' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                                        <div style={{
+                                            width: '56px', height: '56px', borderRadius: '16px',
+                                            background: 'var(--color-panel-2)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                        }}>
+                                            <FileText size={24} color="var(--color-hint)" />
+                                        </div>
+                                        <div>
+                                            <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--color-text-dim)', margin: '0 0 4px 0' }}>No sales yet</p>
+                                            <p style={{ fontSize: '13px', color: 'var(--color-hint)', margin: 0 }}>Create your first sale to get started</p>
+                                        </div>
+                                        <Link to="/sales/new" style={{ textDecoration: 'none' }}>
+                                            <button style={{
+                                                marginTop: '8px', padding: '8px 16px',
+                                                borderRadius: '8px', border: 'none',
+                                                background: 'var(--blue)', color: '#fff',
+                                                fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+                                                display: 'flex', alignItems: 'center', gap: '6px'
+                                            }}>
+                                                <Plus size={14} /> New Sale
+                                            </button>
+                                        </Link>
+                                    </div>
+                                </td>
+                            </tr>
+                        ) : sales.map((sale, index) => (
                             <tr
                                 key={sale.id}
+                                style={{
+                                    borderBottom: index < sales.length - 1 ? '1px solid var(--border-light)' : 'none',
+                                    background: 'var(--color-panel)',
+                                    transition: 'background 0.15s',
+                                    cursor: 'pointer'
+                                }}
                                 onClick={() => setSelectedSale(sale)}
-                                style={{ cursor: 'pointer' }}
-                                className={`hover:bg-panel-2 transition-colors ${selectedIds.includes(sale.id) ? 'bg-panel-2' : ''}`}
+                                onMouseEnter={e => e.currentTarget.style.background = 'var(--color-panel-2)'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'var(--color-panel)'}
                             >
-                                <td className="table-checkbox" onClick={(e) => e.stopPropagation()}>
+                                <td style={{ padding: '14px 16px' }} onClick={e => e.stopPropagation()}>
                                     <input
                                         type="checkbox"
                                         checked={selectedIds.includes(sale.id)}
-                                        onChange={(e) => handleSelectRow(sale.id, e)}
+                                        onChange={e => handleSelectRow(sale.id, e)}
+                                        style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: 'var(--blue)' }}
                                     />
                                 </td>
-                                <td className="font-mono text-accent font-bold">{sale.invoice_number}</td>
-                                <td>{format(new Date(sale.sale_date), 'dd/MM/yyyy')}</td>
-                                <td>{sale.customer_name || 'Walk-in'}</td>
-                                <td style={{ textAlign: 'right' }}>{formatCurrency(sale.total_amount)}</td>
-                                <td style={{ textAlign: 'right' }}>{formatCurrency(sale.amount_paid)}</td>
-                                <td style={{ textAlign: 'right' }}>
-                                    {parseFloat(sale.return_to_customer) > 0 ? (
-                                        <span className="text-success" title="Return to Customer">
-                                            ↩ {formatCurrency(sale.return_to_customer)}
-                                        </span>
-                                    ) : parseFloat(sale.amount_due) > 0 ? (
-                                        <span className="text-warning" title="Amount Due">
-                                            {formatCurrency(sale.amount_due)}
-                                        </span>
-                                    ) : (
-                                        <span className="text-muted">-</span>
-                                    )}
-                                </td>
-                                <td>
-                                    <span className={`badge ${sale.status === 'completed' ? 'badge-success neon-success' : sale.status === 'confirmed' ? 'badge-warning' : 'badge-danger'}`}>
-                                        {sale.status === 'completed' ? 'PAID' : sale.status.toUpperCase()}
-                                    </span>
-                                </td>
-                                <td>
+                                <td style={{ padding: '14px 16px' }}>
                                     <button
-                                        className="btn btn-ghost btn-sm"
-                                        onClick={(e) => { e.stopPropagation(); handlePrintInvoice(sale); }}
-                                        aria-label={`Print invoice ${sale.invoice_number}`}
+                                        onClick={(e) => { e.stopPropagation(); setSelectedSale(sale) }}
+                                        style={{
+                                            fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 500,
+                                            color: 'var(--blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0
+                                        }}
                                     >
-                                        🖨️ Print
+                                        #{sale.invoice_number}
                                     </button>
+                                </td>
+                                <td style={{ padding: '14px 16px', fontSize: '13px', color: 'var(--color-text-dim)' }}>
+                                    {format(new Date(sale.sale_date), 'dd MMM yyyy')}
+                                </td>
+                                <td style={{ padding: '14px 16px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <div style={{
+                                            width: '28px', height: '28px', borderRadius: '6px',
+                                            background: 'var(--color-panel-2)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)'
+                                        }}>
+                                            {(sale.customer_name || 'WI').charAt(0).toUpperCase()}
+                                        </div>
+                                        <span style={{ fontSize: '13px', color: 'var(--color-text)' }}>
+                                            {sale.customer_name || 'Walk-in'}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td style={{ padding: '14px 16px', textAlign: 'right', fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>
+                                    {formatCurrency(sale.total_amount)}
+                                </td>
+                                <td style={{ padding: '14px 16px', textAlign: 'right', fontSize: '13px', color: '#10b981' }}>
+                                    {formatCurrency(sale.amount_paid)}
+                                </td>
+                                <td style={{ padding: '14px 16px', textAlign: 'right', fontSize: '13px', fontWeight: 500, color: parseFloat(sale.amount_due) > 0 ? '#ef4444' : 'var(--color-hint)' }}>
+                                    {parseFloat(sale.amount_due) > 0 ? formatCurrency(sale.amount_due) : '—'}
+                                </td>
+                                <td style={{ padding: '14px 16px' }}>
+                                    <StatusBadge status={sale.status} />
+                                </td>
+                                <td style={{ padding: '14px 16px', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px', opacity: 0.5, transition: 'opacity 0.15s' }}
+                                    onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                                    onMouseLeave={e => e.currentTarget.style.opacity = 0.5}>
+                                        <button
+                                            onClick={() => setSelectedSale(sale)}
+                                            style={{
+                                                width: '30px', height: '30px', borderRadius: '6px',
+                                                border: '1px solid var(--border-surface)',
+                                                background: 'transparent', color: 'var(--color-muted)',
+                                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                            }}
+                                            title="View"
+                                        >
+                                            <Eye size={14} />
+                                        </button>
+                                        <button
+                                            onClick={() => handlePrintInvoice(sale)}
+                                            style={{
+                                                width: '30px', height: '30px', borderRadius: '6px',
+                                                border: '1px solid var(--border-surface)',
+                                                background: 'transparent', color: 'var(--color-muted)',
+                                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                            }}
+                                            title="Print"
+                                        >
+                                            <Printer size={14} />
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
-                        {loading && sales.length > 0 && (
-                            <tr><td colSpan="9" className="text-center p-4">Updating...</td></tr>
-                        )}
-                        {sales.length === 0 && !loading && (
-                            <tr><td colSpan="9" className="text-center p-4 text-muted">No sales found matching criteria.</td></tr>
-                        )}
                     </tbody>
                 </table>
+
+                {/* Footer */}
+                <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '14px 16px', borderTop: '1px solid var(--border-surface)',
+                    background: 'var(--color-panel-2)'
+                }}>
+                    <span style={{ fontSize: '12px', color: 'var(--color-hint)' }}>
+                        {sales.length > 0 ? `Showing ${((pagination.page - 1) * pagination.limit) + 1}–${Math.min(pagination.page * pagination.limit, pagination.total)} of ${pagination.total}` : 'No results'}
+                    </span>
+                    {pagination.pages > 1 && (
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                            <button
+                                onClick={() => setPagination(p => ({...p, page: Math.max(1, p.page - 1)}))}
+                                disabled={pagination.page === 1}
+                                style={{
+                                    width: '30px', height: '30px', borderRadius: '6px',
+                                    border: '1px solid var(--border-surface)',
+                                    background: 'transparent', color: 'var(--color-muted)',
+                                    cursor: pagination.page === 1 ? 'not-allowed' : 'pointer',
+                                    opacity: pagination.page === 1 ? 0.5 : 1
+                                }}
+                            >&lt;</button>
+                            <span style={{ padding: '0 10px', fontSize: '12px', color: 'var(--color-text-dim)', display: 'flex', alignItems: 'center' }}>
+                                {pagination.page} / {pagination.pages}
+                            </span>
+                            <button
+                                onClick={() => setPagination(p => ({...p, page: Math.min(p.pages, p.page + 1)}))}
+                                disabled={pagination.page === pagination.pages}
+                                style={{
+                                    width: '30px', height: '30px', borderRadius: '6px',
+                                    border: '1px solid var(--border-surface)',
+                                    background: 'transparent', color: 'var(--color-muted)',
+                                    cursor: pagination.page === pagination.pages ? 'not-allowed' : 'pointer',
+                                    opacity: pagination.page === pagination.pages ? 0.5 : 1
+                                }}
+                            >&gt;</button>
+                        </div>
+                    )}
+                </div>
             </div>
 
+            {/* Modal */}
             {selectedSale && (
                 <SaleDetailModal
                     saleId={selectedSale.id}

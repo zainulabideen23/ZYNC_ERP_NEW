@@ -1,8 +1,10 @@
 const { AppError } = require('../middleware/errorHandler');
+const { resolveSystemAccounts, SYSTEM_ACCOUNTS } = require('../utils/accountResolver');
 
 class StockService {
-    constructor(db) {
+    constructor(db, tenantId) {
         this.db = db;
+        this.tenantId = tenantId;
     }
 
     /**
@@ -35,7 +37,8 @@ class StockService {
                 unit_cost: unit_cost || 0,
                 remaining_qty: (movement_type === 'IN' || reference_type === 'opening') ? Math.abs(quantity) : 0,
                 notes,
-                created_by
+                created_by,
+                tenant_id: this.tenantId
             })
             .returning('*');
 
@@ -77,6 +80,7 @@ class StockService {
             .where('product_id', productId)
             .where('movement_type', 'IN')
             .where('remaining_qty', '>', 0)
+            .where('tenant_id', this.tenantId)
             .orderBy('created_at', 'asc')
             .forUpdate()
             .select('id', 'unit_cost', 'remaining_qty');
@@ -136,6 +140,7 @@ class StockService {
             .where('product_id', productId)
             .where('movement_type', 'IN')
             .where('remaining_qty', '>', 0)
+            .where('tenant_id', this.tenantId)
             .select(
                 this.db.raw('SUM(remaining_qty) as total_qty'),
                 this.db.raw('SUM(remaining_qty * unit_cost) as total_value')
@@ -165,7 +170,8 @@ class StockService {
                 quantity_adjusted,
                 reason_notes,
                 reference_attachment_url,
-                created_by: userId
+                created_by: userId,
+                tenant_id: this.tenantId
             }).returning('*');
 
             // For now, we'll auto-approve unless specified otherwise, 
@@ -200,10 +206,87 @@ class StockService {
             reference_type: 'adjustment',
             reference_id: adjustmentId,
             quantity: adjustment.quantity_adjusted,
-            unit_cost: 0, // Should we track cost for adjustments?
+            unit_cost: 0,
             notes: adjustment.reason_notes,
             created_by: userId
         }, query);
+
+        // For negative adjustments (stock reduction/write-offs), create GL journal entry
+        if (adjustment.quantity_adjusted < 0) {
+            await this.createWriteOffJournal(adjustment, query, userId);
+        }
+    }
+
+    /**
+     * Create GL journal entry for inventory write-offs
+     * Debit: Inventory Loss (6004)
+     * Credit: Inventory (1004)
+     */
+    async createWriteOffJournal(adjustment, trx, userId) {
+        const adjustmentQty = Math.abs(adjustment.quantity_adjusted);
+        
+        // Get product to calculate write-off value
+        const product = await trx('products').where('id', adjustment.product_id).first();
+        const writeOffValue = adjustmentQty * (product?.cost_price || 0);
+
+        if (writeOffValue <= 0) return;
+
+        // Resolve required accounts
+        const accountIds = await resolveSystemAccounts(trx, this.tenantId, [
+            SYSTEM_ACCOUNTS.INVENTORY_LOSS,
+            SYSTEM_ACCOUNTS.INVENTORY,
+        ]);
+
+        // Get next journal sequence
+        const seq = await trx('sequences')
+            .where({ tenant_id: this.tenantId, name: 'journal' })
+            .forUpdate()
+            .first();
+
+        const nextNum = seq.current_value + 1;
+        const journalNumber = `${seq.prefix}${String(nextNum).padStart(seq.pad_length, '0')}`;
+
+        await trx('sequences')
+            .where({ tenant_id: this.tenantId, name: 'journal' })
+            .update({ current_value: nextNum });
+
+        // Create journal entry
+        const [journal] = await trx('journals').insert({
+            tenant_id: this.tenantId,
+            journal_number: journalNumber,
+            journal_date: new Date(),
+            reference_type: 'adjustment',
+            reference_id: adjustment.id,
+            description: `Stock Write-Off: ${product?.name || 'Product'} — ${adjustment.reason_notes || 'Adjustment'}`,
+            total_debit: writeOffValue,
+            total_credit: writeOffValue,
+            is_balanced: true,
+            created_by: userId,
+            created_at: trx.fn.now(),
+        }).returning('*');
+
+        // Create ledger entries
+        // Debit Inventory Loss (6004) — operating loss
+        await trx('ledger_entries').insert({
+            tenant_id: this.tenantId,
+            journal_id: journal.id,
+            account_id: accountIds[SYSTEM_ACCOUNTS.INVENTORY_LOSS],
+            entry_type: 'debit',
+            amount: writeOffValue,
+            description: `Inventory Loss: ${product?.name || 'Product'}`,
+            created_at: trx.fn.now(),
+        });
+
+        // Credit Inventory (1004) — stock leaves the books
+        await trx('ledger_entries').insert({
+            tenant_id: this.tenantId,
+            journal_id: journal.id,
+            account_id: accountIds[SYSTEM_ACCOUNTS.INVENTORY],
+            entry_type: 'credit',
+            amount: writeOffValue,
+            description: `Stock Write-Off: ${product?.name || 'Product'}`,
+            created_at: trx.fn.now(),
+        });
     }
 }
 

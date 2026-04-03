@@ -76,16 +76,22 @@ export const suppliersAPI = {
 // Categories
 export const categoriesAPI = {
     list: () => api.get('/categories'),
+    listFlat: () => api.get('/categories', { params: { flat: 'true' } }),
     create: (data) => api.post('/categories', data),
-    update: (id, data) => api.put(`/categories/${id}`, data)
+    update: (id, data) => api.put(`/categories/${id}`, data),
+    delete: (id) => api.delete(`/categories/${id}`)
 }
 
-// Companies
-export const companiesAPI = {
-    list: () => api.get('/companies'),
-    create: (data) => api.post('/companies', data),
-    update: (id, data) => api.put(`/companies/${id}`, data)
+// Brands
+export const brandsAPI = {
+    list: () => api.get('/brands'),
+    create: (data) => api.post('/brands', data),
+    update: (id, data) => api.put(`/brands/${id}`, data),
+    delete: (id) => api.delete(`/brands/${id}`)
 }
+
+// Backward compat alias
+export const companiesAPI = brandsAPI
 
 // Sales
 export const salesAPI = {
@@ -142,8 +148,12 @@ export const reportsAPI = {
 
 // Units
 export const unitsAPI = {
-    list: () => api.get('/units'),
-    create: (data) => api.post('/units', data)
+    list: (params) => api.get('/units', { params }),
+    create: (data) => api.post('/units', data),
+    quickCreate: (data) => api.post('/units/quick-create', data),
+    seed: () => api.post('/units/seed'),
+    update: (id, data) => api.put(`/units/${id}`, data),
+    delete: (id) => api.delete(`/units/${id}`)
 }
 
 // Users
@@ -176,6 +186,47 @@ export const quotationsAPI = {
     get: (id) => api.get(`/quotations/${id}`),
     create: (data) => api.post('/quotations', data),
     updateStatus: (id, status) => api.patch(`/quotations/${id}/status`, { status })
+}
+
+// Dashboard
+export const dashboardAPI = {
+    recentActivity: () => api.get('/dashboard/recent-activity'),
+}
+
+// Audit Logs
+export const auditLogsAPI = {
+    list: (params) => api.get('/audit-logs', { params }),
+    meta: () => api.get('/audit-logs/meta'),
+}
+
+// Onboarding
+export const onboardingAPI = {
+    status: () => api.get('/onboarding/status'),
+    updateStep: (step) => api.patch('/onboarding/step', { step }),
+    complete: () => api.patch('/onboarding/complete'),
+}
+
+// Settings
+export const settingsAPI = {
+    getCompanyInfo: () => api.get('/settings/company-info'),
+    updateCompanyInfo: (data) => api.put('/settings/company-info', data),
+}
+
+// Payments
+export const paymentsAPI = {
+    customer: (data) => api.post('/payments/customer', data),
+    supplier: (data) => api.post('/payments/supplier', data),
+}
+
+// Transfers
+export const transfersAPI = {
+    bank: (data) => api.post('/transfers/bank', data),
+}
+
+// Accounts (additional methods)
+export const accountsAPIExtended = {
+    ...accountsAPI,
+    postOpeningBalances: () => api.post('/accounts/opening-balances'),
 }
 
 export default api

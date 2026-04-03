@@ -1,9 +1,10 @@
 const { AppError } = require('../middleware/errorHandler');
 
 class ExpenseService {
-    constructor(db, ledgerService) {
+    constructor(db, ledgerService, tenantId) {
         this.db = db;
         this.ledgerService = ledgerService;
+        this.tenantId = tenantId;
     }
 
     /**
@@ -48,7 +49,8 @@ class ExpenseService {
                 reference_number,
                 status: 'paid',
                 notes,
-                created_by: userId
+                created_by: userId,
+                tenant_id: this.tenantId
             }).returning('*');
 
             // 4. ACCOUNTING: Journal & Ledger Entries
@@ -88,11 +90,11 @@ class ExpenseService {
      * Generate next expense number
      */
     async generateExpenseNumber(trx) {
-        const sequence = await trx('sequences').where('name', 'expense').forUpdate().first();
+        const sequence = await trx('sequences').where({ name: 'expense', tenant_id: this.tenantId }).forUpdate().first();
         if (!sequence) throw new AppError('Expense sequence not found', 500);
 
         const nextVal = sequence.current_value + 1;
-        await trx('sequences').where('name', 'expense').update({ current_value: nextVal });
+        await trx('sequences').where({ name: 'expense', tenant_id: this.tenantId }).update({ current_value: nextVal });
 
         return `${sequence.prefix}${nextVal.toString().padStart(sequence.pad_length || 6, '0')}`;
     }
@@ -121,13 +123,14 @@ class ExpenseService {
         let query = this.db('expenses as e')
             .leftJoin('expense_categories as ec', 'e.category_id', 'ec.id')
             .select('e.*', 'ec.name as category_name')
-            .where('e.is_deleted', false);
+            .where('e.is_deleted', false)
+            .where('e.tenant_id', this.tenantId);
 
         if (from_date) query = query.where('e.expense_date', '>=', from_date);
         if (to_date) query = query.where('e.expense_date', '<=', to_date);
         if (category_id) query = query.where('e.category_id', category_id);
 
-        const countQuery = this.db('expenses').where('is_deleted', false);
+        const countQuery = this.db('expenses').where('is_deleted', false).where('tenant_id', this.tenantId);
         if (from_date) countQuery.where('expense_date', '>=', from_date);
         if (to_date) countQuery.where('expense_date', '<=', to_date);
         if (category_id) countQuery.where('category_id', category_id);

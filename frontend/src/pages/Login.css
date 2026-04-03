@@ -1,56 +1,55 @@
 /* ─── Login ─── */
 .login-container {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, var(--color-bg) 0%, #121d2b 100%);
-    padding: var(--space-3);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  padding: var(--space-3);
 }
 
 .login-card {
-    width: 100%;
-    max-width: 400px;
-    background: var(--color-panel);
-    border: 1px solid var(--border-surface);
-    border-radius: var(--radius-md);
-    padding: var(--space-5);
-    box-shadow: var(--elevation-1);
+  width: 100%;
+  max-width: 400px;
+  background: var(--color-panel);
+  border: 1px solid var(--border-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  box-shadow: var(--elevation-2);
 }
 
 .login-header {
-    text-align: center;
-    margin-bottom: var(--space-5);
+  text-align: center;
+  margin-bottom: var(--space-5);
 }
 
 .login-logo {
-    font-size: 3rem;
-    font-weight: 800;
-    background: linear-gradient(135deg, var(--color-accent) 0%, #a855f7 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--color-accent);
+  letter-spacing: -0.02em;
 }
 
 .login-subtitle {
-    color: var(--color-muted);
-    margin-top: var(--space-2);
+  color: var(--color-muted);
+  margin-top: var(--space-2);
+  font-size: 0.875rem;
 }
 
 .login-form {
-    margin-bottom: var(--space-4);
+  margin-bottom: var(--space-4);
 }
 
 .login-btn {
-    width: 100%;
-    padding: var(--space-2);
-    font-size: 1rem;
-    margin-top: var(--space-3);
-    min-height: 48px;
+  width: 100%;
+  padding: var(--space-2);
+  font-size: 1rem;
+  margin-top: var(--space-3);
+  min-height: 48px;
 }
 
 .login-footer {
-    text-align: center;
-    font-size: 0.75rem;
-    color: var(--color-muted);
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--color-hint);
 }

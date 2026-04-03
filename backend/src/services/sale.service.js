@@ -3,10 +3,11 @@ const StockService = require('./stock.service');
 const LedgerService = require('./ledger.service');
 
 class SaleService {
-    constructor(db) {
+    constructor(db, tenantId) {
         this.db = db;
-        this.stockService = new StockService(db);
-        this.ledgerService = new LedgerService(db);
+        this.tenantId = tenantId;
+        this.stockService = new StockService(db, tenantId);
+        this.ledgerService = new LedgerService(db, tenantId);
     }
 
     /**
@@ -121,14 +122,16 @@ class SaleService {
                         return_to_customer: returnToCustomer,
                         status,
                         notes,
-                        created_by: userId
+                        created_by: userId,
+                        tenant_id: this.tenantId
                     }).returning('*');
 
                     // 5. Create Sale Items
                     for (const item of processedItems) {
                         await trx('sale_items').insert({
                             sale_id: sale.id,
-                            ...item
+                            ...item,
+                            tenant_id: this.tenantId
                         });
                     }
 
@@ -193,7 +196,7 @@ class SaleService {
                         const maxNum = maxResult.rows[0].max_num;
                         // Update sequence to max + 1 to force next attempts to be safe (or logic in generateInvoiceNumber will take care)
                         // Actually generateInvoiceNumber takes current_value + 1. So we set current_value = maxNum
-                        await this.db('sequences').where('name', 'invoice').update({ current_value: maxNum });
+                        await this.db('sequences').where({ name: 'invoice', tenant_id: this.tenantId }).update({ current_value: maxNum });
                     } catch (syncError) {
                         console.error('Failed to sync sequence during retry:', syncError);
                     }
@@ -211,7 +214,7 @@ class SaleService {
      * Auto-syncs with actual max value in sales table to ensure sequential numbering
      */
     async generateInvoiceNumber(trx) {
-        const sequence = await trx('sequences').where('name', 'invoice').forUpdate().first();
+        const sequence = await trx('sequences').where({ name: 'invoice', tenant_id: this.tenantId }).forUpdate().first();
         if (!sequence) throw new AppError('Invoice sequence not found', 500);
 
         // Get actual max invoice number from sales table to stay in sync
@@ -226,7 +229,7 @@ class SaleService {
         const baseValue = Math.max(sequence.current_value, maxInTable);
         const nextVal = baseValue + 1;
 
-        await trx('sequences').where('name', 'invoice').update({ current_value: nextVal });
+        await trx('sequences').where({ name: 'invoice', tenant_id: this.tenantId }).update({ current_value: nextVal });
 
         return `${prefix}${nextVal.toString().padStart(sequence.pad_length || 6, '0')}`;
     }
@@ -235,14 +238,11 @@ class SaleService {
      * Get system accounts needed for sales
      */
     async getRequiredAccounts(trx) {
-        const codes = ['1001', '1002', '1004', '1201', '2001', '4001', '5001'];
-        // Generic lookup for others or use specific system flags
-        const accounts = await trx('accounts').whereIn('code', codes).select('id', 'code');
+        const codes = ['1001', '1002', '1004', '1201', '2001', '2002', '4001', '4002', '5001'];
+        const accounts = await trx('accounts').whereIn('code', codes).where('tenant_id', this.tenantId).select('id', 'code');
 
         const map = accounts.reduce((acc, a) => ({ ...acc, [a.code]: a.id }), {});
 
-        // Find Tax and Discount accounts (usually expense/liability)
-        // For now, mapping to COGS/Expense if not found or using default codes if I created them
         return {
             cash: map['1001'],
             bank: map['1002'],
@@ -250,8 +250,8 @@ class SaleService {
             receivables: map['1201'],
             sales: map['4001'],
             cogs: map['5001'],
-            tax_payable: map['2001'], // Use payables as simple tax proxy for now or create specific
-            discount_allowed: map['5001'] // Proxy
+            tax_payable: map['2002'],           // Tax Payable (2002) — separate from Supplier Payables
+            discount_allowed: map['4002'],        // Sales Discount (4002) — contra-revenue account
         };
     }
 
@@ -285,14 +285,16 @@ class SaleService {
             .leftJoin('customers as c', 's.customer_id', 'c.id')
             .leftJoin('users as u', 's.created_by', 'u.id')
             .select('s.*', 'c.name as customer_name', 'c.phone_number as customer_phone', 'u.full_name as created_by_name')
-            .where('s.is_deleted', false);
+            .where('s.is_deleted', false)
+            .where('s.tenant_id', this.tenantId);
 
         query = buildQuery(query);
 
         // Count Query
         let countQuery = this.db('sales as s')
             .leftJoin('customers as c', 's.customer_id', 'c.id')
-            .where('s.is_deleted', false);
+            .where('s.is_deleted', false)
+            .where('s.tenant_id', this.tenantId);
 
         countQuery = buildQuery(countQuery);
 
@@ -301,7 +303,8 @@ class SaleService {
         // Aggregates Query (Reusing filters)
         let aggregatesQuery = this.db('sales as s')
             .leftJoin('customers as c', 's.customer_id', 'c.id')
-            .where('s.is_deleted', false);
+            .where('s.is_deleted', false)
+            .where('s.tenant_id', this.tenantId);
 
         aggregatesQuery = buildQuery(aggregatesQuery);
 

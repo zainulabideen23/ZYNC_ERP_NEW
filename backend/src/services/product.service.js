@@ -1,8 +1,9 @@
 const { AppError } = require('../middleware/errorHandler');
 
 class ProductService {
-    constructor(db) {
+    constructor(db, tenantId) {
         this.db = db;
+        this.tenantId = tenantId;
     }
 
     /**
@@ -23,13 +24,16 @@ class ProductService {
         let query = this.db('products as p')
             .leftJoin('categories as c', 'p.category_id', 'c.id')
             .leftJoin('units as u', 'p.unit_id', 'u.id')
+            .leftJoin('brands as b', 'p.brand_id', 'b.id')
             .select(
                 'p.*',
                 'c.name as category_name',
                 'u.name as unit_name',
-                'u.abbreviation as unit_abbr'
+                'u.abbreviation as unit_abbr',
+                'b.name as brand_name'
             )
-            .where('p.is_deleted', is_deleted);
+            .where('p.is_deleted', is_deleted)
+            .where('p.tenant_id', this.tenantId);
 
         if (active_only) {
             query = query.where('p.is_active', true);
@@ -48,7 +52,7 @@ class ProductService {
             query = query.where('p.category_id', category_id);
         }
 
-        const totalQuery = this.db('products').where('is_deleted', is_deleted);
+        const totalQuery = this.db('products').where('is_deleted', is_deleted).where('tenant_id', this.tenantId);
         if (active_only) totalQuery.where('is_active', true);
         const [{ count }] = await totalQuery.count();
 
@@ -75,13 +79,16 @@ class ProductService {
         const product = await this.db('products as p')
             .leftJoin('categories as c', 'p.category_id', 'c.id')
             .leftJoin('units as u', 'p.unit_id', 'u.id')
+            .leftJoin('brands as b', 'p.brand_id', 'b.id')
             .select(
                 'p.*',
                 'c.name as category_name',
-                'u.name as unit_name'
+                'u.name as unit_name',
+                'b.name as brand_name'
             )
             .where('p.id', id)
             .where('p.is_deleted', false)
+            .where('p.tenant_id', this.tenantId)
             .first();
 
         if (!product) {
@@ -96,7 +103,7 @@ class ProductService {
      */
     async create(data, userId) {
         const {
-            code, barcode, name, description, category_id, unit_id,
+            code, barcode, name, description, category_id, unit_id, brand_id,
             cost_price, retail_price, wholesale_price, tax_rate,
             min_stock_level, track_stock, weight, dimensions,
             opening_stock = 0
@@ -115,6 +122,7 @@ class ProductService {
                 description,
                 category_id,
                 unit_id,
+                brand_id: brand_id || null,
                 cost_price,
                 retail_price,
                 wholesale_price: wholesale_price || null,
@@ -124,7 +132,8 @@ class ProductService {
                 weight: weight || null,
                 dimensions: dimensions || null,
                 created_by: userId,
-                current_stock: 0 // Will be updated by movements
+                current_stock: 0,
+                tenant_id: this.tenantId
             }).returning('*');
 
             // Handle Opening Stock
@@ -137,7 +146,8 @@ class ProductService {
                     unit_cost: cost_price,
                     remaining_qty: opening_stock,
                     created_by: userId,
-                    notes: 'Opening Stock'
+                    notes: 'Opening Stock',
+                    tenant_id: this.tenantId
                 });
 
                 // Update current_stock in products table
@@ -157,7 +167,7 @@ class ProductService {
      */
     async update(id, data, userId) {
         const {
-            code, barcode, name, description, category_id, unit_id,
+            code, barcode, name, description, category_id, unit_id, brand_id,
             cost_price, retail_price, wholesale_price, tax_rate,
             min_stock_level, track_stock, is_active, weight, dimensions
         } = data;
@@ -200,6 +210,7 @@ class ProductService {
         if (description !== undefined) updateData.description = description || null;
         if (category_id !== undefined) updateData.category_id = category_id;
         if (unit_id !== undefined) updateData.unit_id = unit_id;
+        if (brand_id !== undefined) updateData.brand_id = brand_id || null;
         if (cost_price !== undefined) updateData.cost_price = parsedCostPrice;
         if (retail_price !== undefined) updateData.retail_price = parsedRetailPrice;
         if (wholesale_price !== undefined) updateData.wholesale_price = parsedWholesalePrice;
@@ -211,7 +222,7 @@ class ProductService {
         if (dimensions !== undefined) updateData.dimensions = dimensions || null;
 
         const [product] = await this.db('products')
-            .where({ id, is_deleted: false })
+            .where({ id, is_deleted: false, tenant_id: this.tenantId })
             .update(updateData)
             .returning('*');
 
@@ -227,7 +238,7 @@ class ProductService {
      */
     async delete(id, userId) {
         const [product] = await this.db('products')
-            .where({ id, is_deleted: false })
+            .where({ id, is_deleted: false, tenant_id: this.tenantId })
             .update({
                 is_deleted: true,
                 deleted_at: new Date(),

@@ -7,12 +7,14 @@ export const useAuthStore = create(
             user: null,
             token: null,
             isAuthenticated: false,
+            tenant: null,
 
-            login: (userData, token) => {
+            login: (userData, token, tenant = null) => {
                 set({
                     user: userData,
                     token: token,
-                    isAuthenticated: true
+                    isAuthenticated: true,
+                    tenant: tenant
                 })
             },
 
@@ -20,9 +22,18 @@ export const useAuthStore = create(
                 set({
                     user: null,
                     token: null,
-                    isAuthenticated: false
+                    isAuthenticated: false,
+                    tenant: null
                 })
             },
+
+            markOnboarded: () => set((state) => ({
+                tenant: { ...state.tenant, is_onboarded: true, onboarding_step: 5 }
+            })),
+
+            updateOnboardingStep: (step) => set((state) => ({
+                tenant: { ...state.tenant, onboarding_step: step }
+            })),
 
             getToken: () => get().token,
 
@@ -35,7 +46,7 @@ export const useAuthStore = create(
         }),
         {
             name: 'zync-auth',
-            partialize: (state) => ({ user: state.user, token: state.token, isAuthenticated: state.isAuthenticated })
+            partialize: (state) => ({ user: state.user, token: state.token, isAuthenticated: state.isAuthenticated, tenant: state.tenant })
         }
     )
 )

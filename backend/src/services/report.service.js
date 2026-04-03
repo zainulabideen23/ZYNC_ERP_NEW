@@ -1,8 +1,9 @@
 const { AppError } = require('../middleware/errorHandler');
 
 class ReportService {
-    constructor(db) {
+    constructor(db, tenantId) {
         this.db = db;
+        this.tenantId = tenantId;
     }
 
     /**
@@ -24,6 +25,7 @@ class ReportService {
         const todaySales = await this.db('sales')
             .whereBetween('sale_date', [todayStart, todayEnd])
             .where('is_deleted', false)
+            .where('tenant_id', this.tenantId)
             .select(
                 this.db.raw('COUNT(*) as count'),
                 this.db.raw('COALESCE(SUM(total_amount), 0) as total'),
@@ -35,6 +37,7 @@ class ReportService {
         const lowStock = await this.db('products')
             .where('is_deleted', false)
             .where('track_stock', true)
+            .where('tenant_id', this.tenantId)
             .whereRaw('current_stock <= min_stock_level')
             .count('* as count')
             .first();
@@ -42,11 +45,13 @@ class ReportService {
         // 3. Receivables & Payables
         const receivables = await this.db('customers')
             .where('is_deleted', false)
+            .where('tenant_id', this.tenantId)
             .select(this.db.raw('COALESCE(SUM(current_balance), 0) as total'))
             .first();
 
         const payables = await this.db('suppliers')
             .where('is_deleted', false)
+            .where('tenant_id', this.tenantId)
             .select(this.db.raw('COALESCE(SUM(current_balance), 0) as total'))
             .first();
 
@@ -58,6 +63,7 @@ class ReportService {
         const salesTrend = await this.db('sales')
             .where('sale_date', '>=', startDate)
             .where('is_deleted', false)
+            .where('tenant_id', this.tenantId)
             .select(this.db.raw('DATE(sale_date) as sale_date'), this.db.raw('SUM(total_amount) as total'))
             .groupByRaw('DATE(sale_date)')
             .orderBy('sale_date', 'asc');
@@ -79,6 +85,7 @@ class ReportService {
             .leftJoin('customers as c', 's.customer_id', 'c.id')
             .select('s.id', 's.invoice_number as ref', 'c.name as party_name', 's.total_amount as amount', 's.created_at', this.db.raw("'sale' as type"))
             .where('s.is_deleted', false)
+            .where('s.tenant_id', this.tenantId)
             .orderBy('s.created_at', 'desc')
             .limit(5);
 
@@ -86,6 +93,7 @@ class ReportService {
             .leftJoin('suppliers as s_supp', 'p.supplier_id', 's_supp.id')
             .select('p.id', 'p.bill_number as ref', 's_supp.name as party_name', 'p.total_amount as amount', 'p.created_at', this.db.raw("'purchase' as type"))
             .where('p.is_deleted', false)
+            .where('p.tenant_id', this.tenantId)
             .orderBy('p.created_at', 'desc')
             .limit(5);
 
@@ -97,6 +105,7 @@ class ReportService {
         const purchaseTrend = await this.db('purchases')
             .where('purchase_date', '>=', startDate)
             .where('is_deleted', false)
+            .where('tenant_id', this.tenantId)
             .select(this.db.raw('DATE(purchase_date) as purchase_date'), this.db.raw('SUM(total_amount) as total'))
             .groupByRaw('DATE(purchase_date)')
             .orderBy('purchase_date', 'asc');
@@ -125,6 +134,7 @@ class ReportService {
             .where('sale_date', '>=', lastMonthStart)
             .where('sale_date', '<=', lastMonthEnd)
             .where('is_deleted', false)
+            .where('tenant_id', this.tenantId)
             .select(this.db.raw('COALESCE(SUM(total_amount), 0) as total'))
             .first();
 
@@ -132,6 +142,7 @@ class ReportService {
         const thisMonthSalesRow = await this.db('sales')
             .where('sale_date', '>=', monthStart)
             .where('is_deleted', false)
+            .where('tenant_id', this.tenantId)
             .select(this.db.raw('COALESCE(SUM(total_amount), 0) as total'))
             .first();
 
@@ -141,6 +152,7 @@ class ReportService {
             .join('products as p', 'si.product_id', 'p.id')
             .where('s.is_deleted', false)
             .where('s.sale_date', '>=', monthStart)
+            .where('s.tenant_id', this.tenantId)
             .select(
                 'p.name',
                 this.db.raw('SUM(si.quantity) as qty_sold'),
@@ -155,6 +167,7 @@ class ReportService {
             .leftJoin('expense_categories as ec', 'e.category_id', 'ec.id')
             .where('e.is_deleted', false)
             .where('e.expense_date', '>=', monthStart)
+            .where('e.tenant_id', this.tenantId)
             .select(
                 this.db.raw("COALESCE(ec.name, 'Other') as category"),
                 this.db.raw('SUM(e.amount) as total')
@@ -166,6 +179,7 @@ class ReportService {
         const allProducts = await this.db('products')
             .where('is_deleted', false)
             .where('track_stock', true)
+            .where('tenant_id', this.tenantId)
             .select('current_stock', 'min_stock_level');
 
         let stockHealthy = 0, stockLow = 0, stockOut = 0;
@@ -181,6 +195,7 @@ class ReportService {
             .where('is_deleted', false)
             .where('amount_due', '>', 0)
             .where('status', '!=', 'completed')
+            .where('tenant_id', this.tenantId)
             .count('* as count')
             .first();
 
@@ -213,20 +228,21 @@ class ReportService {
      * Get stock report
      */
     async getStockReport(params) {
-        const { category_id, company_id, low_stock_only } = params;
+        const { category_id, brand_id, low_stock_only } = params;
 
         let query = this.db('products as p')
             .leftJoin('categories as c', 'p.category_id', 'c.id')
             .leftJoin('units as u', 'p.unit_id', 'u.id')
+            .leftJoin('brands as b', 'p.brand_id', 'b.id')
             .select(
                 'p.id', 'p.code', 'p.name', 'p.retail_price', 'p.cost_price', 'p.min_stock_level', 'p.current_stock',
-                'c.name as category', 'u.abbreviation as unit'
+                'c.name as category', 'u.abbreviation as unit', 'b.name as brand'
             )
-            .where('p.is_deleted', false);
+            .where('p.is_deleted', false)
+            .where('p.tenant_id', this.tenantId);
 
         if (category_id) query = query.where('p.category_id', category_id);
-        // products table does not have a company_id column in this schema
-        // if (company_id) query = query.where('p.company_id', company_id);
+        if (brand_id) query = query.where('p.brand_id', brand_id);
         if (low_stock_only === 'true') query = query.whereRaw('p.current_stock <= p.min_stock_level');
 
         const items = await query.orderBy('p.name');
@@ -269,6 +285,7 @@ class ReportService {
             .join('accounts as a', 'le.account_id', 'a.id')
             .join('account_groups as g', 'a.group_id', 'g.id')
             .whereIn('a.account_type', ['income', 'expense'])
+            .where('a.tenant_id', this.tenantId)
             .select(
                 'a.id', 'a.code', 'a.name', 'a.account_type', 'g.name as group_name',
                 this.db.raw('SUM(CASE WHEN le.entry_type = \'credit\' THEN le.amount ELSE 0 END) - SUM(CASE WHEN le.entry_type = \'debit\' THEN le.amount ELSE 0 END) as net_credit')

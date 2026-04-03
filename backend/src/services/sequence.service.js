@@ -1,8 +1,9 @@
 const logger = require('../utils/logger');
 
 class SequenceService {
-    constructor(db) {
+    constructor(db, tenantId) {
         this.db = db;
+        this.tenantId = tenantId;
     }
 
     /**
@@ -15,7 +16,7 @@ class SequenceService {
         // Get and lock the sequence row to prevent race conditions
         // Get and lock the sequence row to prevent race conditions
         const sequence = await query('sequences')
-            .where('name', sequenceName)
+            .where({ name: sequenceName, tenant_id: this.tenantId })
             .forUpdate()
             .first();
 
@@ -30,7 +31,7 @@ class SequenceService {
 
         // Update the sequence
         await query('sequences')
-            .where('id', sequence.id)
+            .where({ id: sequence.id, tenant_id: this.tenantId })
             .update({
                 current_value: nextValue,
                 last_reset: new Date()

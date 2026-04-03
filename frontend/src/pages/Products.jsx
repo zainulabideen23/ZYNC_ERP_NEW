@@ -1,65 +1,53 @@
 import { useState, useEffect, useMemo } from 'react'
 import { toast } from 'react-hot-toast'
-import { productsAPI, categoriesAPI, suppliersAPI, unitsAPI } from '../services/api'
+import { productsAPI, categoriesAPI, suppliersAPI, unitsAPI, brandsAPI } from '../services/api'
 import { useDataSync, DataSyncEvents } from '../utils/dataSync'
+import { useAuthStore } from '../store/auth.store'
+import { can } from '../utils/permissions'
+import UnitSelector from '../components/UnitSelector'
+import CategorySelector from '../components/CategorySelector'
+import { Package, Plus, Search, X, Edit, FileText, TrendingUp, TrendingDown, AlertTriangle, ArrowUpRight, ArrowDownRight } from 'lucide-react'
 
 function Products() {
-    const [view, setView] = useState('list') // 'list' or 'form'
+    const { user } = useAuthStore()
+    const userRole = user?.role || 'cashier'
+    const [view, setView] = useState('list')
     const [products, setProducts] = useState([])
     const [categories, setCategories] = useState([])
     const [units, setUnits] = useState([])
+    const [brands, setBrands] = useState([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
     const [editingProduct, setEditingProduct] = useState(null)
     const [submitting, setSubmitting] = useState(false)
     const [isDirty, setIsDirty] = useState(false)
 
-    // Form State
     const [formData, setFormData] = useState({
-        name: '',
-        code: '', // SKU
-        barcode: '',
-        description: '',
-        category_id: '',
-        unit_id: '',
-        cost_price: '',
-        retail_price: '',
-        wholesale_price: '',
-        tax_rate: '0',
-        min_stock_level: '0',
-        reorder_quantity: '0',
-        weight: '',
-        dimensions: '',
-        track_stock: true,
-        is_active: true,
-        opening_stock: '0'
+        name: '', code: '', barcode: '', description: '',
+        category_id: '', unit_id: '', brand_id: '',
+        cost_price: '', retail_price: '', wholesale_price: '',
+        tax_rate: '0', min_stock_level: '0', reorder_quantity: '0',
+        weight: '', dimensions: '', track_stock: true, is_active: true, opening_stock: '0'
     })
 
     const [formErrors, setFormErrors] = useState({})
 
-    useEffect(() => {
-        loadData()
-    }, [search])
-    
-    // Subscribe to data sync events to refresh stock levels when sales/purchases change
-    useDataSync(DataSyncEvents.SALE_CREATED, () => {
-        loadData()
-    })
-    
-    useDataSync(DataSyncEvents.PURCHASE_CREATED, () => {
-        loadData()
-    })
+    useEffect(() => { loadData() }, [search])
+    useDataSync(DataSyncEvents.SALE_CREATED, () => { loadData() })
+    useDataSync(DataSyncEvents.PURCHASE_CREATED, () => { loadData() })
 
     const loadData = async () => {
         try {
-            const [productsRes, categoriesRes, unitsRes] = await Promise.all([
+            const [productsRes, categoriesRes, unitsRes, brandsRes] = await Promise.all([
                 productsAPI.list({ search, limit: 100 }),
                 categoriesAPI.list(),
-                unitsAPI.list()
+                unitsAPI.list(),
+                brandsAPI.list()
             ])
             setProducts(productsRes.data || [])
             setCategories(categoriesRes.data || [])
             setUnits(unitsRes.data || [])
+            setBrands(brandsRes.data || [])
         } catch (error) {
             console.error(error)
             toast.error('Failed to load data')
@@ -76,13 +64,11 @@ function Products() {
         if (!formData.unit_id) errors.unit_id = 'Unit is required'
         if (!formData.cost_price) errors.cost_price = 'Cost price is required'
         if (!formData.retail_price) errors.retail_price = 'Retail price is required'
-
         if (formData.retail_price && formData.cost_price) {
             if (parseFloat(formData.retail_price) <= parseFloat(formData.cost_price)) {
                 errors.retail_price = 'Retail price must be higher than cost price'
             }
         }
-
         setFormErrors(errors)
         return Object.keys(errors).length === 0
     }
@@ -90,7 +76,6 @@ function Products() {
     const handleSubmit = async (e) => {
         e.preventDefault()
         setSubmitting(true)
-
         try {
             const isValid = await validateForm()
             if (!isValid) {
@@ -98,7 +83,6 @@ function Products() {
                 setSubmitting(false)
                 return
             }
-
             const dataToSave = {
                 ...formData,
                 code: formData.code ? formData.code.toUpperCase() : '',
@@ -110,7 +94,6 @@ function Products() {
                 reorder_quantity: parseInt(formData.reorder_quantity),
                 opening_stock: parseFloat(formData.opening_stock)
             }
-
             if (editingProduct) {
                 await productsAPI.update(editingProduct.id, dataToSave)
                 toast.success('Product updated successfully!')
@@ -118,11 +101,10 @@ function Products() {
                 await productsAPI.create(dataToSave)
                 toast.success('Product created successfully!')
             }
-
             setView('list')
             resetForm()
             loadData()
-            window.scrollTo(0, 0);
+            window.scrollTo(0, 0)
         } catch (error) {
             toast.error(error.message || 'Failed to save product')
         } finally {
@@ -133,7 +115,7 @@ function Products() {
     const resetForm = () => {
         setFormData({
             name: '', code: '', barcode: '', description: '',
-            category_id: '', unit_id: '', cost_price: '', retail_price: '',
+            category_id: '', unit_id: '', brand_id: '', cost_price: '', retail_price: '',
             wholesale_price: '', tax_rate: '0', min_stock_level: '0',
             reorder_quantity: '0', weight: '', dimensions: '',
             track_stock: true, is_active: true, opening_stock: '0'
@@ -146,7 +128,7 @@ function Products() {
     const openCreateView = () => {
         resetForm()
         setView('form')
-        window.scrollTo(0, 0);
+        window.scrollTo(0, 0)
     }
 
     const openEditView = (product) => {
@@ -154,7 +136,7 @@ function Products() {
         setFormData({
             ...product,
             code: product.code || '',
-            // Ensure numeric values are strings for inputs
+            brand_id: product.brand_id || '',
             cost_price: product.cost_price?.toString() || '',
             retail_price: product.retail_price?.toString() || '',
             wholesale_price: product.wholesale_price?.toString() || '',
@@ -165,10 +147,10 @@ function Products() {
             dimensions: product.dimensions || '',
             track_stock: product.track_stock,
             is_active: product.is_active,
-            opening_stock: '0' // Not editable on update
+            opening_stock: '0'
         })
         setView('form')
-        window.scrollTo(0, 0);
+        window.scrollTo(0, 0)
     }
 
     const handleCancel = () => {
@@ -188,7 +170,6 @@ function Products() {
         setIsDirty(true)
     }
 
-    // Real-time Profit Calculations
     const profitData = useMemo(() => {
         const cost = parseFloat(formData.cost_price) || 0
         const retail = parseFloat(formData.retail_price) || 0
@@ -201,83 +182,128 @@ function Products() {
         }
     }, [formData.cost_price, formData.retail_price])
 
-    if (loading && view === 'list') return <div className="page-container dark-theme">Loading...</div>
+    const formatCurrency = (value) => `Rs. ${Number(value).toLocaleString()}`
+
+    const StatusBadge = ({ isActive }) => (
+        <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: '5px',
+            padding: '4px 10px', borderRadius: '6px',
+            fontSize: '11px', fontWeight: 600, letterSpacing: '0.02em',
+            backgroundColor: isActive ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+            color: isActive ? '#10b981' : '#ef4444'
+        }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isActive ? '#10b981' : '#ef4444' }} />
+            {isActive ? 'ACTIVE' : 'INACTIVE'}
+        </span>
+    )
+
+    const MetricCard = ({ label, value, icon: Icon, color, subtext, trend }) => (
+        <div style={{
+            background: 'var(--color-panel)',
+            border: '1px solid var(--border-surface)',
+            borderRadius: '12px',
+            padding: '20px',
+            flex: 1,
+            minWidth: 0,
+            position: 'relative',
+            overflow: 'hidden',
+            transition: 'all 0.2s'
+        }}
+        onMouseEnter={e => {
+            e.currentTarget.style.borderColor = color + '40'
+            e.currentTarget.style.transform = 'translateY(-2px)'
+        }}
+        onMouseLeave={e => {
+            e.currentTarget.style.borderColor = 'var(--border-surface)'
+            e.currentTarget.style.transform = 'translateY(0)'
+        }}
+        >
+            <div style={{
+                position: 'absolute', top: '-20px', right: '-20px',
+                width: '100px', height: '100px', borderRadius: '50%',
+                background: `radial-gradient(circle, ${color}15 0%, transparent 70%)`
+            }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', position: 'relative' }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon size={16} color={color} />
+                </div>
+            </div>
+            <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-text)', marginBottom: '4px', letterSpacing: '-0.02em' }}>{value}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--color-hint)' }}>{subtext}</span>
+                {trend !== undefined && (
+                    <span style={{ fontSize: '11px', fontWeight: 500, color: trend >= 0 ? '#10b981' : '#ef4444', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                        {trend >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                        {Math.abs(trend)}%
+                    </span>
+                )}
+            </div>
+        </div>
+    )
+
+    const aggregates = useMemo(() => {
+        return products.reduce((acc, p) => {
+            acc.totalProducts += 1
+            acc.lowStock += (p.current_stock ?? 0) < p.min_stock_level ? 1 : 0
+            acc.totalValue += (p.current_stock ?? 0) * (p.retail_price || 0)
+            return acc
+        }, { totalProducts: 0, lowStock: 0, totalValue: 0 })
+    }, [products])
+
+    if (loading && view === 'list') return <div style={{ padding: '24px', background: 'var(--color-bg)', minHeight: '100vh' }}>Loading...</div>
 
     if (view === 'form') {
         return (
             <div className="product-form-page">
                 <div className="form-header">
                     <div className="header-left">
-                        <button className="btn-back" onClick={handleCancel}>← Back to List</button>
+                        <button className="btn-back" onClick={handleCancel}>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 15L7 10L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            Back to List
+                        </button>
                         <h1>{editingProduct ? 'Update Product Details' : 'Create New Product'}</h1>
                     </div>
-
                 </div>
 
                 <div className="form-container">
                     <form onSubmit={handleSubmit}>
-                        {/* SECTION 1: BASIC INFORMATION */}
                         <div className="form-section">
                             <div className="section-header">
-                                <span className="section-icon">📘</span>
+                                <span className="section-icon">
+                                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="2" stroke="#3b82f6" strokeWidth="2"/><path d="M7 10H13M10 7V13" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"/></svg>
+                                </span>
                                 <h2>Basic Information</h2>
                             </div>
                             <div className="form-grid">
                                 <div className="form-group full-width">
                                     <label>Product Name <span className="required">*</span></label>
-                                    <input
-                                        type="text"
-                                        className={formErrors.name ? 'error' : ''}
-                                        value={formData.name}
-                                        onChange={(e) => handleFormChange('name', e.target.value)}
-                                        placeholder="Enter full product name"
-                                        autoFocus
-                                    />
+                                    <input type="text" className={formErrors.name ? 'error' : ''} value={formData.name} onChange={(e) => handleFormChange('name', e.target.value)} placeholder="Enter full product name" autoFocus />
                                     {formErrors.name && <span className="error-text">{formErrors.name}</span>}
                                 </div>
                                 <div className="form-group">
                                     <label>SKU (Stock Keeping Unit) <span className="required">*</span></label>
-                                    <input
-                                        type="text"
-                                        className={`font-mono ${formErrors.code ? 'error' : ''}`}
-                                        value={formData.code}
-                                        onChange={(e) => handleFormChange('code', e.target.value.toUpperCase())}
-                                        placeholder="e.g. ELE-MSE-001"
-                                    />
+                                    <input type="text" className={`font-mono ${formErrors.code ? 'error' : ''}`} value={formData.code} onChange={(e) => handleFormChange('code', e.target.value.toUpperCase())} placeholder="e.g. ELE-MSE-001" />
                                     {formErrors.code && <span className="error-text">{formErrors.code}</span>}
                                 </div>
                                 <div className="form-group">
                                     <label>Barcode</label>
-                                    <input
-                                        type="text"
-                                        value={formData.barcode}
-                                        onChange={(e) => handleFormChange('barcode', e.target.value)}
-                                        placeholder="Scan or enter barcode"
-                                    />
+                                    <input type="text" value={formData.barcode} onChange={(e) => handleFormChange('barcode', e.target.value)} placeholder="Scan or enter barcode" />
                                 </div>
                                 <div className="form-group">
                                     <label>Category <span className="required">*</span></label>
-                                    <select
-                                        className={formErrors.category_id ? 'error' : ''}
-                                        value={formData.category_id}
-                                        onChange={(e) => handleFormChange('category_id', e.target.value)}
-                                    >
-                                        <option value="">Select a Category</option>
-                                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    <CategorySelector value={formData.category_id} onChange={(val) => handleFormChange('category_id', val)} categories={categories} onCategoriesChange={setCategories} error={formErrors.category_id} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Brand</label>
+                                    <select value={formData.brand_id} onChange={(e) => handleFormChange('brand_id', e.target.value)}>
+                                        <option value="">No Brand</option>
+                                        {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                                     </select>
-                                    {formErrors.category_id && <span className="error-text">{formErrors.category_id}</span>}
                                 </div>
                                 <div className="form-group">
                                     <label>Base Unit <span className="required">*</span></label>
-                                    <select
-                                        className={formErrors.unit_id ? 'error' : ''}
-                                        value={formData.unit_id}
-                                        onChange={(e) => handleFormChange('unit_id', e.target.value)}
-                                    >
-                                        <option value="">Select a Unit</option>
-                                        {units.map(u => <option key={u.id} value={u.id}>{u.name} ({u.abbreviation})</option>)}
-                                    </select>
-                                    {formErrors.unit_id && <span className="error-text">{formErrors.unit_id}</span>}
+                                    <UnitSelector value={formData.unit_id} onChange={(val) => handleFormChange('unit_id', val)} units={units} onUnitsChange={setUnits} error={formErrors.unit_id} />
                                 </div>
                                 <div className="form-group full-width">
                                     <label>Description (Optional)</label>
@@ -312,10 +338,11 @@ function Products() {
                             </div>
                         </div>
 
-                        {/* SECTION 2: PRICING & PROFIT */}
                         <div className="form-section">
                             <div className="section-header">
-                                <span className="section-icon">💰</span>
+                                <span className="section-icon">
+                                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2V18M2 10H18" stroke="#10b981" strokeWidth="2" strokeLinecap="round"/><circle cx="10" cy="10" r="7" stroke="#10b981" strokeWidth="2"/></svg>
+                                </span>
                                 <h2>Pricing & Profit</h2>
                             </div>
                             <div className="form-grid">
@@ -354,10 +381,11 @@ function Products() {
                             </div>
                         </div>
 
-                        {/* SECTION 3: PHYSICAL PROPERTIES */}
                         <div className="form-section">
                             <div className="section-header">
-                                <span className="section-icon">⚖️</span>
+                                <span className="section-icon">
+                                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2L3 7V18H17V7L10 2Z" stroke="#8b5cf6" strokeWidth="2" strokeLinejoin="round"/><path d="M7 18V12H13V18" stroke="#8b5cf6" strokeWidth="2"/></svg>
+                                </span>
                                 <h2>Physical Properties</h2>
                             </div>
                             <div className="form-grid">
@@ -372,10 +400,11 @@ function Products() {
                             </div>
                         </div>
 
-                        {/* SECTION 4: INVENTORY CONTROL */}
                         <div className="form-section last-section">
                             <div className="section-header">
-                                <span className="section-icon">📉</span>
+                                <span className="section-icon">
+                                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 10H17M3 5H17M3 15H17" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round"/><rect x="2" y="2" width="16" height="16" rx="2" stroke="#f59e0b" strokeWidth="2"/></svg>
+                                </span>
                                 <h2>Inventory Control</h2>
                             </div>
                             <div className="form-grid">
@@ -401,285 +430,193 @@ function Products() {
                 <div className="form-footer-sticky">
                     <div className="footer-content">
                         <button type="button" className="btn btn-ghost" onClick={handleCancel} disabled={submitting}>Cancel</button>
-                        <button
-                            type="submit"
-                            className="btn btn-primary"
-                            onClick={handleSubmit}
-                            disabled={submitting || profitData.isInvalid}
-                            title={profitData.isInvalid ? "Fix pricing to create product" : ""}
-                        >
-                            {submitting ? (
-                                <>
-                                    <span className="spinner"></span> {editingProduct ? 'Updating...' : 'Creating...'}
-                                </>
-                            ) : editingProduct ? 'Update Product' : 'Create Product'}
+                        <button type="submit" className="btn btn-primary" onClick={handleSubmit} disabled={submitting || profitData.isInvalid} title={profitData.isInvalid ? "Fix pricing to create product" : ""}>
+                            {submitting ? <><span className="spinner"></span> {editingProduct ? 'Updating...' : 'Creating...'}</> : editingProduct ? 'Update Product' : 'Create Product'}
                         </button>
                     </div>
                 </div>
 
                 <style>{`
-                    .product-form-page {
-                        background: #0f172a;
-                        min-height: 100vh;
-                        color: #e2e8f0;
-                        display: flex;
-                        flex-direction: column;
-                    }
-                    .form-header {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        padding: 1.5rem 2.5rem;
-                        background: #1e293b;
-                        border-bottom: 2px solid #334155;
-                        position: sticky;
-                        top: 0;
-                        z-index: 100;
-                        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-                    }
+                    .product-form-page { background: var(--color-bg); min-height: 100vh; color: var(--color-text); }
+                    .form-header { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 2.5rem; background: var(--color-panel); border-bottom: 2px solid var(--border-surface); position: sticky; top: 0; z-index: 100; }
                     .header-left { display: flex; align-items: center; gap: 1.5rem; }
-                    .btn-back { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 0.9rem; font-weight: 500; }
-                    .btn-back:hover { color: #fff; }
-                    .form-header h1 { font-size: 1.25rem; margin: 0; font-weight: 700; color: #fff; }
-
-                    .form-container {
-                        max-width: 900px;
-                        margin: 2rem auto;
-                        width: 100%;
-                        padding: 0 1.5rem 10rem 1.5rem;
-                    }
-
-                    .form-section {
-                        background: #1e293b;
-                        border: 1px solid #334155;
-                        border-radius: 12px;
-                        padding: 2.5rem;
-                        margin-bottom: 4rem;
-                    }
+                    .btn-back { background: none; border: none; color: var(--color-muted); cursor: pointer; font-size: 0.9rem; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+                    .btn-back:hover { color: var(--color-text); }
+                    .form-header h1 { font-size: 1.25rem; margin: 0; font-weight: 700; color: var(--color-text); }
+                    .form-container { max-width: 900px; margin: 2rem auto; width: 100%; padding: 0 1.5rem 10rem 1.5rem; }
+                    .form-section { background: var(--color-panel); border: 1px solid var(--border-surface); border-radius: 12px; padding: 2.5rem; margin-bottom: 2rem; }
                     .last-section { margin-bottom: 2rem; }
-                    
-                    .section-header { 
-                        display: flex; 
-                        align-items: center; 
-                        gap: 1rem; 
-                        margin-bottom: 2.5rem; 
-                        border-bottom: 1px solid #334155; 
-                        padding-bottom: 1.5rem; 
-                        margin-top: 0.5rem; 
-                    }
-                    .section-icon { font-size: 1.5rem; }
-                    .section-header h2 { font-size: 1.4rem; font-weight: 600; margin: 0; color: #3b82f6; }
-
-                    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
-                    .form-group { display: flex; flex-direction: column; gap: 0.75rem; }
+                    .section-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid var(--border-surface); padding-bottom: 1rem; }
+                    .section-header h2 { font-size: 1rem; font-weight: 600; margin: 0; color: var(--blue); }
+                    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+                    .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
                     .form-group.full-width { grid-column: 1 / -1; }
-                    
-                    label { font-size: 0.9rem; font-weight: 600; color: #94a3b8; }
-                    .required { color: #f43f5e; margin-left: 2px; }
-
-                    input, select, textarea {
-                        background: #0f172a;
-                        border: 1px solid #475569;
-                        border-radius: 8px;
-                        padding: 0.85rem 1.15rem;
-                        color: #fff;
-                        font-size: 0.95rem;
-                        transition: all 0.2s;
-                        width: 100%;
-                    }
-                    input:focus, select:focus, textarea:focus {
-                        border-color: #3b82f6;
-                        outline: none;
-                        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
-                    }
-                    input.error, select.error { border-color: #f43f5e; background: rgba(244, 63, 94, 0.05); }
-                    .error-text { color: #f43f5e; font-size: 0.75rem; font-weight: 500; }
-                    .warning-text { color: #f43f5e; font-size: 0.75rem; font-weight: 600; font-style: italic; margin-top: 2px; }
-
-                    .radio-group { display: flex; gap: 3rem; padding: 0.75rem 0; }
-                    .radio-label { display: flex; align-items: center; gap: 0.75rem; cursor: pointer; color: #e2e8f0; font-size: 1rem; }
-                    .radio-label input { width: 1.25rem; height: 1.25rem; margin: 0; }
-
-                    .profit-summary-card {
-                        background: #1e293b;
-                        border: 1px solid #334155;
-                        border-radius: 12px;
-                        margin-top: 2.5rem;
-                        display: flex;
-                        padding: 2rem;
-                        gap: 2rem;
-                        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-                        background-image: linear-gradient(to right, #1e293b, #2a384e);
-                    }
+                    label { font-size: 0.85rem; font-weight: 500; color: var(--color-muted); }
+                    .required { color: #ef4444; margin-left: 2px; }
+                    input, select, textarea { background: var(--color-panel-2); border: 1px solid var(--border-surface); border-radius: 8px; padding: 0.75rem 1rem; color: var(--color-text); font-size: 0.9rem; transition: all 0.2s; width: 100%; }
+                    input:focus, select:focus, textarea:focus { border-color: var(--blue); outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+                    input.error, select.error { border-color: #ef4444; }
+                    .error-text { color: #ef4444; font-size: 0.75rem; font-weight: 500; }
+                    .warning-text { color: #ef4444; font-size: 0.75rem; font-weight: 600; font-style: italic; margin-top: 4px; }
+                    .radio-group { display: flex; gap: 2rem; padding: 0.5rem 0; }
+                    .radio-label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: var(--color-text); font-size: 0.9rem; }
+                    .radio-label input { width: 1rem; height: 1rem; margin: 0; }
+                    .profit-summary-card { background: var(--color-panel-2); border: 1px solid var(--border-surface); border-radius: 12px; margin-top: 2rem; display: flex; padding: 1.5rem; gap: 2rem; }
                     .profit-stat { display: flex; flex-direction: column; flex: 1; }
-                    .stat-label { font-size: 0.9rem; color: #cbd5e1; margin-bottom: 0.75rem; font-weight: 500; }
-                    .stat-value { font-size: 1.75rem; font-weight: 800; color: #fff; }
+                    .stat-label { font-size: 0.85rem; color: var(--color-muted); margin-bottom: 0.5rem; }
+                    .stat-value { font-size: 1.5rem; font-weight: 700; color: var(--color-text); }
                     .stat-value.success { color: #10b981; }
                     .stat-value.danger { color: #ef4444; }
-                    .border-l { border-left: 1px solid #334155; padding-left: 3rem; }
-
-                    .input-group-merged { display: flex; align-items: stretch; }
-                    .input-group-merged input { border-top-right-radius: 0; border-bottom-right-radius: 0; }
-                    .input-group-merged select { width: 110px; border-left: none; border-top-left-radius: 0; border-bottom-left-radius: 0; background: #0f172a; }
-
-                    .stock-note { font-size: 0.85rem; color: #94a3b8; margin-top: 1.5rem; font-style: italic; }
-
-                    .form-footer-sticky {
-                        position: fixed;
-                        bottom: 0;
-                        left: 0;
-                        right: 0;
-                        background: #1e293b;
-                        border-top: 2px solid #334155;
-                        padding: 1.5rem 2.5rem;
-                        box-shadow: 0 -4px 10px rgba(0,0,0,0.3);
-                        z-index: 100;
-                    }
-                    .footer-content { max-width: 900px; margin: 0 auto; display: flex; justify-content: flex-end; gap: 1.5rem; }
-
-                    .btn {
-                        padding: 1rem 3rem;
-                        border-radius: 10px;
-                        font-weight: 700;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                        border: none;
-                        display: flex;
-                        align-items: center;
-                        gap: 10px;
-                        font-size: 1rem;
-                    }
-                    .btn-primary { background: #3b82f6; color: #fff; }
-                    .btn-primary:hover:not(:disabled) { background: #2563eb; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2); }
-                    .btn-primary:disabled { background: #475569; cursor: not-allowed; opacity: 0.6; }
-                    .btn-ghost { background: transparent; color: #94a3b8; border: 1px solid #475569; }
-                    .btn-ghost:hover { background: #334155; color: #fff; }
-
-                    .spinner {
-                        width: 18px;
-                        height: 18px;
-                        border: 3px solid rgba(255,255,255,0.3);
-                        border-top-color: #fff;
-                        border-radius: 50%;
-                        animation: spin 0.8s linear infinite;
-                    }
+                    .border-l { border-left: 1px solid var(--border-surface); padding-left: 2rem; }
+                    .form-footer-sticky { position: fixed; bottom: 0; left: 0; right: 0; background: var(--color-panel); border-top: 1px solid var(--border-surface); padding: 1rem 2.5rem; z-index: 100; }
+                    .footer-content { max-width: 900px; margin: 0 auto; display: flex; justify-content: flex-end; gap: 1rem; }
+                    .btn { padding: 0.75rem 2rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+                    .btn-primary { background: var(--blue); color: #fff; }
+                    .btn-primary:hover:not(:disabled) { background: #2563eb; }
+                    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+                    .btn-ghost { background: transparent; color: var(--color-muted); border: 1px solid var(--border-surface); }
+                    .btn-ghost:hover { background: var(--color-panel-2); color: var(--color-text); }
+                    .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
                     @keyframes spin { to { transform: rotate(360deg); } }
-
-                    @media (max-width: 768px) {
-                        .form-grid { grid-template-columns: 1fr; }
-                        .profit-summary-card { flex-direction: column; gap: 2rem; }
-                        .border-l { border-left: none; padding-left: 0; border-top: 1px solid #334155; padding-top: 2rem; }
-                        .form-header { padding: 1.25rem; }
-                        .form-footer-sticky { padding: 1.25rem; }
-                    }
+                    @media (max-width: 768px) { .form-grid { grid-template-columns: 1fr; } .profit-summary-card { flex-direction: column; gap: 1rem; } .border-l { border-left: none; padding-left: 0; border-top: 1px solid var(--border-surface); padding-top: 1rem; } }
                 `}</style>
             </div>
         )
     }
 
     return (
-        <div className="page-container dark-theme">
-            <div className="page-header">
-                <h1 className="page-title">📦 Product Management</h1>
-                <button className="btn btn-primary" onClick={openCreateView}>
-                    + Create New Product
+        <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto', background: 'var(--color-bg)', minHeight: '100vh' }}>
+            {/* Page Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.12)', border: '1px solid rgba(59, 130, 246, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Package size={20} color="var(--blue)" />
+                    </div>
+                    <div>
+                        <h1 style={{ fontSize: '22px', fontWeight: 600, color: 'var(--color-text)', margin: 0, letterSpacing: '-0.01em' }}>Products</h1>
+                        <p style={{ fontSize: '13px', color: 'var(--color-hint)', marginTop: '2px' }}>Manage your product catalog and inventory</p>
+                    </div>
+                </div>
+                <button onClick={openCreateView} style={{ height: '38px', padding: '0 16px', borderRadius: '8px', border: 'none', background: 'var(--blue)', color: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)' }}>
+                    <Plus size={16} />
+                    Add Product
                 </button>
             </div>
 
-            <div className="card search-card">
-                <input
-                    type="text"
-                    className="form-input"
-                    placeholder="🔍 Search by name, SKU, or barcode..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    style={{ maxWidth: '400px' }}
-                />
+            {/* Metrics Row */}
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
+                <MetricCard label="Total Products" value={aggregates.totalProducts} icon={Package} color="#3b82f6" subtext="In catalog" />
+                <MetricCard label="Inventory Value" value={formatCurrency(aggregates.totalValue)} icon={TrendingUp} color="#10b981" subtext="At retail" />
+                <MetricCard label="Low Stock" value={aggregates.lowStock} icon={AlertTriangle} color="#f59e0b" subtext="Need reorder" />
             </div>
 
-            <div className="card table-card">
-                <div className="table-container">
-                    <table className="table">
-                        <thead>
-                            <tr>
-                                <th>SKU</th>
-                                <th>Product Name</th>
-                                <th>Category</th>
-                                <th style={{ textAlign: 'right' }}>Cost</th>
-                                <th style={{ textAlign: 'right' }}>Retail</th>
-                                <th style={{ textAlign: 'right' }}>Margin</th>
-                                <th>Status</th>
-                                <th style={{ textAlign: 'right' }}>Stock</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {products.length === 0 ? (
-                                <tr>
-                                    <td colSpan="9" style={{ textAlign: 'center', padding: 'var(--space-8)', color: '#94a3b8' }}>
-                                        No products found. Start by adding one!
-                                    </td>
-                                </tr>
-                            ) : (
-                                products.map((product) => (
-                                    <tr key={product.id}>
-                                        <td className="font-mono" style={{ fontWeight: 'bold', color: '#3b82f6' }}>{product.code}</td>
-                                        <td>
-                                            <div style={{ fontWeight: 600 }}>{product.name}</div>
-                                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{product.barcode}</div>
-                                        </td>
-                                        <td>{product.category_name || '-'}</td>
-                                        <td style={{ textAlign: 'right' }}>₹ {Number(product.cost_price).toLocaleString()}</td>
-                                        <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#fff' }}>
-                                            ₹ {Number(product.retail_price).toLocaleString()}
-                                        </td>
-                                        <td style={{ textAlign: 'right' }}>
-                                            <span style={{
-                                                color: ((product.retail_price - product.cost_price) / product.cost_price * 100) >= 0 ? '#10b981' : '#ef4444',
-                                                fontWeight: 'bold'
-                                            }}>
-                                                {((product.retail_price - product.cost_price) / product.cost_price * 100).toFixed(1)}%
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span className={`badge badge-${product.is_active ? 'success' : 'danger'}`}>
-                                                {product.is_active ? 'ACTIVE' : 'INACTIVE'}
-                                            </span>
-                                        </td>
-                                        <td style={{ textAlign: 'right' }}>
-                                            <span className={product.current_stock < product.min_stock_level ? 'text-danger font-bold' : ''}>
-                                                {product.current_stock ?? '0'} {product.unit_abbr}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <button className="btn-edit" onClick={() => openEditView(product)}>Edit</button>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+            {/* Search */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--color-panel)', borderRadius: '12px', padding: '14px 16px', marginBottom: '16px', border: '1px solid var(--border-surface)' }}>
+                <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
+                    <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-hint)' }} />
+                    <input type="text" placeholder="Search by name, SKU, or barcode..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', height: '36px', background: 'var(--color-panel-2)', border: '1px solid var(--border-surface)', borderRadius: '8px', paddingLeft: '36px', paddingRight: '12px', fontSize: '13px', color: 'var(--color-text)', outline: 'none' }} onFocus={e => e.target.style.borderColor = 'var(--blue)'} onBlur={e => e.target.style.borderColor = 'var(--border-surface)'} />
                 </div>
             </div>
 
-            <style>{`
-                .dark-theme { background: #0f172a; min-height: 100vh; color: #e2e8f0; }
-                .search-card { background: #1e293b; border: 1px solid #334155; margin-bottom: 24px; padding: 20px; }
-                .table-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; overflow: hidden; }
-                .table thead th { background: #334155!important; color: #94a3b8!important; font-weight: 600!important; padding: 16px!important; border: none!important; }
-                .table tbody td { padding: 16px!important; border-bottom: 1px solid #334155!important; color: #e2e8f0!important; }
-                .table tbody tr:hover { background: rgba(59, 130, 246, 0.05)!important; }
-                .btn-edit { background: none; border: 1px solid #334155; color: #3b82f6; padding: 6px 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
-                .btn-edit:hover { background: #3b82f6; color: #fff; }
-                .badge-success { background: rgba(16, 185, 129, 0.2)!important; color: #10b981!important; }
-                .badge-danger { background: rgba(239, 68, 68, 0.2)!important; color: #ef4444!important; }
-                .text-danger { color: #ef4444!important; }
-                .font-bold { font-weight: 700!important; }
-                .mb-0 { margin-bottom: 0!important; }
-                .flex { display: flex; }
-                .items-center { align-items: center; }
-                .gap-2 { gap: 0.5rem; }
-            `}</style>
+            {/* Table */}
+            <div style={{ background: 'var(--color-panel)', borderRadius: '12px', border: '1px solid var(--border-surface)', overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                        <tr style={{ background: 'var(--color-panel-2)', borderBottom: '1px solid var(--border-surface)' }}>
+                            <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SKU</th>
+                            <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Product</th>
+                            <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Category</th>
+                            {can(userRole, 'products.view_cost_price') && <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cost</th>}
+                            <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Retail</th>
+                            {can(userRole, 'products.view_cost_price') && <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Margin</th>}
+                            <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
+                            <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Stock</th>
+                            {can(userRole, 'products.edit') && <th style={{ width: '80px', padding: '12px 16px' }}></th>}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {loading && products.length === 0 ? (
+                            <>
+                                {[1, 2, 3, 4, 5].map(i => (
+                                    <tr key={i} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                                        <td style={{ padding: '14px 16px' }}><div style={{ width: '70px', height: '14px', background: 'var(--color-panel-2)', borderRadius: '4px' }} /></td>
+                                        <td style={{ padding: '14px 16px' }}><div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><div style={{ width: '28px', height: '28px', background: 'var(--color-panel-2)', borderRadius: '6px' }} /><div style={{ width: '120px', height: '14px', background: 'var(--color-panel-2)', borderRadius: '4px' }} /></div></td>
+                                        <td style={{ padding: '14px 16px' }}><div style={{ width: '80px', height: '14px', background: 'var(--color-panel-2)', borderRadius: '4px' }} /></td>
+                                        <td style={{ padding: '14px 16px', textAlign: 'right' }}><div style={{ width: '70px', height: '14px', background: 'var(--color-panel-2)', borderRadius: '4px', marginLeft: 'auto' }} /></td>
+                                        <td style={{ padding: '14px 16px', textAlign: 'right' }}><div style={{ width: '80px', height: '14px', background: 'var(--color-panel-2)', borderRadius: '4px', marginLeft: 'auto' }} /></td>
+                                        <td style={{ padding: '14px 16px', textAlign: 'right' }}><div style={{ width: '50px', height: '14px', background: 'var(--color-panel-2)', borderRadius: '4px', marginLeft: 'auto' }} /></td>
+                                        <td style={{ padding: '14px 16px' }}><div style={{ width: '60px', height: '24px', background: 'var(--color-panel-2)', borderRadius: '6px' }} /></td>
+                                        <td style={{ padding: '14px 16px', textAlign: 'right' }}><div style={{ width: '50px', height: '14px', background: 'var(--color-panel-2)', borderRadius: '4px', marginLeft: 'auto' }} /></td>
+                                        <td style={{ padding: '14px 16px' }}><div style={{ width: '60px', height: '30px', background: 'var(--color-panel-2)', borderRadius: '6px', marginLeft: 'auto' }} /></td>
+                                    </tr>
+                                ))}
+                            </>
+                        ) : products.length === 0 ? (
+                            <tr>
+                                <td colSpan={can(userRole, 'products.view_cost_price') ? 9 : 7} style={{ padding: '80px 16px', textAlign: 'center' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                                        <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'var(--color-panel-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <Package size={24} color="var(--color-hint)" />
+                                        </div>
+                                        <div>
+                                            <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--color-text-dim)', margin: '0 0 4px 0' }}>No products found</p>
+                                            <p style={{ fontSize: '13px', color: 'var(--color-hint)', margin: 0 }}>Start by adding your first product</p>
+                                        </div>
+                                        <button onClick={openCreateView} style={{ marginTop: '8px', padding: '8px 16px', borderRadius: '8px', border: 'none', background: 'var(--blue)', color: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <Plus size={14} /> Add Product
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ) : products.map((product, index) => {
+                            const margin = product.cost_price > 0 ? ((product.retail_price - product.cost_price) / product.cost_price * 100) : 0
+                            const isLowStock = (product.current_stock ?? 0) < product.min_stock_level
+                            return (
+                                <tr key={product.id} style={{ borderBottom: index < products.length - 1 ? '1px solid var(--border-light)' : 'none', background: 'var(--color-panel)', transition: 'background 0.15s' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--color-panel-2)'} onMouseLeave={e => e.currentTarget.style.background = 'var(--color-panel)'}>
+                                    <td style={{ padding: '14px 16px' }}>
+                                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600, color: 'var(--blue)', background: 'rgba(59, 130, 246, 0.1)', padding: '3px 8px', borderRadius: '4px' }}>
+                                            {product.code}
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '14px 16px' }}>
+                                        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>{product.name}</div>
+                                        {product.barcode && <div style={{ fontSize: '11px', color: 'var(--color-hint)', marginTop: '2px' }}>{product.barcode}</div>}
+                                    </td>
+                                    <td style={{ padding: '14px 16px', fontSize: '13px', color: 'var(--color-text-dim)' }}>{product.category_name || '-'}</td>
+                                    {can(userRole, 'products.view_cost_price') && (
+                                        <td style={{ padding: '14px 16px', textAlign: 'right', fontSize: '13px', color: 'var(--color-text-dim)' }}>{formatCurrency(product.cost_price)}</td>
+                                    )}
+                                    <td style={{ padding: '14px 16px', textAlign: 'right', fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>{formatCurrency(product.retail_price)}</td>
+                                    {can(userRole, 'products.view_cost_price') && (
+                                        <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                                            <span style={{ fontSize: '12px', fontWeight: 600, color: margin >= 0 ? '#10b981' : '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                                                {margin >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                                                {margin.toFixed(1)}%
+                                            </span>
+                                        </td>
+                                    )}
+                                    <td style={{ padding: '14px 16px' }}><StatusBadge isActive={product.is_active} /></td>
+                                    <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                                        <span style={{ fontSize: '13px', fontWeight: isLowStock ? 600 : 400, color: isLowStock ? '#ef4444' : 'var(--color-text)' }}>
+                                            {product.current_stock ?? 0} {product.unit_abbr}
+                                        </span>
+                                    </td>
+                                    {can(userRole, 'products.edit') && (
+                                        <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                                            <button onClick={() => openEditView(product)} style={{ minWidth: '44px', height: '32px', padding: '0 12px', borderRadius: '6px', border: '1px solid var(--border-surface)', background: 'transparent', color: 'var(--blue)', fontSize: '12px', fontWeight: 500, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }} aria-label={`Edit ${product.name}`}>
+                                                <Edit size={14} />
+                                            </button>
+                                        </td>
+                                    )}
+                                </tr>
+                            )
+                        })}
+                    </tbody>
+                </table>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderTop: '1px solid var(--border-surface)', background: 'var(--color-panel-2)' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--color-hint)' }}>{products.length > 0 ? `Showing ${products.length} products` : 'No results'}</span>
+                </div>
+            </div>
         </div>
     )
 }

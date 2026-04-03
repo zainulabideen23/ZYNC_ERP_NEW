@@ -4,12 +4,12 @@ const db = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
 const { AppError } = require('../middleware/errorHandler');
 const SupplierService = require('../services/supplier.service');
-
-const supplierService = new SupplierService(db);
+const audit = require('../utils/audit');
 
 // Get all suppliers
-router.get('/', authenticate, async (req, res, next) => {
+router.get('/', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
     try {
+        const supplierService = new SupplierService(db, req.tenantId);
         const result = await supplierService.list(req.query);
         res.json({ success: true, ...result });
     } catch (error) {
@@ -18,10 +18,10 @@ router.get('/', authenticate, async (req, res, next) => {
 });
 
 // Get single supplier
-router.get('/:id', authenticate, async (req, res, next) => {
+router.get('/:id', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const supplier = await db('suppliers')
-            .where({ id: req.params.id, is_deleted: false })
+            .where({ id: req.params.id, is_deleted: false, tenant_id: req.tenantId })
             .first();
 
         if (!supplier) throw new AppError('Supplier not found', 404);
@@ -35,7 +35,20 @@ router.get('/:id', authenticate, async (req, res, next) => {
 // Create supplier
 router.post('/', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
     try {
+        const supplierService = new SupplierService(db, req.tenantId);
         const supplier = await supplierService.create(req.body, req.user.id);
+
+        // Audit supplier creation
+        await audit(db, {
+            userId: req.user.id,
+            action: 'create',
+            tableName: 'suppliers',
+            recordId: supplier.id,
+            newValues: { id: supplier.id, code: supplier.code, name: supplier.name, phone_number: supplier.phone_number },
+            ip: req.ip,
+            tenantId: req.tenantId
+        });
+
         res.status(201).json({ success: true, data: supplier });
     } catch (error) {
         if (error.code === '23505') {
@@ -48,18 +61,68 @@ router.post('/', authenticate, authorize('admin', 'manager'), async (req, res, n
 // Update supplier
 router.put('/:id', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
     try {
+        const supplierService = new SupplierService(db, req.tenantId);
+
+        // Fetch old values before update
+        const oldSupplier = await db('suppliers')
+            .where({ id: req.params.id, is_deleted: false, tenant_id: req.tenantId })
+            .first();
+
         const supplier = await supplierService.update(req.params.id, req.body, req.user.id);
+
+        // Audit supplier update
+        await audit(db, {
+            userId: req.user.id,
+            action: 'update',
+            tableName: 'suppliers',
+            recordId: req.params.id,
+            oldValues: { name: oldSupplier?.name, phone_number: oldSupplier?.phone_number, is_active: oldSupplier?.is_active },
+            newValues: { name: supplier.name, phone_number: supplier.phone_number, is_active: supplier.is_active },
+            ip: req.ip,
+            tenantId: req.tenantId
+        });
+
         res.json({ success: true, data: supplier });
     } catch (error) {
         next(error);
     }
 });
 
+// Delete supplier (admin only)
+router.delete('/:id', authenticate, authorize('admin'), async (req, res, next) => {
+    try {
+        // Fetch supplier before deletion
+        const oldSupplier = await db('suppliers')
+            .where({ id: req.params.id, tenant_id: req.tenantId })
+            .first();
+
+        await db('suppliers')
+            .where({ id: req.params.id, tenant_id: req.tenantId })
+            .update({ is_deleted: true, updated_at: new Date() });
+
+        // Audit supplier deletion
+        await audit(db, {
+            userId: req.user.id,
+            action: 'delete',
+            tableName: 'suppliers',
+            recordId: req.params.id,
+            oldValues: { id: oldSupplier?.id, code: oldSupplier?.code, name: oldSupplier?.name },
+            newValues: { is_deleted: true, deleted_at: new Date().toISOString() },
+            ip: req.ip,
+            tenantId: req.tenantId
+        });
+
+        res.json({ success: true, message: 'Supplier deleted successfully' });
+    } catch (error) {
+        next(error);
+    }
+});
+
 // Get supplier ledger
-router.get('/:id/ledger', authenticate, async (req, res, next) => {
+router.get('/:id/ledger', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { from_date, to_date } = req.query;
-        const supplier = await db('suppliers').where('id', req.params.id).first();
+        const supplier = await db('suppliers').where('id', req.params.id).where('tenant_id', req.tenantId).first();
 
         if (!supplier) throw new AppError('Supplier not found', 404);
 

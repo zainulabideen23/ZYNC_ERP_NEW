@@ -8,6 +8,7 @@ import './Login.css'
 function Login() {
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
+    const [tenant, setTenant] = useState('')
     const [loading, setLoading] = useState(false)
     const { login } = useAuthStore()
     const navigate = useNavigate()
@@ -22,8 +23,8 @@ function Login() {
 
         setLoading(true)
         try {
-            const response = await authAPI.login({ username, password })
-            login(response.data.user, response.data.token)
+            const response = await authAPI.login({ username, password, tenant: tenant || undefined })
+            login(response.data.user, response.data.token, response.data.tenant)
             toast.success('Welcome back!')
             navigate('/')
         } catch (error) {
@@ -42,6 +43,17 @@ function Login() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="login-form">
+                    <div className="form-group">
+                        <label className="form-label">Company Code</label>
+                        <input
+                            type="text"
+                            className="form-input"
+                            value={tenant}
+                            onChange={(e) => setTenant(e.target.value.toLowerCase())}
+                            placeholder="default"
+                        />
+                    </div>
+
                     <div className="form-group">
                         <label className="form-label">Username</label>
                         <input

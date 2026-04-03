@@ -13,10 +13,16 @@ const authenticate = async (req, res, next) => {
         const token = authHeader.split(' ')[1];
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        // Verify user still exists and is active
-        const user = await db('users')
-            .where({ id: decoded.userId, is_active: true })
-            .first();
+        // Verify user still exists and is active (scoped to tenant)
+        const userQuery = db('users')
+            .where({ id: decoded.userId, is_active: true });
+
+        // If token has tenantId, scope the lookup
+        if (decoded.tenantId) {
+            userQuery.where('tenant_id', decoded.tenantId);
+        }
+
+        const user = await userQuery.first();
 
         if (!user) {
             throw new AppError('User no longer exists or is inactive', 401);
@@ -26,7 +32,8 @@ const authenticate = async (req, res, next) => {
             id: user.id,
             username: user.username,
             role: user.role,
-            fullName: user.full_name
+            fullName: user.full_name,
+            tenantId: decoded.tenantId || null
         };
 
         next();

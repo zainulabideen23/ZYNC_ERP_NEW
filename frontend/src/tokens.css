@@ -1,54 +1,114 @@
 /* ============================================
    ZYNC ERP — Design Tokens
-   Canonical CSS custom properties.
-   Do NOT rename these downstream.
+   Light-first design system with dark mode override
+   8px spacing scale · Inter font · Modern SaaS palette
    ============================================ */
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 :root {
-    /* ─── Colors ─── */
-    --color-bg: #0f1a24;
-    --color-panel: #15202a;
-    --color-panel-2: #16232b;
-    --color-text: #E6EEF6;
-    --color-muted: #cbd5e1;
-    /* Lightened from #97A1AD for better contrast */
-    --color-accent: #2F8FFF;
-    --color-accent-hover: #1a7ae6;
-    --color-success: #29B070;
-    --color-warning: #f59e0b;
-    --color-danger: #FF5C6C;
-    --color-info: #06b6d4;
-    --border-surface: rgba(255, 255, 255, 0.04);
+  /* ─── Typography ─── */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
 
-    /* ─── Radii ─── */
-    --radius-sm: 6px;
-    --radius-md: 12px;
+  /* ─── Colors — Light Theme (default) ─── */
+  --color-bg:          #F9FAFB;
+  --color-bg-primary:  #F9FAFB;
+  --color-panel:       #FFFFFF;
+  --color-panel-2:     #F3F4F6;
+  --color-panel-3:     #E5E7EB;
 
-    /* ─── Spacing (px scale) ─── */
-    --space-1: 4px;
-    --space-2: 8px;
-    --space-3: 16px;
-    --space-4: 24px;
-    --space-5: 32px;
+  --color-text:        #111827;
+  --color-text-dim:    #374151;
+  --color-muted:       #6B7280;
+  --color-hint:        #9CA3AF;
 
-    /* ─── Elevation ─── */
-    --elevation-1: 0 6px 18px rgba(2, 8, 15, 0.45);
+  --color-accent:      #2563EB;
+  --color-accent-hover:#1D4ED8;
+  --color-accent-light:#EFF6FF;
 
-    /* ─── Typography ─── */
-    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --color-success:     #10B981;
+  --color-warning:     #F59E0B;
+  --color-danger:      #EF4444;
 
-    /* ─── Legacy Aliases ───
-       Maps old token names → canonical tokens.
-       Many pages (POS, NewSale, NewPurchase, Quotations, etc.)
-       still reference these. DO NOT remove until fully migrated. */
-    --color-bg-primary: var(--color-bg);
-    --color-bg-secondary: var(--color-panel);
-    --color-bg-tertiary: var(--color-panel-2);
-    --color-text-primary: var(--color-text);
-    --color-text-secondary: var(--color-muted);
-    --color-text-muted: var(--color-muted);
-    --color-border: var(--border-surface);
-    --radius-lg: var(--radius-md);
-    --space-6: var(--space-5);
+  --border-surface:    #E5E7EB;
+  --border-light:      #F3F4F6;
+
+  /* ─── Semantic Dim Backgrounds ─── */
+  --blue-dim:    rgba(37, 99, 235, 0.08);
+  --green-dim:   rgba(16, 185, 129, 0.08);
+  --amber-dim:   rgba(245, 158, 11, 0.08);
+  --red-dim:     rgba(239, 68, 68, 0.08);
+  --purple-dim:  rgba(139, 92, 246, 0.08);
+  --cyan-dim:    rgba(6, 182, 212, 0.08);
+
+  /* ─── Spacing (8px scale) ─── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+
+  /* ─── Radius ─── */
+  --radius-xs:  4px;
+  --radius-sm:  6px;
+  --radius-md:  8px;
+  --radius-lg:  12px;
+  --radius-xl:  16px;
+  --radius-full: 9999px;
+
+  /* ─── Elevations ─── */
+  --elevation-1: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --elevation-2: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --elevation-3: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+  --elevation-hover: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.06);
+
+  /* ─── Named Colors (for compatibility) ─── */
+  --blue:    #2563EB;
+  --green:   #10B981;
+  --amber:   #F59E0B;
+  --red:     #EF4444;
+  --purple:  #8B5CF6;
+  --cyan:    #06B6D4;
+
+  /* ─── Legacy Radius (backward compat) ─── */
+  --r4:  4px;
+  --r6:  6px;
+  --r8:  8px;
+  --r12: 12px;
+  --r16: 16px;
+}
+
+/* ─── Dark Theme Override ─── */
+[data-theme="dark"] {
+  --color-bg:          #0F172A;
+  --color-bg-primary:  #0F172A;
+  --color-panel:       #1E293B;
+  --color-panel-2:     #334155;
+  --color-panel-3:     #475569;
+
+  --color-text:        #F1F5F9;
+  --color-text-dim:    #CBD5E1;
+  --color-muted:       #94A3B8;
+  --color-hint:        #64748B;
+
+  --color-accent:      #3B82F6;
+  --color-accent-hover:#2563EB;
+  --color-accent-light:rgba(59, 130, 246, 0.12);
+
+  --border-surface:    rgba(255, 255, 255, 0.08);
+  --border-light:      rgba(255, 255, 255, 0.04);
+
+  --blue-dim:    rgba(59, 130, 246, 0.12);
+  --green-dim:   rgba(34, 197, 94, 0.12);
+  --amber-dim:   rgba(245, 158, 11, 0.12);
+  --red-dim:     rgba(239, 68, 68, 0.12);
+  --purple-dim:  rgba(139, 92, 246, 0.12);
+  --cyan-dim:    rgba(6, 182, 212, 0.12);
+
+  --elevation-1: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --elevation-2: 0 4px 6px -1px rgba(0, 0, 0, 0.35), 0 2px 4px -2px rgba(0, 0, 0, 0.25);
+  --elevation-3: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+  --elevation-hover: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.35);
 }

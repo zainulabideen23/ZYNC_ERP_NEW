@@ -1,0 +1,225 @@
+/* ─── Settings Page ─── */
+/* All styles scoped to .settings-container to prevent regressions on other pages */
+
+/* Responsive container - centered with breathing room */
+.settings-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    width: 100%;
+    box-sizing: border-box;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: var(--space-5) var(--space-4);
+}
+
+@media (max-width: 992px) {
+    .settings-container {
+        padding: var(--space-4) var(--space-3);
+    }
+}
+
+@media (max-width: 768px) {
+    .settings-container {
+        padding: var(--space-3) var(--space-2);
+    }
+}
+
+.settings-container .settings-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.settings-container .settings-header h1 {
+    font-size: var(--text-xl);
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.settings-container .settings-header p {
+    color: var(--muted);
+    font-size: var(--text-sm);
+    margin-top: 4px;
+    margin-left: 52px;
+}
+
+.settings-container .settings-tabs {
+    background: var(--color-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-1);
+}
+
+.settings-container .settings-tabs-list {
+    display: flex;
+    gap: var(--space-1);
+}
+
+.settings-container .settings-tab-button {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    border: none;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-weight: 400;
+    font-size: var(--text-sm);
+    transition: all 0.15s;
+    min-height: 44px;
+}
+
+.settings-container .settings-tab-button:hover {
+    background: var(--color-bg);
+}
+
+.settings-container .settings-tab-button.active {
+    background: var(--blue);
+    color: #fff;
+    font-weight: 600;
+}
+
+.settings-container .settings-tab-button:focus {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+}
+
+/* Responsive grid - 3 columns wide, 2 medium, 1 small */
+.settings-container .settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: var(--space-4);
+}
+
+.settings-container .settings-card {
+    background: var(--color-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+}
+
+.settings-container .settings-card-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+}
+
+.settings-container .settings-card-header h2 {
+    font-size: var(--text-base);
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.settings-container .settings-card-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.settings-container .settings-card-icon.blue {
+    background: var(--blue-dim);
+    color: var(--blue);
+}
+
+.settings-container .settings-card-icon.purple {
+    background: var(--purple-dim);
+    color: var(--purple);
+}
+
+.settings-container .settings-card-icon.green {
+    background: var(--green-dim);
+    color: var(--green);
+}
+
+.settings-container .settings-card-icon.orange {
+    background: var(--orange-dim);
+    color: var(--orange);
+}
+
+.settings-container .settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.settings-container .settings-form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--space-3);
+}
+
+.settings-container .settings-save-button {
+    margin-top: var(--space-4);
+    min-height: 44px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+}
+
+.settings-container .settings-help-text {
+    font-size: var(--text-xs);
+    color: var(--muted);
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.settings-container .settings-logo-preview {
+    margin-top: var(--space-2);
+    padding: var(--space-3);
+    background: var(--color-bg);
+    border-radius: var(--radius-md);
+    text-align: center;
+    border: 1px dashed var(--border);
+}
+
+.settings-container .settings-logo-preview img {
+    max-height: 60px;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+.settings-container .settings-info-box {
+    padding: var(--space-2);
+    background: var(--blue-dim);
+    border-radius: var(--radius-md);
+    font-size: var(--text-xs);
+    color: var(--blue);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+}
+
+@media (max-width: 992px) {
+    .settings-container .settings-grid {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .settings-container .settings-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .settings-container .settings-tabs-list {
+        flex-wrap: wrap;
+    }
+    
+    .settings-container .settings-form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .settings-container .settings-save-button {
+        width: 100%;
+    }
+}

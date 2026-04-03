@@ -23,14 +23,12 @@ exports.seed = async function (knex) {
         await knex('suppliers').del();
         await knex('products').del();
         await knex('units').del();
-        await knex('companies').del();
         await knex('categories').del();
         await knex('ledger_entries').del();
         await knex('accounts').del();
         await knex('account_groups').del();
         await knex('users').del();
         await knex('sequences').del();
-        await knex('settings').del();
     }
 
     // =====================================================
@@ -46,7 +44,7 @@ exports.seed = async function (knex) {
             password_hash: adminHash,
             full_name: 'Administrator',
             email: 'admin@zync-erp.local',
-            phone: '0300-1000000',
+            phone_number: '0300-1000000',
             role: 'admin',
             is_active: true
         },
@@ -55,7 +53,7 @@ exports.seed = async function (knex) {
             password_hash: cashierHash,
             full_name: 'Cashier User',
             email: 'cashier@zync-erp.local',
-            phone: '0300-2000000',
+            phone_number: '0300-2000000',
             role: 'cashier',
             is_active: true
         },
@@ -64,7 +62,7 @@ exports.seed = async function (knex) {
             password_hash: managerHash,
             full_name: 'Manager User',
             email: 'manager@zync-erp.local',
-            phone: '0300-3000000',
+            phone_number: '0300-3000000',
             role: 'manager',
             is_active: true
         }
@@ -75,20 +73,20 @@ exports.seed = async function (knex) {
     // =====================================================
     const accountGroupResults = await knex('account_groups').insert([
         // Assets
-        { name: 'Bank Accounts', type: 'asset', sequence: 1, is_system: true },
-        { name: 'Cash', type: 'asset', sequence: 2, is_system: true },
-        { name: 'Inventory', type: 'asset', sequence: 3, is_system: true },
-        { name: 'Receivables', type: 'asset', sequence: 4, is_system: true },
+        { name: 'Bank Accounts', account_type: 'asset', sequence_order: 1, is_system: true },
+        { name: 'Cash', account_type: 'asset', sequence_order: 2, is_system: true },
+        { name: 'Inventory', account_type: 'asset', sequence_order: 3, is_system: true },
+        { name: 'Receivables', account_type: 'asset', sequence_order: 4, is_system: true },
         // Liabilities
-        { name: 'Payables', type: 'liability', sequence: 10, is_system: true },
-        { name: 'Bank Loans', type: 'liability', sequence: 11, is_system: true },
+        { name: 'Payables', account_type: 'liability', sequence_order: 10, is_system: true },
+        { name: 'Bank Loans', account_type: 'liability', sequence_order: 11, is_system: true },
         // Income
-        { name: 'Sales Revenue', type: 'income', sequence: 20, is_system: true },
+        { name: 'Sales Revenue', account_type: 'income', sequence_order: 20, is_system: true },
         // Expenses
-        { name: 'Cost of Goods Sold', type: 'expense', sequence: 30, is_system: true },
-        { name: 'Operating Expenses', type: 'expense', sequence: 31, is_system: true },
+        { name: 'Cost of Goods Sold', account_type: 'expense', sequence_order: 30, is_system: true },
+        { name: 'Operating Expenses', account_type: 'expense', sequence_order: 31, is_system: true },
         // Capital
-        { name: 'Owner Capital', type: 'capital', sequence: 40, is_system: true }
+        { name: 'Owner Capital', account_type: 'equity', sequence_order: 40, is_system: true }
     ]).returning('id');
     const accountGroups = accountGroupResults.map(row => row.id || row);
 
@@ -115,7 +113,7 @@ exports.seed = async function (knex) {
         { code: '6002', name: 'Rent & Utilities', group_id: accountGroups[8], account_type: 'expense', is_system: true, is_active: true },
         { code: '6003', name: 'Marketing & Advertising', group_id: accountGroups[8], account_type: 'expense', is_system: true, is_active: true },
         // Capital
-        { code: '3001', name: 'Owner Capital', group_id: accountGroups[9], account_type: 'capital', is_system: true, is_active: true, opening_balance: 600000, current_balance: 600000 }
+        { code: '3001', name: 'Owner Capital', group_id: accountGroups[9], account_type: 'equity', is_system: true, is_active: true, opening_balance: 600000, current_balance: 600000 }
     ]).returning('id');
     const accounts = accountResults.map(row => row.id || row);
 
@@ -147,16 +145,6 @@ exports.seed = async function (knex) {
     const categories = categoriesResults.map(row => row.id || row);
 
     // =====================================================
-    // 6. CREATE COMPANIES/BRANDS
-    // =====================================================
-    const companiesResults = await knex('companies').insert([
-        { name: 'Generic Brand', description: 'Generic/Store brand' },
-        { name: 'Premium Brand', description: 'Premium quality brand' },
-        { name: 'Budget Brand', description: 'Budget-friendly brand' }
-    ]).returning('id');
-    const companies = companiesResults.map(row => row.id || row);
-
-    // =====================================================
     // 7. CREATE SAMPLE PRODUCTS
     // =====================================================
     const productsResults = await knex('products').insert([
@@ -166,7 +154,6 @@ exports.seed = async function (knex) {
             name: 'USB Cable (2m)',
             description: 'High-quality USB 2.0 cable',
             category_id: categories[0],
-            company_id: companies[0],
             unit_id: units[0],
             retail_price: 250,
             wholesale_price: 200,
@@ -181,7 +168,6 @@ exports.seed = async function (knex) {
             name: 'Wireless Mouse',
             description: '2.4GHz wireless mouse',
             category_id: categories[0],
-            company_id: companies[1],
             unit_id: units[0],
             retail_price: 1500,
             wholesale_price: 1200,
@@ -196,7 +182,6 @@ exports.seed = async function (knex) {
             name: 'T-Shirt (Cotton)',
             description: '100% cotton t-shirt',
             category_id: categories[1],
-            company_id: companies[2],
             unit_id: units[0],
             retail_price: 800,
             wholesale_price: 600,
@@ -211,7 +196,6 @@ exports.seed = async function (knex) {
             name: 'Rice (1kg)',
             description: 'Basmati rice 1kg pack',
             category_id: categories[2],
-            company_id: companies[0],
             unit_id: units[1],
             retail_price: 350,
             wholesale_price: 300,
@@ -226,7 +210,6 @@ exports.seed = async function (knex) {
             name: 'Coffee (500g)',
             description: 'Premium coffee beans',
             category_id: categories[2],
-            company_id: companies[1],
             unit_id: units[1],
             retail_price: 1200,
             wholesale_price: 1000,
@@ -304,11 +287,12 @@ exports.seed = async function (knex) {
         {
             code: 'CUST001',
             name: 'Ahmed Khan',
-            phone: '0300-1111111',
-            phone_alt: '0321-1111111',
+            phone_number: '0300-1111111',
+            phone_number_alt: '0321-1111111',
             email: 'ahmed@example.com',
-            address: '123 Main Street',
+            address_line1: '123 Main Street',
             city: 'Karachi',
+            country: 'Pakistan',
             credit_limit: 50000,
             opening_balance: 0,
             account_id: accounts[3],
@@ -317,10 +301,11 @@ exports.seed = async function (knex) {
         {
             code: 'CUST002',
             name: 'Fatima Ali',
-            phone: '0300-2222222',
+            phone_number: '0300-2222222',
             email: 'fatima@example.com',
-            address: '456 Market Road',
+            address_line1: '456 Market Road',
             city: 'Lahore',
+            country: 'Pakistan',
             credit_limit: 75000,
             opening_balance: 0,
             account_id: accounts[3],
@@ -329,10 +314,11 @@ exports.seed = async function (knex) {
         {
             code: 'CUST003',
             name: 'Muhammad Hassan',
-            phone: '0300-3333333',
+            phone_number: '0300-3333333',
             email: 'hassan@example.com',
-            address: '789 Business Park',
+            address_line1: '789 Business Park',
             city: 'Islamabad',
+            country: 'Pakistan',
             credit_limit: 100000,
             opening_balance: 0,
             account_id: accounts[3],
@@ -348,10 +334,11 @@ exports.seed = async function (knex) {
         {
             code: 'SUPP001',
             name: 'Tech Imports Ltd',
-            phone: '021-111-2222',
+            phone_number: '021-111-2222',
             email: 'contact@techimports.com',
-            address: '100 Industrial Area',
+            address_line1: '100 Industrial Area',
             city: 'Karachi',
+            country: 'Pakistan',
             contact_person: 'Ali Malik',
             opening_balance: 0,
             account_id: accounts[4],
@@ -360,10 +347,11 @@ exports.seed = async function (knex) {
         {
             code: 'SUPP002',
             name: 'Fashion Wholesale Co',
-            phone: '042-333-4444',
+            phone_number: '042-333-4444',
             email: 'sales@fashionco.com',
-            address: '200 Trade Center',
+            address_line1: '200 Trade Center',
             city: 'Lahore',
+            country: 'Pakistan',
             contact_person: 'Sana Sardar',
             opening_balance: 0,
             account_id: accounts[4],
@@ -372,10 +360,11 @@ exports.seed = async function (knex) {
         {
             code: 'SUPP003',
             name: 'Agricultural Exports',
-            phone: '051-555-6666',
+            phone_number: '051-555-6666',
             email: 'info@agexports.com',
-            address: '300 Export Zone',
+            address_line1: '300 Export Zone',
             city: 'Islamabad',
+            country: 'Pakistan',
             contact_person: 'Malik Muhammad',
             opening_balance: 0,
             account_id: accounts[4],
@@ -400,30 +389,14 @@ exports.seed = async function (knex) {
     // 11. CREATE SEQUENCES FOR AUTO-NUMBERING
     // =====================================================
     await knex('sequences').insert([
-        { name: 'invoice', prefix: 'INV-', current_value: 0, pad_length: 6, reset_yearly: true },
-        { name: 'purchase', prefix: 'PUR-', current_value: 0, pad_length: 6, reset_yearly: true },
-        { name: 'journal', prefix: 'JRN-', current_value: 0, pad_length: 6, reset_yearly: false },
-        { name: 'quotation', prefix: 'QT-', current_value: 0, pad_length: 6, reset_yearly: false },
-        { name: 'expense', prefix: 'EXP-', current_value: 0, pad_length: 6, reset_yearly: false },
-        { name: 'challan', prefix: 'CH-', current_value: 0, pad_length: 6, reset_yearly: false },
-        { name: 'supplier', prefix: 'SUP-', current_value: 0, pad_length: 4, reset_yearly: false },
-        { name: 'customer', prefix: 'CUST-', current_value: 0, pad_length: 4, reset_yearly: false }
-    ]);
-
-    // =====================================================
-    // 12. CREATE SETTINGS
-    // =====================================================
-    await knex('settings').insert([
-        { key: 'company_name', value: 'ZYNC ERP', type: 'string', description: 'Business name' },
-        { key: 'company_phone', value: '0300-0000000', type: 'string', description: 'Business phone' },
-        { key: 'company_email', value: 'info@zync-erp.com', type: 'string', description: 'Business email' },
-        { key: 'business_tax_id', value: '', type: 'string', description: 'Tax/NTN number' },
-        { key: 'financial_year_start', value: '01-01', type: 'string', description: 'Financial year start date (MM-DD)' },
-        { key: 'default_tax_rate', value: '0', type: 'number', description: 'Default tax percentage' },
-        { key: 'currency_symbol', value: 'Rs.', type: 'string', description: 'Currency symbol' },
-        { key: 'currency_code', value: 'PKR', type: 'string', description: 'Currency code' },
-        { key: 'decimal_places', value: '2', type: 'number', description: 'Decimal places for amounts' },
-        { key: 'enable_discounts', value: 'true', type: 'boolean', description: 'Allow line item discounts' }
+        { name: 'invoice', prefix: 'INV-', current_value: 0, pad_length: 6 },
+        { name: 'purchase', prefix: 'PUR-', current_value: 0, pad_length: 6 },
+        { name: 'journal', prefix: 'JRN-', current_value: 0, pad_length: 6 },
+        { name: 'quotation', prefix: 'QT-', current_value: 0, pad_length: 6 },
+        { name: 'expense', prefix: 'EXP-', current_value: 0, pad_length: 6 },
+        { name: 'challan', prefix: 'CH-', current_value: 0, pad_length: 6 },
+        { name: 'supplier', prefix: 'SUP-', current_value: 0, pad_length: 4 },
+        { name: 'customer', prefix: 'CUST-', current_value: 0, pad_length: 4 }
     ]);
 
     console.log('✓ Database seeded successfully');

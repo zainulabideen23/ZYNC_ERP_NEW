@@ -1,8 +1,9 @@
 const { AppError } = require('../middleware/errorHandler');
 
 class LedgerService {
-    constructor(db) {
+    constructor(db, tenantId) {
         this.db = db;
+        this.tenantId = tenantId;
     }
 
     /**
@@ -17,13 +18,14 @@ class LedgerService {
             .insert({
                 entry_date,
                 account_id,
-                entry_type, // 'debit' or 'credit'
+                entry_type,
                 amount,
                 reference_type: reference_type || 'journal',
                 reference_id,
                 narration,
                 journal_id,
-                created_by
+                created_by,
+                tenant_id: this.tenantId
             })
             .returning('*');
 
@@ -71,7 +73,8 @@ class LedgerService {
                             total_debit: totalDebits,
                             total_credit: totalCredits,
                             is_balanced: true,
-                            created_by
+                            created_by,
+                            tenant_id: this.tenantId
                         })
                         .returning('*');
 
@@ -83,7 +86,8 @@ class LedgerService {
                             entry_type: entry.entry_type,
                             amount: entry.amount,
                             description: entry.narration || narration,
-                            created_by
+                            created_by,
+                            tenant_id: this.tenantId
                         });
 
                         // Update account's current balance
@@ -100,7 +104,7 @@ class LedgerService {
                         const maxResult = await this.db.raw(`SELECT COALESCE(MAX(CAST(REPLACE(journal_number, 'JV-', '') AS INTEGER)), 0) as max_num FROM journals`);
                         const maxNum = maxResult.rows[0].max_num;
                         // Update sequence
-                        await this.db('sequences').where('name', 'journal').update({ current_value: maxNum });
+                        await this.db('sequences').where({ name: 'journal', tenant_id: this.tenantId }).update({ current_value: maxNum });
                     } catch (syncError) {
                         console.error('Failed to sync sequence:', syncError);
                     }
@@ -116,11 +120,11 @@ class LedgerService {
      * Generate next Journal Number
      */
     async generateJournalNumber(trx) {
-        const sequence = await trx('sequences').where('name', 'journal').forUpdate().first();
+        const sequence = await trx('sequences').where({ name: 'journal', tenant_id: this.tenantId }).forUpdate().first();
         if (!sequence) throw new AppError('Journal sequence not found', 500);
 
         const nextVal = parseInt(sequence.current_value) + 1;
-        await trx('sequences').where('name', 'journal').update({ current_value: nextVal });
+        await trx('sequences').where({ name: 'journal', tenant_id: this.tenantId }).update({ current_value: nextVal });
 
         return `${sequence.prefix}${nextVal.toString().padStart(sequence.pad_length, '0')}`;
     }
@@ -160,11 +164,12 @@ class LedgerService {
     async getAccountLedger(accountId, options = {}) {
         const { from_date, to_date } = options;
 
-        const account = await this.db('accounts').where('id', accountId).first();
+        const account = await this.db('accounts').where('id', accountId).where('tenant_id', this.tenantId).first();
         if (!account) throw new AppError('Account not found', 404);
 
         let query = this.db('ledger_entries')
             .where('account_id', accountId)
+            .where('tenant_id', this.tenantId)
             .orderBy('entry_date', 'asc')
             .orderBy('created_at', 'asc');
 
@@ -178,6 +183,7 @@ class LedgerService {
         if (from_date) {
             const beforeEntries = await this.db('ledger_entries')
                 .where('account_id', accountId)
+                .where('tenant_id', this.tenantId)
                 .where('entry_date', '<', from_date)
                 .select('entry_type', 'amount');
 
@@ -226,6 +232,7 @@ class LedgerService {
                 'g.name as group_name'
             )
             .where('a.is_active', true)
+            .where('a.tenant_id', this.tenantId)
             .orderBy('a.code');
 
         const accounts = await query;

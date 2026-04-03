@@ -3,10 +3,11 @@ const StockService = require('./stock.service');
 const LedgerService = require('./ledger.service');
 
 class PurchaseService {
-    constructor(db) {
+    constructor(db, tenantId) {
         this.db = db;
-        this.stockService = new StockService(db);
-        this.ledgerService = new LedgerService(db);
+        this.tenantId = tenantId;
+        this.stockService = new StockService(db, tenantId);
+        this.ledgerService = new LedgerService(db, tenantId);
     }
 
     /**
@@ -98,14 +99,16 @@ class PurchaseService {
                         amount_due: amountDue,
                         status,
                         notes,
-                        created_by: userId
+                        created_by: userId,
+                        tenant_id: this.tenantId
                     }).returning('*');
 
                     // 5. Create Purchase Items
                     for (const item of processedItems) {
                         await trx('purchase_items').insert({
                             purchase_id: purchase.id,
-                            ...item
+                            ...item,
+                            tenant_id: this.tenantId
                         });
                     }
 
@@ -164,7 +167,7 @@ class PurchaseService {
                     try {
                         const maxResult = await this.db.raw(`SELECT COALESCE(MAX(CAST(REPLACE(bill_number, 'PUR-', '') AS INTEGER)), 0) as max_num FROM purchases`);
                         const maxNum = maxResult.rows[0].max_num;
-                        await this.db('sequences').where('name', 'purchase').update({ current_value: maxNum });
+                        await this.db('sequences').where({ name: 'purchase', tenant_id: this.tenantId }).update({ current_value: maxNum });
                     } catch (syncError) {
                         console.error('Failed to sync sequence:', syncError);
                     }
@@ -181,7 +184,7 @@ class PurchaseService {
      * Auto-syncs with actual max value in purchases table to ensure sequential numbering
      */
     async generateBillNumber(trx) {
-        const sequence = await trx('sequences').where('name', 'purchase').forUpdate().first();
+        const sequence = await trx('sequences').where({ name: 'purchase', tenant_id: this.tenantId }).forUpdate().first();
         if (!sequence) throw new AppError('Purchase sequence not found', 500);
 
         // Get actual max bill number from purchases table to stay in sync
@@ -196,7 +199,7 @@ class PurchaseService {
         const baseValue = Math.max(sequence.current_value, maxInTable);
         const nextVal = baseValue + 1;
         
-        await trx('sequences').where('name', 'purchase').update({ current_value: nextVal });
+        await trx('sequences').where({ name: 'purchase', tenant_id: this.tenantId }).update({ current_value: nextVal });
 
         return `${prefix}${nextVal.toString().padStart(sequence.pad_length || 6, '0')}`;
     }
@@ -206,7 +209,7 @@ class PurchaseService {
      */
     async getRequiredAccounts(trx) {
         const codes = ['1001', '1002', '1004', '2001', '5001', '4001'];
-        const accounts = await trx('accounts').whereIn('code', codes).select('id', 'code');
+        const accounts = await trx('accounts').whereIn('code', codes).where('tenant_id', this.tenantId).select('id', 'code');
         const map = accounts.reduce((acc, a) => ({ ...acc, [a.code]: a.id }), {});
 
         return {
@@ -230,14 +233,15 @@ class PurchaseService {
         let query = this.db('purchases as p')
             .leftJoin('suppliers as s', 'p.supplier_id', 's.id')
             .select('p.*', 's.name as supplier_name')
-            .where('p.is_deleted', false);
+            .where('p.is_deleted', false)
+            .where('p.tenant_id', this.tenantId);
 
         if (supplier_id) query = query.where('p.supplier_id', supplier_id);
         if (status) query = query.where('p.status', status);
         if (from_date) query = query.where('p.purchase_date', '>=', from_date);
         if (to_date) query = query.where('p.purchase_date', '<=', to_date);
 
-        const countQuery = this.db('purchases').where('is_deleted', false);
+        const countQuery = this.db('purchases').where('is_deleted', false).where('tenant_id', this.tenantId);
         if (status) countQuery.where('status', status);
         if (supplier_id) countQuery.where('supplier_id', supplier_id);
         if (from_date) countQuery.where('purchase_date', '>=', from_date);

@@ -1,8 +1,9 @@
 const { AppError } = require('../middleware/errorHandler');
 
 class QuotationService {
-    constructor(db) {
+    constructor(db, tenantId) {
         this.db = db;
+        this.tenantId = tenantId;
     }
 
     /**
@@ -68,14 +69,16 @@ class QuotationService {
                         tax_amount,
                         total_amount: totalAmount,
                         status: 'draft',
-                        created_by: userId
+                        created_by: userId,
+                        tenant_id: this.tenantId
                     }).returning('*');
 
                     // 4. Create Quotation Items
                     for (const item of processedItems) {
                         await trx('quotation_items').insert({
                             quotation_id: quotation.id,
-                            ...item
+                            ...item,
+                            tenant_id: this.tenantId
                         });
                     }
 
@@ -88,7 +91,7 @@ class QuotationService {
                     try {
                         const maxResult = await this.db.raw(`SELECT COALESCE(MAX(CAST(REPLACE(quotation_number, 'QUO-', '') AS INTEGER)), 0) as max_num FROM quotations`);
                         const maxNum = maxResult.rows[0].max_num;
-                        await this.db('sequences').where('name', 'quotation').update({ current_value: maxNum });
+                        await this.db('sequences').where({ name: 'quotation', tenant_id: this.tenantId }).update({ current_value: maxNum });
                     } catch (syncError) {
                         console.error('Failed to sync sequence:', syncError);
                     }
@@ -105,7 +108,7 @@ class QuotationService {
      * Auto-syncs with actual max value in quotations table to ensure sequential numbering
      */
     async generateQuotationNumber(trx) {
-        const sequence = await trx('sequences').where('name', 'quotation').forUpdate().first();
+        const sequence = await trx('sequences').where({ name: 'quotation', tenant_id: this.tenantId }).forUpdate().first();
         if (!sequence) throw new AppError('Quotation sequence not found', 500);
 
         // Get actual max quotation number from quotations table to stay in sync
@@ -120,7 +123,7 @@ class QuotationService {
         const baseValue = Math.max(sequence.current_value, maxInTable);
         const nextVal = baseValue + 1;
         
-        await trx('sequences').where('name', 'quotation').update({ current_value: nextVal });
+        await trx('sequences').where({ name: 'quotation', tenant_id: this.tenantId }).update({ current_value: nextVal });
 
         return `${prefix}${nextVal.toString().padStart(sequence.pad_length || 6, '0')}`;
     }
@@ -134,13 +137,14 @@ class QuotationService {
 
         let query = this.db('quotations as q')
             .leftJoin('customers as c', 'q.customer_id', 'c.id')
-            .select('q.*', 'c.name as customer_name');
+            .select('q.*', 'c.name as customer_name')
+            .where('q.tenant_id', this.tenantId);
 
         if (customer_id) query = query.where('q.customer_id', customer_id);
         // Only apply status filter if it's not 'all'
         if (status && status !== 'all') query = query.where('q.status', status);
 
-        const [{ count }] = await this.db('quotations').count();
+        const [{ count }] = await this.db('quotations').where('tenant_id', this.tenantId).count();
         const quotations = await query.orderBy('q.quotation_date', 'desc').limit(limit).offset(offset);
 
         return {

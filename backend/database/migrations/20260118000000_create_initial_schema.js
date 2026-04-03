@@ -178,9 +178,7 @@ exports.up = async function (knex) {
         table.decimal('tax_amount', 15, 2).notNullable().defaultTo(0);
         table.decimal('total_amount', 15, 2).notNullable();
         table.decimal('paid_amount', 15, 2).notNullable().defaultTo(0);
-        table.decimal('balance_amount', 15, 2).generatedAlwaysAs(
-            knex.raw('total_amount - paid_amount'), 'stored'
-        );
+        table.decimal('balance_amount', 15, 2).notNullable().defaultTo(0);
         table.enum('payment_status', ['paid', 'partial', 'unpaid']).notNullable().defaultTo('unpaid');
         table.enum('status', ['completed', 'cancelled', 'returned']).notNullable().defaultTo('completed');
         table.text('notes');
@@ -188,6 +186,12 @@ exports.up = async function (knex) {
         table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now());
         table.timestamp('updated_at', { useTz: true });
     });
+
+    // Add generated column for sales balance
+    await knex.raw(`
+        ALTER TABLE sales DROP COLUMN balance_amount;
+        ALTER TABLE sales ADD COLUMN balance_amount decimal(15,2) GENERATED ALWAYS AS (total_amount - paid_amount) STORED;
+    `);
 
     // Sale items
     await knex.schema.createTable('sale_items', (table) => {
@@ -217,9 +221,7 @@ exports.up = async function (knex) {
         table.decimal('tax_amount', 15, 2).notNullable().defaultTo(0);
         table.decimal('total_amount', 15, 2).notNullable();
         table.decimal('paid_amount', 15, 2).notNullable().defaultTo(0);
-        table.decimal('balance_amount', 15, 2).generatedAlwaysAs(
-            knex.raw('total_amount - paid_amount'), 'stored'
-        );
+        table.decimal('balance_amount', 15, 2).notNullable().defaultTo(0);
         table.enum('payment_status', ['paid', 'partial', 'unpaid']).notNullable().defaultTo('unpaid');
         table.enum('status', ['completed', 'cancelled', 'returned']).notNullable().defaultTo('completed');
         table.text('notes');
@@ -227,6 +229,12 @@ exports.up = async function (knex) {
         table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now());
         table.timestamp('updated_at', { useTz: true });
     });
+
+    // Add generated column for purchases balance
+    await knex.raw(`
+        ALTER TABLE purchases DROP COLUMN balance_amount;
+        ALTER TABLE purchases ADD COLUMN balance_amount decimal(15,2) GENERATED ALWAYS AS (total_amount - paid_amount) STORED;
+    `);
 
     // Purchase items
     await knex.schema.createTable('purchase_items', (table) => {

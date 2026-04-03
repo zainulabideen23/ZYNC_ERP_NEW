@@ -1,14 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, authorize } = require('../middleware/auth');
 const ReportService = require('../services/report.service');
-
-const reportService = new ReportService(db);
 
 // Dashboard summary
 router.get('/dashboard', authenticate, async (req, res, next) => {
     try {
+        const reportService = new ReportService(db, req.tenantId);
         const data = await reportService.getDashboardStats();
         res.json({ success: true, data });
     } catch (error) {
@@ -17,8 +16,9 @@ router.get('/dashboard', authenticate, async (req, res, next) => {
 });
 
 // Stock report
-router.get('/stock', authenticate, async (req, res, next) => {
+router.get('/stock', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
     try {
+        const reportService = new ReportService(db, req.tenantId);
         const data = await reportService.getStockReport(req.query);
         res.json({ success: true, data });
     } catch (error) {
@@ -27,8 +27,9 @@ router.get('/stock', authenticate, async (req, res, next) => {
 });
 
 // Profit and Loss
-router.get('/profit-loss', authenticate, async (req, res, next) => {
+router.get('/profit-loss', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
     try {
+        const reportService = new ReportService(db, req.tenantId);
         const { from_date, to_date } = req.query;
         const data = await reportService.getProfitAndLoss(from_date, to_date);
         res.json({ success: true, data });
@@ -38,11 +39,12 @@ router.get('/profit-loss', authenticate, async (req, res, next) => {
 });
 
 // Sales summary by date
-router.get('/sales/by-date', authenticate, async (req, res, next) => {
+router.get('/sales/by-date', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { from_date, to_date } = req.query;
         let query = db('sales')
             .where('is_deleted', false)
+            .where('tenant_id', req.tenantId)
             .select(
                 'sale_date as invoice_date',
                 db.raw('COUNT(*) as invoices'),
@@ -64,7 +66,7 @@ router.get('/sales/by-date', authenticate, async (req, res, next) => {
 });
 
 // Trial Balance
-router.get('/trial-balance', authenticate, async (req, res, next) => {
+router.get('/trial-balance', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { as_of_date } = req.query;
         
@@ -72,6 +74,7 @@ router.get('/trial-balance', authenticate, async (req, res, next) => {
             .join('journals as j', 'le.journal_id', 'j.id')
             .join('accounts as a', 'le.account_id', 'a.id')
             .join('account_groups as g', 'a.group_id', 'g.id')
+            .where('a.tenant_id', req.tenantId)
             .select(
                 'a.id', 'a.code', 'a.name', 'g.name as group_name',
                 db.raw('SUM(CASE WHEN le.entry_type = \'debit\' THEN le.amount ELSE 0 END) as debits'),
@@ -106,7 +109,7 @@ router.get('/trial-balance', authenticate, async (req, res, next) => {
 });
 
 // Balance Sheet
-router.get('/balance-sheet', authenticate, async (req, res, next) => {
+router.get('/balance-sheet', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { as_of_date } = req.query;
         
@@ -115,6 +118,7 @@ router.get('/balance-sheet', authenticate, async (req, res, next) => {
             .join('accounts as a', 'le.account_id', 'a.id')
             .join('account_groups as g', 'a.group_id', 'g.id')
             .whereIn('a.account_type', ['asset', 'liability', 'equity'])
+            .where('a.tenant_id', req.tenantId)
             .select(
                 'a.id', 'a.code', 'a.name', 'a.account_type', 'g.name as group_name',
                 db.raw('SUM(CASE WHEN le.entry_type = \'debit\' THEN le.amount ELSE 0 END) - SUM(CASE WHEN le.entry_type = \'credit\' THEN le.amount ELSE 0 END) as net_balance')
@@ -149,7 +153,7 @@ router.get('/balance-sheet', authenticate, async (req, res, next) => {
         });
 
         // Add net income to equity
-        const netIncome = await reportService.getProfitAndLoss(null, as_of_date);
+        const netIncome = await new ReportService(db, req.tenantId).getProfitAndLoss(null, as_of_date);
         if (netIncome.net_profit !== 0) {
             equity.push({ name: 'Retained Earnings (Current Period)', amount: netIncome.net_profit });
             totalEquity += netIncome.net_profit;
@@ -170,7 +174,7 @@ router.get('/balance-sheet', authenticate, async (req, res, next) => {
 });
 
 // Sales by Product
-router.get('/sales-by-product', authenticate, async (req, res, next) => {
+router.get('/sales-by-product', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { from_date, to_date } = req.query;
         
@@ -179,6 +183,7 @@ router.get('/sales-by-product', authenticate, async (req, res, next) => {
             .join('products as p', 'si.product_id', 'p.id')
             .leftJoin('categories as c', 'p.category_id', 'c.id')
             .where('s.is_deleted', false)
+            .where('s.tenant_id', req.tenantId)
             .select(
                 'p.name as product_name',
                 'p.code as product_code',
@@ -199,13 +204,14 @@ router.get('/sales-by-product', authenticate, async (req, res, next) => {
 });
 
 // Sales by Customer
-router.get('/sales-by-customer', authenticate, async (req, res, next) => {
+router.get('/sales-by-customer', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { from_date, to_date } = req.query;
         
         let query = db('sales as s')
             .leftJoin('customers as c', 's.customer_id', 'c.id')
             .where('s.is_deleted', false)
+            .where('s.tenant_id', req.tenantId)
             .select(
                 db.raw('COALESCE(c.name, \'Walk-in Customer\') as customer_name'),
                 'c.phone_number as phone',
@@ -226,13 +232,14 @@ router.get('/sales-by-customer', authenticate, async (req, res, next) => {
 });
 
 // Purchase by Supplier
-router.get('/purchase-by-supplier', authenticate, async (req, res, next) => {
+router.get('/purchase-by-supplier', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { from_date, to_date } = req.query;
         
         let query = db('purchases as p')
             .leftJoin('suppliers as s', 'p.supplier_id', 's.id')
             .where('p.is_deleted', false)
+            .where('p.tenant_id', req.tenantId)
             .select(
                 db.raw('COALESCE(s.name, \'Unknown Supplier\') as supplier_name'),
                 's.contact_person',
@@ -253,13 +260,14 @@ router.get('/purchase-by-supplier', authenticate, async (req, res, next) => {
 });
 
 // Expense Summary
-router.get('/expense-summary', authenticate, async (req, res, next) => {
+router.get('/expense-summary', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { from_date, to_date } = req.query;
         
         let query = db('expenses as e')
             .leftJoin('expense_categories as ec', 'e.category_id', 'ec.id')
             .where('e.is_deleted', false)
+            .where('e.tenant_id', req.tenantId)
             .select(
                 db.raw('COALESCE(ec.name, \'Uncategorized\') as category'),
                 db.raw('COUNT(e.id) as count'),

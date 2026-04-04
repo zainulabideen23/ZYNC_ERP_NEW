@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authorize } = require('../middleware/auth');
 
 // GET /api/dashboard/recent-activity
 // Returns recent audit log entries formatted for display, filtered by role
-router.get('/recent-activity', authenticate, async (req, res, next) => {
+router.get('/recent-activity', async (req, res, next) => {
     try {
         const { role, id: userId } = req.user;
         const tenantId = req.tenantId;

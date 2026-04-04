@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authorize } = require('../middleware/auth');
 const { AppError } = require('../middleware/errorHandler');
 const audit = require('../utils/audit');
 
 // GET /api/units — all active units
-router.get('/', authenticate, async (req, res, next) => {
+router.get('/', async (req, res, next) => {
     try {
         const includeInactive = req.query.all === 'true';
         let query = db('units').where('tenant_id', req.tenantId).orderBy('name');
@@ -19,7 +19,7 @@ router.get('/', authenticate, async (req, res, next) => {
 });
 
 // POST /api/units — create a unit
-router.post('/', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.post('/', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { name, abbreviation, description } = req.body;
         if (!name || !abbreviation) throw new AppError('Name and abbreviation are required', 400);
@@ -71,7 +71,7 @@ const STANDARD_UNITS = [
     { name: 'Sq. Meter', abbreviation: 'sqm' },
 ];
 
-router.post('/seed', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.post('/seed', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         // Get existing units for this tenant (check both name and abbreviation)
         const existing = await db('units')
@@ -128,7 +128,7 @@ router.post('/seed', authenticate, authorize('admin', 'manager'), async (req, re
 });
 
 // POST /api/units/quick-create — lightweight creation from product form modal
-router.post('/quick-create', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.post('/quick-create', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { name, abbreviation } = req.body;
         if (!name || name.length < 2) throw new AppError('Name must be at least 2 characters', 400);
@@ -171,7 +171,7 @@ router.post('/quick-create', authenticate, authorize('admin', 'manager'), async 
 });
 
 // PUT /api/units/:id — update a unit
-router.put('/:id', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.put('/:id', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { name, abbreviation, description, is_active } = req.body;
         const unitId = parseInt(req.params.id);
@@ -224,7 +224,7 @@ router.put('/:id', authenticate, authorize('admin', 'manager'), async (req, res,
 });
 
 // DELETE /api/units/:id — soft delete (deactivate)
-router.delete('/:id', authenticate, authorize('admin'), async (req, res, next) => {
+router.delete('/:id', authorize('admin'), async (req, res, next) => {
     try {
         const unitId = parseInt(req.params.id);
         const unit = await db('units').where({ id: unitId, tenant_id: req.tenantId }).first();

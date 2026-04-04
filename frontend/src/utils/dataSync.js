@@ -6,6 +6,30 @@
 import { useEffect } from 'react'
 
 const listeners = new Map()
+const CHANNEL_NAME = 'zync-data-sync'
+const SOURCE_ID = `tab-${Math.random().toString(36).slice(2)}`
+const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(CHANNEL_NAME) : null
+
+function notifyLocal(event, data) {
+    const eventListeners = listeners.get(event)
+    if (eventListeners) {
+        eventListeners.forEach(callback => {
+            try {
+                callback(data)
+            } catch (error) {
+                console.error(`Error in data sync listener for ${event}:`, error)
+            }
+        })
+    }
+}
+
+if (channel) {
+    channel.onmessage = (message) => {
+        const payload = message?.data
+        if (!payload || payload.source === SOURCE_ID || !payload.event) return
+        notifyLocal(payload.event, payload.data)
+    }
+}
 
 export const DataSyncEvents = {
     SALE_CREATED: 'sale:created',
@@ -44,14 +68,13 @@ export function subscribe(event, callback) {
  * @param {any} data - Optional data to pass to listeners
  */
 export function emit(event, data = null) {
-    const eventListeners = listeners.get(event)
-    if (eventListeners) {
-        eventListeners.forEach(callback => {
-            try {
-                callback(data)
-            } catch (error) {
-                console.error(`Error in data sync listener for ${event}:`, error)
-            }
+    notifyLocal(event, data)
+
+    if (channel) {
+        channel.postMessage({
+            event,
+            data,
+            source: SOURCE_ID,
         })
     }
 }

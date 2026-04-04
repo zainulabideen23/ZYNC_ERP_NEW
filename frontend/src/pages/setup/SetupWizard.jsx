@@ -4,7 +4,7 @@ import { useAuthStore } from '../../store/auth.store'
 import { onboardingAPI } from '../../services/api'
 import toast from 'react-hot-toast'
 import {
-    Building2, Tag, Award, Ruler, CheckCircle,
+    Building2, Tag, Award, Ruler, Landmark, CheckCircle,
     ChevronRight, ChevronLeft
 } from 'lucide-react'
 
@@ -12,13 +12,16 @@ import Step1Company from './steps/Step1Company'
 import Step2Categories from './steps/Step2Categories'
 import Step3Brands from './steps/Step3Brands'
 import Step4Units from './steps/Step4Units'
+import Step5OpeningBalances from './steps/Step5OpeningBalances'
+import Step6Complete from './steps/Step6Complete'
 
 const STEPS = [
     { number: 1, label: 'Company', icon: Building2 },
     { number: 2, label: 'Categories', icon: Tag },
     { number: 3, label: 'Brands', icon: Award },
     { number: 4, label: 'Units', icon: Ruler },
-    { number: 5, label: 'Done', icon: CheckCircle },
+    { number: 5, label: 'Opening', icon: Landmark },
+    { number: 6, label: 'Done', icon: CheckCircle },
 ]
 
 function SetupWizard() {
@@ -27,7 +30,7 @@ function SetupWizard() {
     const { tenant, updateOnboardingStep } = useAuthStore()
 
     const initialStep = parseInt(searchParams.get('step')) || tenant?.onboarding_step || 1
-    const [currentStep, setCurrentStep] = useState(Math.min(Math.max(initialStep, 1), 5))
+    const [currentStep, setCurrentStep] = useState(Math.min(Math.max(initialStep, 1), 6))
     const [skippedSteps, setSkippedSteps] = useState(new Set())
     const [saving, setSaving] = useState(false)
 
@@ -62,7 +65,7 @@ function SetupWizard() {
     }, [updateOnboardingStep])
 
     const handleContinue = useCallback(async () => {
-        if (currentStep < 5) {
+        if (currentStep < 6) {
             await goToStep(currentStep + 1)
         }
     }, [currentStep, goToStep])
@@ -85,7 +88,8 @@ function SetupWizard() {
             case 2: return <Step2Categories onContinue={handleContinue} saving={saving} />
             case 3: return <Step3Brands onContinue={handleContinue} saving={saving} />
             case 4: return <Step4Units onContinue={handleContinue} saving={saving} />
-            case 5: return <Step5Complete skippedSteps={skippedSteps} />
+            case 5: return <Step5OpeningBalances onContinue={handleContinue} onSkip={handleSkip} saving={saving} setSaving={setSaving} />
+            case 6: return <Step6Complete skippedSteps={skippedSteps} />
             default: return null
         }
     }
@@ -184,7 +188,7 @@ function SetupWizard() {
             }}>
                 {/* Back */}
                 <div>
-                    {currentStep > 1 && currentStep < 5 && (
+                    {currentStep > 1 && currentStep < 6 && (
                         <button
                             onClick={handleBack}
                             style={{
@@ -204,7 +208,7 @@ function SetupWizard() {
 
                 {/* Skip + Continue */}
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    {currentStep < 5 && (
+                    {currentStep < 6 && (
                         <button
                             onClick={handleSkip}
                             disabled={saving}

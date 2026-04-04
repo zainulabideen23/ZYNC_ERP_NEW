@@ -13,7 +13,7 @@ router.get('/status', authorize('admin'), async (req, res, next) => {
         const tenant = await db('tenants').where({ id: req.tenantId }).first();
 
         // Check what data each step has
-        const [categories, companies, units] = await Promise.all([
+        const [categories, companies, units, openingBalances] = await Promise.all([
             db('categories')
                 .where({ tenant_id: req.tenantId, is_active: true })
                 .count('* as count')
@@ -24,6 +24,11 @@ router.get('/status', authorize('admin'), async (req, res, next) => {
                 .first(),
             db('units')
                 .where({ tenant_id: req.tenantId, is_active: true })
+                .count('* as count')
+                .first(),
+            db('accounts')
+                .where({ tenant_id: req.tenantId, is_active: true })
+                .whereRaw('opening_balance != 0')
                 .count('* as count')
                 .first(),
         ]);
@@ -41,11 +46,13 @@ router.get('/status', authorize('admin'), async (req, res, next) => {
                     categories: parseInt(categories.count) > 0,
                     brands: parseInt(companies.count) > 0,
                     units: parseInt(units.count) > 0,
+                    opening_balances: parseInt(openingBalances.count) > 0,
                 },
                 counts: {
                     categories: parseInt(categories.count),
                     brands: parseInt(companies.count),
                     units: parseInt(units.count),
+                    opening_balances: parseInt(openingBalances.count),
                 }
             }
         });
@@ -59,8 +66,8 @@ router.patch('/step', authorize('admin'), async (req, res, next) => {
     try {
         const { step } = req.body;
 
-        if (!step || step < 1 || step > 5) {
-            throw new AppError('Invalid step number (must be 1-5)', 400);
+        if (!step || step < 1 || step > 6) {
+            throw new AppError('Invalid step number (must be 1-6)', 400);
         }
 
         await db('tenants')
@@ -78,7 +85,7 @@ router.patch('/complete', authorize('admin'), async (req, res, next) => {
     try {
         await db('tenants')
             .where({ id: req.tenantId })
-            .update({ is_onboarded: true, onboarding_step: 5 });
+            .update({ is_onboarded: true, onboarding_step: 6 });
 
         res.json({ success: true, is_onboarded: true });
     } catch (error) {

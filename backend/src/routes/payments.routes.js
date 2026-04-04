@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authorize } = require('../middleware/auth');
 const { AppError } = require('../middleware/errorHandler');
 const { resolveSystemAccounts, SYSTEM_ACCOUNTS } = require('../utils/accountResolver');
 
 // POST /api/payments/customer
 // Record a payment received from a customer
-router.post('/customer', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.post('/customer', authorize('admin', 'manager'), async (req, res, next) => {
     const { customer_id, amount, payment_method, payment_account_code, notes, payment_date } = req.body;
 
     if (!customer_id || !amount || amount <= 0) {
@@ -124,7 +124,7 @@ router.post('/customer', authenticate, authorize('admin', 'manager'), async (req
 
 // POST /api/payments/supplier
 // Record a payment made to a supplier
-router.post('/supplier', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.post('/supplier', authorize('admin', 'manager'), async (req, res, next) => {
     const { supplier_id, amount, payment_method, payment_account_code, notes, payment_date } = req.body;
 
     if (!supplier_id || !amount || amount <= 0) {

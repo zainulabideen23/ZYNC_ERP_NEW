@@ -109,6 +109,11 @@ function buildApp(routePath, routes) {
     const { errorHandler } = require('../src/middleware/errorHandler');
     const app = express();
     app.use(express.json());
+    app.use((req, _res, next) => {
+        req.user = req.user || { id: 'u1', role: 'admin' };
+        req.tenantId = req.tenantId || 'tenant-1';
+        next();
+    });
     app.use(routePath, routes);
     app.use(errorHandler);
     return app;

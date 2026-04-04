@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const backupService = require('../services/backup.service');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authorize } = require('../middleware/auth');
 const path = require('path');
 const db = require('../config/database');
 const audit = require('../utils/audit');
 
 // List backups
-router.get('/', authenticate, authorize('admin'), async (req, res, next) => {
+router.get('/', authorize('admin'), async (req, res, next) => {
     try {
         const backups = await backupService.listBackups();
         res.json({ success: true, data: backups });
@@ -17,7 +17,7 @@ router.get('/', authenticate, authorize('admin'), async (req, res, next) => {
 });
 
 // Create backup
-router.post('/', authenticate, authorize('admin'), async (req, res, next) => {
+router.post('/', authorize('admin'), async (req, res, next) => {
     try {
         const backup = await backupService.createBackup();
 
@@ -41,7 +41,7 @@ router.post('/', authenticate, authorize('admin'), async (req, res, next) => {
 });
 
 // Download backup
-router.get('/:filename/download', authenticate, authorize('admin'), (req, res, next) => {
+router.get('/:filename/download', authorize('admin'), (req, res, next) => {
     try {
         const filePath = backupService.getBackupPath(req.params.filename);
         if (!filePath) {
@@ -54,7 +54,7 @@ router.get('/:filename/download', authenticate, authorize('admin'), (req, res, n
 });
 
 // Delete backup
-router.delete('/:filename', authenticate, authorize('admin'), async (req, res, next) => {
+router.delete('/:filename', authorize('admin'), async (req, res, next) => {
     try {
         await backupService.deleteBackup(req.params.filename);
         res.json({ success: true, message: 'Backup deleted' });

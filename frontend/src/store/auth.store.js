@@ -28,7 +28,7 @@ export const useAuthStore = create(
             },
 
             markOnboarded: () => set((state) => ({
-                tenant: { ...state.tenant, is_onboarded: true, onboarding_step: 5 }
+                tenant: { ...state.tenant, is_onboarded: true, onboarding_step: 6 }
             })),
 
             updateOnboardingStep: (step) => set((state) => ({

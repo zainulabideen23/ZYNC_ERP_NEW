@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authorize } = require('../middleware/auth');
 const { AppError } = require('../middleware/errorHandler');
 const audit = require('../utils/audit');
 
 // GET /api/brands — all active brands for current tenant
-router.get('/', authenticate, async (req, res, next) => {
+router.get('/', async (req, res, next) => {
     try {
         const brands = await db('brands')
             .where('is_active', true)
@@ -19,7 +19,7 @@ router.get('/', authenticate, async (req, res, next) => {
 });
 
 // POST /api/brands — create a brand
-router.post('/', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.post('/', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { name, description } = req.body;
         if (!name) throw new AppError('Name is required', 400);
@@ -51,7 +51,7 @@ router.post('/', authenticate, authorize('admin', 'manager'), async (req, res, n
 });
 
 // PUT /api/brands/:id — update a brand
-router.put('/:id', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.put('/:id', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { name, description, is_active } = req.body;
 
@@ -90,7 +90,7 @@ router.put('/:id', authenticate, authorize('admin', 'manager'), async (req, res,
 });
 
 // DELETE /api/brands/:id — delete a brand (check products first)
-router.delete('/:id', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.delete('/:id', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const brand = await db('brands')
             .where({ id: req.params.id, tenant_id: req.tenantId })

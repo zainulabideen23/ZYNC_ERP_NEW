@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authorize } = require('../middleware/auth');
 const ProductService = require('../services/product.service');
 const audit = require('../utils/audit');
 
 // Get all products with pagination
-router.get('/', authenticate, async (req, res, next) => {
+router.get('/', async (req, res, next) => {
     try {
         const productService = new ProductService(db, req.tenantId);
         const { page = 1, limit = 50, search, category_id, active_only = true } = req.query;
@@ -37,7 +37,7 @@ router.get('/', authenticate, async (req, res, next) => {
 });
 
 // Get single product
-router.get('/:id', authenticate, async (req, res, next) => {
+router.get('/:id', async (req, res, next) => {
     try {
         const productService = new ProductService(db, req.tenantId);
         const product = await productService.getById(req.params.id);
@@ -57,7 +57,7 @@ router.get('/:id', authenticate, async (req, res, next) => {
 });
 
 // Create product
-router.post('/', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.post('/', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const productService = new ProductService(db, req.tenantId);
         const product = await productService.create(req.body, req.user.id);
@@ -84,7 +84,7 @@ router.post('/', authenticate, authorize('admin', 'manager'), async (req, res, n
 });
 
 // Update product
-router.put('/:id', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.put('/:id', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const productService = new ProductService(db, req.tenantId);
 
@@ -111,7 +111,7 @@ router.put('/:id', authenticate, authorize('admin', 'manager'), async (req, res,
 });
 
 // Delete (soft) product
-router.delete('/:id', authenticate, authorize('admin'), async (req, res, next) => {
+router.delete('/:id', authorize('admin'), async (req, res, next) => {
     try {
         const productService = new ProductService(db, req.tenantId);
 
@@ -138,7 +138,7 @@ router.delete('/:id', authenticate, authorize('admin'), async (req, res, next) =
 });
 
 // Get product stock
-router.get('/:id/stock', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/:id/stock', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const movements = await db('stock_movements')
             .where('product_id', req.params.id)

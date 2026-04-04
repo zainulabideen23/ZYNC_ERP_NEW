@@ -3,8 +3,7 @@ const express = require('express');
 
 // Mocks
 const mockSaleServiceInstance = {
-    createSale: jest.fn(),
-    createSaleReturn: jest.fn()
+    createSale: jest.fn()
 };
 
 // Mock SaleService constructor
@@ -41,8 +40,19 @@ describe('Sales Module', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        mockSaleServiceInstance.createSale.mockResolvedValue({
+            id: 1,
+            invoice_number: 'INV-000001',
+            total_amount: 0,
+            payment_status: 'paid'
+        });
         app = express();
         app.use(express.json());
+        app.use((req, _res, next) => {
+            req.user = { id: 1, role: 'admin' };
+            req.tenantId = 'tenant-1';
+            next();
+        });
         app.use('/api/sales', saleRoutes);
         app.use(errorHandler);
     });
@@ -70,10 +80,13 @@ describe('Sales Module', () => {
         expect(res.statusCode).toBe(201);
         expect(res.body.success).toBe(true);
         expect(res.body.data.invoice_number).toBe('INV-000001');
-        expect(mockSaleServiceInstance.createSale).toHaveBeenCalledWith(expect.objectContaining({
-            items: saleData.items,
-            paid_amount: 100
-        }));
+        expect(mockSaleServiceInstance.createSale).toHaveBeenCalledWith(
+            expect.objectContaining({
+                items: saleData.items,
+                paid_amount: 100
+            }),
+            1
+        );
     });
 
     it('SALE-003: Should reject Walk-in Customer Credit Sale (Service validated)', async () => {
@@ -100,33 +113,15 @@ describe('Sales Module', () => {
         expect(res.body.error).toBe('Walk-in customers cannot have credit sales');
     });
 
-    it('SALE-002: Should process a valid sale return', async () => {
-        const returnData = {
-            original_sale_id: 1,
-            items: [{ product_id: 1, quantity: 1, unit_price: 100 }],
-            notes: 'Customer return'
-        };
-
-        const expectedResponse = {
-            id: 2,
-            invoice_number: 'CN-000001',
-            total_amount: -100,
-            payment_status: 'returned'
-        };
-
-        mockSaleServiceInstance.createSaleReturn.mockResolvedValue(expectedResponse);
-
+    it('SALE-002: Should return 404 for removed sale return route', async () => {
         const res = await request(app)
             .post('/api/sales/return')
-            .send(returnData);
+            .send({
+                original_sale_id: 1,
+                items: [{ product_id: 1, quantity: 1, unit_price: 100 }]
+            });
 
-        expect(res.statusCode).toBe(201);
-        expect(res.body.success).toBe(true);
-        expect(res.body.data.invoice_number).toBe('CN-000001');
-        expect(mockSaleServiceInstance.createSaleReturn).toHaveBeenCalledWith(expect.objectContaining({
-            original_sale_id: 1,
-            notes: 'Customer return'
-        }));
+        expect(res.statusCode).toBe(404);
     });
 
     it('SALE-005: Should reject sale when stock is insufficient (Service level)', async () => {
@@ -146,6 +141,10 @@ describe('Sales Module', () => {
     });
 
     it('Should validate missing items', async () => {
+        const validationError = new Error('At least one item is required');
+        validationError.statusCode = 400;
+        mockSaleServiceInstance.createSale.mockRejectedValue(validationError);
+
         const res = await request(app)
             .post('/api/sales')
             .send({ customer_id: 1, items: [] });

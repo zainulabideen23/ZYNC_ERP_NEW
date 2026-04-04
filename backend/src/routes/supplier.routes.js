@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authorize } = require('../middleware/auth');
 const { AppError } = require('../middleware/errorHandler');
 const SupplierService = require('../services/supplier.service');
 const audit = require('../utils/audit');
 
 // Get all suppliers
-router.get('/', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const supplierService = new SupplierService(db, req.tenantId);
         const result = await supplierService.list(req.query);
@@ -18,7 +18,7 @@ router.get('/', authenticate, authorize('admin', 'manager'), async (req, res, ne
 });
 
 // Get single supplier
-router.get('/:id', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/:id', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const supplier = await db('suppliers')
             .where({ id: req.params.id, is_deleted: false, tenant_id: req.tenantId })
@@ -33,7 +33,7 @@ router.get('/:id', authenticate, authorize('admin', 'manager'), async (req, res,
 });
 
 // Create supplier
-router.post('/', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.post('/', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const supplierService = new SupplierService(db, req.tenantId);
         const supplier = await supplierService.create(req.body, req.user.id);
@@ -59,7 +59,7 @@ router.post('/', authenticate, authorize('admin', 'manager'), async (req, res, n
 });
 
 // Update supplier
-router.put('/:id', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.put('/:id', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const supplierService = new SupplierService(db, req.tenantId);
 
@@ -89,7 +89,7 @@ router.put('/:id', authenticate, authorize('admin', 'manager'), async (req, res,
 });
 
 // Delete supplier (admin only)
-router.delete('/:id', authenticate, authorize('admin'), async (req, res, next) => {
+router.delete('/:id', authorize('admin'), async (req, res, next) => {
     try {
         // Fetch supplier before deletion
         const oldSupplier = await db('suppliers')
@@ -119,7 +119,7 @@ router.delete('/:id', authenticate, authorize('admin'), async (req, res, next) =
 });
 
 // Get supplier ledger
-router.get('/:id/ledger', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/:id/ledger', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { from_date, to_date } = req.query;
         const supplier = await db('suppliers').where('id', req.params.id).where('tenant_id', req.tenantId).first();

@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authorize } = require('../middleware/auth');
 const { AppError } = require('../middleware/errorHandler');
 const CustomerService = require('../services/customer.service');
 const audit = require('../utils/audit');
 
 // Get all customers
-router.get('/', authenticate, async (req, res, next) => {
+router.get('/', async (req, res, next) => {
     try {
         const customerService = new CustomerService(db, req.tenantId);
         const result = await customerService.list(req.query);
@@ -18,7 +18,7 @@ router.get('/', authenticate, async (req, res, next) => {
 });
 
 // Get single customer
-router.get('/:id', authenticate, async (req, res, next) => {
+router.get('/:id', async (req, res, next) => {
     try {
         const customer = await db('customers')
             .where({ id: req.params.id, is_deleted: false, tenant_id: req.tenantId })
@@ -33,7 +33,7 @@ router.get('/:id', authenticate, async (req, res, next) => {
 });
 
 // Create customer
-router.post('/', authenticate, authorize('admin', 'manager', 'cashier'), async (req, res, next) => {
+router.post('/', authorize('admin', 'manager', 'cashier'), async (req, res, next) => {
     try {
         const customerService = new CustomerService(db, req.tenantId);
         const customer = await customerService.create(req.body, req.user.id);
@@ -59,7 +59,7 @@ router.post('/', authenticate, authorize('admin', 'manager', 'cashier'), async (
 });
 
 // Update customer
-router.put('/:id', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.put('/:id', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         // Only admin can change credit_limit
         const updateData = { ...req.body };
@@ -94,7 +94,7 @@ router.put('/:id', authenticate, authorize('admin', 'manager'), async (req, res,
 });
 
 // Delete customer (admin only)
-router.delete('/:id', authenticate, authorize('admin'), async (req, res, next) => {
+router.delete('/:id', authorize('admin'), async (req, res, next) => {
     try {
         // Fetch customer before deletion
         const oldCustomer = await db('customers')
@@ -124,7 +124,7 @@ router.delete('/:id', authenticate, authorize('admin'), async (req, res, next) =
 });
 
 // Get customer ledger
-router.get('/:id/ledger', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/:id/ledger', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { from_date, to_date } = req.query;
         const customer = await db('customers').where('id', req.params.id).where('tenant_id', req.tenantId).first();

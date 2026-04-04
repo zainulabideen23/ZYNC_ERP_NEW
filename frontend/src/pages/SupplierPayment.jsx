@@ -169,8 +169,15 @@ function SupplierPayment() {
                                 placeholder="Search supplier by name or phone..."
                                 value={searchQuery}
                                 onChange={handleSearch}
-                                onFocus={() => setShowDropdown(true)}
-                                onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                                onFocus={e => {
+                                    setShowDropdown(true)
+                                    e.target.style.borderColor = touched.supplier_id && errors.supplier_id ? '#ef4444' : '#f59e0b'
+                                }}
+                                onBlur={e => {
+                                    setTimeout(() => setShowDropdown(false), 200)
+                                    e.target.style.borderColor = touched.supplier_id && errors.supplier_id ? '#ef4444' : 'var(--border-surface)'
+                                    handleBlur('supplier_id')
+                                }}
                                 autoComplete="off"
                                 aria-label="Search for supplier"
                                 aria-required="true"
@@ -189,8 +196,6 @@ function SupplierPayment() {
                                     outline: 'none',
                                     transition: 'border-color 0.2s'
                                 }}
-                                onFocus={e => e.target.style.borderColor = touched.supplier_id && errors.supplier_id ? '#ef4444' : '#f59e0b'}
-                                onBlur={e => { e.target.style.borderColor = touched.supplier_id && errors.supplier_id ? '#ef4444' : 'var(--border-surface)'; handleBlur('supplier_id') }}
                             />
                             {showDropdown && suppliers.length > 0 && (
                                 <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--color-panel)', border: '1px solid var(--border-surface)', borderRadius: '10px', maxHeight: '280px', overflowY: 'auto', zIndex: 100, marginTop: '4px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
@@ -265,7 +270,6 @@ function SupplierPayment() {
                                         step="0.01"
                                         value={formData.amount}
                                         onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                                        onBlur={() => handleBlur('amount')}
                                         aria-label="Payment amount in rupees"
                                         aria-required="true"
                                         aria-invalid={touched.amount && !!errors.amount}

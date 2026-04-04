@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authorize } = require('../middleware/auth');
 const { AppError } = require('../middleware/errorHandler');
 const audit = require('../utils/audit');
 
@@ -13,7 +13,7 @@ const buildTree = (flat, parentId = null) =>
         .map(c => ({ ...c, children: buildTree(flat, c.id) }));
 
 // GET /api/categories — returns nested tree by default, flat with ?flat=true
-router.get('/', authenticate, async (req, res, next) => {
+router.get('/', async (req, res, next) => {
     try {
         const includeInactive = req.query.all === 'true';
         let query = db('categories').where('tenant_id', req.tenantId).orderBy('sequence_order');
@@ -31,7 +31,7 @@ router.get('/', authenticate, async (req, res, next) => {
 });
 
 // POST /api/categories
-router.post('/', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.post('/', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { name, description, parent_id } = req.body;
         if (!name) throw new AppError('Name is required', 400);
@@ -76,7 +76,7 @@ router.post('/', authenticate, authorize('admin', 'manager'), async (req, res, n
 });
 
 // PUT /api/categories/:id
-router.put('/:id', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.put('/:id', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { name, description, parent_id, is_active, sequence_order } = req.body;
         const catId = parseInt(req.params.id);
@@ -122,7 +122,7 @@ router.put('/:id', authenticate, authorize('admin', 'manager'), async (req, res,
 });
 
 // DELETE /api/categories/:id — safe cascade delete
-router.delete('/:id', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.delete('/:id', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const catId = parseInt(req.params.id);
         const category = await db('categories')

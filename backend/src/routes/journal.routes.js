@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authorize } = require('../middleware/auth');
 const LedgerService = require('../services/ledger.service');
 const audit = require('../utils/audit');
 
 // List journals
-router.get('/', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { limit = 50, offset = 0 } = req.query;
         const [{ count }] = await db('journals').where('tenant_id', req.tenantId).count();
@@ -33,7 +33,7 @@ router.get('/', authenticate, authorize('admin', 'manager'), async (req, res, ne
 });
 
 // Get journal details (with entries)
-router.get('/:id', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/:id', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const journal = await db('journals').where('id', req.params.id).where('tenant_id', req.tenantId).first();
         if (!journal) return res.status(404).json({ success: false, error: 'Journal not found' });
@@ -51,7 +51,7 @@ router.get('/:id', authenticate, authorize('admin', 'manager'), async (req, res,
 });
 
 // Create manual journal (ADMIN ONLY)
-router.post('/', authenticate, authorize('admin'), async (req, res, next) => {
+router.post('/', authorize('admin'), async (req, res, next) => {
     try {
         const { journal_date, narration, entries } = req.body;
 

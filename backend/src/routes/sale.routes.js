@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authorize } = require('../middleware/auth');
 const { AppError } = require('../middleware/errorHandler');
 const SaleService = require('../services/sale.service');
 const audit = require('../utils/audit');
 
 // Get all sales
-router.get('/', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const saleService = new SaleService(db, req.tenantId);
         const result = await saleService.list(req.query);
@@ -18,7 +18,7 @@ router.get('/', authenticate, authorize('admin', 'manager'), async (req, res, ne
 });
 
 // Get single sale with items
-router.get('/:id', authenticate, async (req, res, next) => {
+router.get('/:id', async (req, res, next) => {
     try {
         const sale = await db('sales as s')
             .leftJoin('customers as c', 's.customer_id', 'c.id')
@@ -42,7 +42,7 @@ router.get('/:id', authenticate, async (req, res, next) => {
 });
 
 // Create sale
-router.post('/', authenticate, authorize('admin', 'manager', 'cashier'), async (req, res, next) => {
+router.post('/', authorize('admin', 'manager', 'cashier'), async (req, res, next) => {
     try {
         const saleService = new SaleService(db, req.tenantId);
         const sale = await saleService.createSale(req.body, req.user.id);
@@ -69,7 +69,7 @@ router.post('/', authenticate, authorize('admin', 'manager', 'cashier'), async (
 });
 
 // Today's sales summary
-router.get('/summary/today', authenticate, async (req, res, next) => {
+router.get('/summary/today', async (req, res, next) => {
     try {
         const today = new Date().toISOString().split('T')[0];
 

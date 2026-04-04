@@ -41,6 +41,11 @@ describe('Purchasing Module', () => {
         jest.clearAllMocks();
         app = express();
         app.use(express.json());
+        app.use((req, _res, next) => {
+            req.user = { id: 1, role: 'admin' };
+            req.tenantId = 'tenant-1';
+            next();
+        });
         app.use('/api/purchases', purchaseRoutes);
         app.use(errorHandler);
     });
@@ -70,10 +75,13 @@ describe('Purchasing Module', () => {
         expect(res.body.success).toBe(true);
         expect(res.body.data.invoice_number).toBe('PO-000001');
 
-        expect(mockPurchaseServiceInstance.createPurchase).toHaveBeenCalledWith(expect.objectContaining({
-            supplier_id: 1,
-            items: purchaseData.items,
-            paid_amount: 5000
-        }));
+        expect(mockPurchaseServiceInstance.createPurchase).toHaveBeenCalledWith(
+            expect.objectContaining({
+                supplier_id: 1,
+                items: purchaseData.items,
+                paid_amount: 5000
+            }),
+            1
+        );
     });
 });

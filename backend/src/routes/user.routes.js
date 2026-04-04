@@ -2,14 +2,14 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const db = require('../config/database');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authorize } = require('../middleware/auth');
 const { AppError } = require('../middleware/errorHandler');
 const audit = require('../utils/audit');
 const { phoneRule } = require('../validators/phone.validator');
 const { validationResult } = require('express-validator');
 
 // Middleware: All routes require 'admin' role
-router.use(authenticate, authorize('admin'));
+router.use(authorize('admin'));
 
 // GET / - List all users
 router.get('/', async (req, res, next) => {

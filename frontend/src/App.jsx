@@ -1,40 +1,61 @@
 import { Routes, Route, Navigate, useSearchParams, useNavigate } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, lazy, Suspense } from 'react'
 import { useAuthStore } from './store/auth.store'
 import { usePlatformAuthStore } from './store/platform.auth.store'
-import Layout from './components/Layout'
 import ImpersonationBanner from './components/ImpersonationBanner'
-import Login from './pages/Login'
-import Dashboard from './pages/Dashboard'
-import Products from './pages/Products'
-import Customers from './pages/Customers'
-import Suppliers from './pages/Suppliers'
-import Sales from './pages/Sales'
-import NewSale from './pages/NewSale'
-import Purchases from './pages/Purchases'
-import NewPurchase from './pages/NewPurchase'
-import Expenses from './pages/Expenses'
-import Journals from './pages/Journals'
-import Reports from './pages/Reports'
-import Settings from './pages/Settings'
-import Accounts from './pages/Accounts'
-import LedgerView from './pages/LedgerView'
-import StockAdjustment from './pages/StockAdjustment'
-import Quotations from './pages/Quotations'
-import Users from './pages/Users'
-import AuditLogs from './pages/AuditLogs'
-import Units from './pages/Units'
-import SetupWizard from './pages/setup/SetupWizard'
-import CustomerPayment from './pages/CustomerPayment'
-import SupplierPayment from './pages/SupplierPayment'
+import { authAPI } from './services/api'
+
+const Layout = lazy(() => import('./components/Layout'))
+const Login = lazy(() => import('./pages/Login'))
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Products = lazy(() => import('./pages/Products'))
+const Customers = lazy(() => import('./pages/Customers'))
+const Suppliers = lazy(() => import('./pages/Suppliers'))
+const Sales = lazy(() => import('./pages/Sales'))
+const NewSale = lazy(() => import('./pages/NewSale'))
+const Purchases = lazy(() => import('./pages/Purchases'))
+const NewPurchase = lazy(() => import('./pages/NewPurchase'))
+const Expenses = lazy(() => import('./pages/Expenses'))
+const Journals = lazy(() => import('./pages/Journals'))
+const Reports = lazy(() => import('./pages/Reports'))
+const Settings = lazy(() => import('./pages/Settings'))
+const Accounts = lazy(() => import('./pages/Accounts'))
+const LedgerView = lazy(() => import('./pages/LedgerView'))
+const StockAdjustment = lazy(() => import('./pages/StockAdjustment'))
+const Quotations = lazy(() => import('./pages/Quotations'))
+const Users = lazy(() => import('./pages/Users'))
+const AuditLogs = lazy(() => import('./pages/AuditLogs'))
+const Units = lazy(() => import('./pages/Units'))
+const SetupWizard = lazy(() => import('./pages/setup/SetupWizard'))
+const CustomerPayment = lazy(() => import('./pages/CustomerPayment'))
+const SupplierPayment = lazy(() => import('./pages/SupplierPayment'))
 
 // Platform Admin imports
-import PlatformLayout from './components/platform/PlatformLayout'
-import PlatformLogin from './pages/platform/PlatformLogin'
-import PlatformDashboard from './pages/platform/PlatformDashboard'
-import ClientsList from './pages/platform/ClientsList'
-import NewClient from './pages/platform/NewClient'
-import ClientDetail from './pages/platform/ClientDetail'
+const PlatformLayout = lazy(() => import('./components/platform/PlatformLayout'))
+const PlatformLogin = lazy(() => import('./pages/platform/PlatformLogin'))
+const PlatformDashboard = lazy(() => import('./pages/platform/PlatformDashboard'))
+const ClientsList = lazy(() => import('./pages/platform/ClientsList'))
+const NewClient = lazy(() => import('./pages/platform/NewClient'))
+const ClientDetail = lazy(() => import('./pages/platform/ClientDetail'))
+const PlatformSettings = lazy(() => import('./pages/platform/PlatformSettings'))
+
+function RouteFallback() {
+    return (
+        <div
+            style={{
+                minHeight: '100vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'var(--color-bg)',
+                color: 'var(--color-text-muted)',
+                fontSize: 14,
+            }}
+        >
+            Loading...
+        </div>
+    )
+}
 
 function ProtectedRoute({ children }) {
     const { isAuthenticated } = useAuthStore()
@@ -67,27 +88,48 @@ function PlatformProtectedRoute({ children }) {
 // Handles impersonation token from URL
 function ImpersonationHandler() {
     const [searchParams] = useSearchParams()
-    const { login } = useAuthStore()
+    const navigate = useNavigate()
+    const { login, logout } = useAuthStore()
 
     useEffect(() => {
-        const token = searchParams.get('token')
-        if (token) {
-            // Decode JWT payload (client-side, no verification)
+        const applyImpersonation = async () => {
+            const token = searchParams.get('token')
+
+            if (!token) {
+                navigate('/login', { replace: true })
+                return
+            }
+
             try {
-                const payload = JSON.parse(atob(token.split('.')[1]))
+                // Persist token first, then fetch verified user from backend.
+                login({ id: null, username: 'loading...', full_name: 'Loading...', role: null }, token)
+
+                const meResponse = await authAPI.me()
+                const verifiedUser = meResponse?.data
+
+                if (!verifiedUser?.id) {
+                    throw new Error('Invalid impersonation token')
+                }
+
                 login({
-                    id: payload.userId,
-                    username: payload.username || 'impersonated-user',
-                    full_name: payload.username || 'Impersonated User',
-                    role: payload.role || 'admin',
+                    id: verifiedUser.id,
+                    username: verifiedUser.username,
+                    full_name: verifiedUser.full_name || verifiedUser.fullName || verifiedUser.username,
+                    role: verifiedUser.role,
+                    email: verifiedUser.email,
                 }, token)
+
+                navigate('/', { replace: true })
             } catch (e) {
-                console.error('Failed to parse impersonation token', e)
+                logout()
+                navigate('/login', { replace: true })
             }
         }
-    }, [searchParams, login])
 
-    return <Navigate to="/" replace />
+        applyImpersonation()
+    }, [searchParams, login, logout, navigate])
+
+    return null
 }
 
 // Redirect non-onboarded admin users to the setup wizard
@@ -112,7 +154,7 @@ function OnboardingGuard({ children }) {
 
 function App() {
     return (
-        <>
+        <Suspense fallback={<RouteFallback />}>
             <ImpersonationBanner />
             <Routes>
                 <Route path="/login" element={<Login />} />
@@ -132,12 +174,7 @@ function App() {
                     <Route path="clients" element={<ClientsList />} />
                     <Route path="clients/new" element={<NewClient />} />
                     <Route path="clients/:id" element={<ClientDetail />} />
-                    <Route path="settings" element={
-                        <div style={{ color: '#e2e8f0', padding: 20 }}>
-                            <h2>Platform Settings</h2>
-                            <p style={{ color: '#64748b' }}>Coming soon...</p>
-                        </div>
-                    } />
+                    <Route path="settings" element={<PlatformSettings />} />
                 </Route>
 
                 {/* Setup Wizard — full screen, outside Layout */}
@@ -192,7 +229,7 @@ function App() {
 
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-        </>
+        </Suspense>
     )
 }
 

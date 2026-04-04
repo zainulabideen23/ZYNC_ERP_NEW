@@ -125,7 +125,7 @@ export default function PlatformDashboard() {
                     background: 'var(--color-panel)',
                     border: '1px solid var(--border-surface)',
                 }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text)', marginBottom: 16, margin: 0, marginBottom: 16 }}>
+                    <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text)', margin: 0, marginBottom: 16 }}>
                         Recent Clients
                     </h3>
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -168,7 +168,7 @@ export default function PlatformDashboard() {
                     background: 'var(--color-panel)',
                     border: '1px solid var(--border-surface)',
                 }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 600, color: '#fbbf24', marginBottom: 16, margin: 0, marginBottom: 16 }}>
+                    <h3 style={{ fontSize: 15, fontWeight: 600, color: '#fbbf24', margin: 0, marginBottom: 16 }}>
                         <AlertTriangle size={15} style={{ verticalAlign: 'middle', marginRight: 6 }} />
                         Expiring Soon
                     </h3>

@@ -82,7 +82,15 @@ describe('RBAC & Security Module', () => {
         authApp.use('/api/auth', authRoutes);
         authApp.use(errorHandler);
 
-        mockFirst.mockResolvedValue(undefined); // No user found with malicious string
+        mockFirst
+            .mockResolvedValueOnce({
+                id: 1,
+                name: 'Default Company',
+                slug: 'default',
+                is_active: true,
+                expires_at: null
+            })
+            .mockResolvedValueOnce(undefined); // No user found with malicious string
 
         const maliciousInput = "' OR '1'='1";
         const res = await request(authApp)

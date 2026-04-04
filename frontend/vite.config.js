@@ -29,5 +29,36 @@ export default defineConfig({
     build: {
         outDir: 'dist',
         sourcemap: true,
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    if (!id.includes('node_modules')) return
+
+                    const normalized = id.replace(/\\/g, '/')
+
+                    if (normalized.includes('/lucide-react/')) {
+                        return 'vendor-icons'
+                    }
+
+                    if (normalized.includes('/@tanstack/')) {
+                        return 'vendor-table'
+                    }
+
+                    if (
+                        normalized.includes('/xlsx/') ||
+                        normalized.includes('/jspdf/') ||
+                        normalized.includes('/html2canvas/') ||
+                        normalized.includes('/dompurify/')
+                    ) {
+                        return 'vendor-export'
+                    }
+                },
+            },
+        },
+    },
+    test: {
+        environment: 'jsdom',
+        globals: true,
+        setupFiles: './src/test-setup.js',
     },
 })

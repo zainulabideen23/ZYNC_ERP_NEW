@@ -53,6 +53,17 @@ describe('Authentication Module', () => {
 
     describe('POST /api/auth/login', () => {
         it('AUTH-001: Should login successfully with valid admin credentials', async () => {
+            const mockTenant = {
+                id: 1,
+                name: 'Default Company',
+                slug: 'default',
+                plan: 'starter',
+                is_onboarded: false,
+                onboarding_step: 1,
+                is_active: true,
+                expires_at: null
+            };
+
             const mockUser = {
                 id: 1,
                 username: 'admin',
@@ -62,7 +73,9 @@ describe('Authentication Module', () => {
                 email: 'admin@example.com'
             };
 
-            mockFirst.mockResolvedValue(mockUser);
+            mockFirst
+                .mockResolvedValueOnce(mockTenant)
+                .mockResolvedValueOnce(mockUser);
             bcrypt.compare.mockResolvedValue(true);
             jwt.sign.mockReturnValue('valid_token');
             mockUpdate.mockResolvedValue(1);
@@ -77,13 +90,23 @@ describe('Authentication Module', () => {
         });
 
         it('AUTH-003: Should reject login with invalid password', async () => {
+            const mockTenant = {
+                id: 1,
+                name: 'Default Company',
+                slug: 'default',
+                is_active: true,
+                expires_at: null
+            };
+
             const mockUser = {
                 id: 1,
                 username: 'admin',
                 password_hash: 'hashed_password'
             };
 
-            mockFirst.mockResolvedValue(mockUser);
+            mockFirst
+                .mockResolvedValueOnce(mockTenant)
+                .mockResolvedValueOnce(mockUser);
             bcrypt.compare.mockResolvedValue(false);
 
             const res = await request(app)
@@ -95,7 +118,15 @@ describe('Authentication Module', () => {
         });
 
         it('AUTH-003: Should reject login if user does not exist', async () => {
-            mockFirst.mockResolvedValue(undefined);
+            mockFirst
+                .mockResolvedValueOnce({
+                    id: 1,
+                    name: 'Default Company',
+                    slug: 'default',
+                    is_active: true,
+                    expires_at: null
+                })
+                .mockResolvedValueOnce(undefined);
 
             const res = await request(app)
                 .post('/api/auth/login')

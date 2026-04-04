@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authorize } = require('../middleware/auth');
 const ReportService = require('../services/report.service');
 
 // Dashboard summary
-router.get('/dashboard', authenticate, async (req, res, next) => {
+router.get('/dashboard', async (req, res, next) => {
     try {
         const reportService = new ReportService(db, req.tenantId);
         const data = await reportService.getDashboardStats();
@@ -16,7 +16,7 @@ router.get('/dashboard', authenticate, async (req, res, next) => {
 });
 
 // Stock report
-router.get('/stock', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/stock', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const reportService = new ReportService(db, req.tenantId);
         const data = await reportService.getStockReport(req.query);
@@ -27,7 +27,7 @@ router.get('/stock', authenticate, authorize('admin', 'manager'), async (req, re
 });
 
 // Profit and Loss
-router.get('/profit-loss', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/profit-loss', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const reportService = new ReportService(db, req.tenantId);
         const { from_date, to_date } = req.query;
@@ -39,7 +39,7 @@ router.get('/profit-loss', authenticate, authorize('admin', 'manager'), async (r
 });
 
 // Sales summary by date
-router.get('/sales/by-date', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/sales/by-date', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { from_date, to_date } = req.query;
         let query = db('sales')
@@ -66,7 +66,7 @@ router.get('/sales/by-date', authenticate, authorize('admin', 'manager'), async 
 });
 
 // Trial Balance
-router.get('/trial-balance', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/trial-balance', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { as_of_date } = req.query;
         
@@ -109,7 +109,7 @@ router.get('/trial-balance', authenticate, authorize('admin', 'manager'), async 
 });
 
 // Balance Sheet
-router.get('/balance-sheet', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/balance-sheet', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { as_of_date } = req.query;
         
@@ -174,7 +174,7 @@ router.get('/balance-sheet', authenticate, authorize('admin', 'manager'), async 
 });
 
 // Sales by Product
-router.get('/sales-by-product', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/sales-by-product', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { from_date, to_date } = req.query;
         
@@ -204,7 +204,7 @@ router.get('/sales-by-product', authenticate, authorize('admin', 'manager'), asy
 });
 
 // Sales by Customer
-router.get('/sales-by-customer', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/sales-by-customer', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { from_date, to_date } = req.query;
         
@@ -232,7 +232,7 @@ router.get('/sales-by-customer', authenticate, authorize('admin', 'manager'), as
 });
 
 // Purchase by Supplier
-router.get('/purchase-by-supplier', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/purchase-by-supplier', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { from_date, to_date } = req.query;
         
@@ -260,7 +260,7 @@ router.get('/purchase-by-supplier', authenticate, authorize('admin', 'manager'),
 });
 
 // Expense Summary
-router.get('/expense-summary', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/expense-summary', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { from_date, to_date } = req.query;
         

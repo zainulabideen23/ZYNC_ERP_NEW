@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authorize } = require('../middleware/auth');
 const { AppError } = require('../middleware/errorHandler');
 const PurchaseService = require('../services/purchase.service');
 const audit = require('../utils/audit');
 
 // Get all purchases
-router.get('/', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const purchaseService = new PurchaseService(db, req.tenantId);
         const result = await purchaseService.list(req.query);
@@ -18,7 +18,7 @@ router.get('/', authenticate, authorize('admin', 'manager'), async (req, res, ne
 });
 
 // Get single purchase with items
-router.get('/:id', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/:id', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const purchase = await db('purchases as p')
             .leftJoin('suppliers as s', 'p.supplier_id', 's.id')
@@ -41,7 +41,7 @@ router.get('/:id', authenticate, authorize('admin', 'manager'), async (req, res,
 });
 
 // Create purchase
-router.post('/', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.post('/', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const purchaseService = new PurchaseService(db, req.tenantId);
         const purchase = await purchaseService.createPurchase(req.body, req.user.id);

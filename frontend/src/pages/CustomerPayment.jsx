@@ -138,10 +138,12 @@ function CustomerPayment() {
                                 placeholder="Search customer by name or phone..."
                                 value={searchQuery}
                                 onChange={handleSearch}
-                                onFocus={() => setShowDropdown(true)}
+                                onFocus={e => {
+                                    setShowDropdown(true)
+                                    e.target.style.borderColor = 'var(--green)'
+                                }}
                                 autoComplete="off"
                                 style={{ width: '100%', height: '44px', background: 'var(--color-panel-2)', border: '1px solid var(--border-surface)', borderRadius: '10px', paddingLeft: '40px', paddingRight: '12px', fontSize: '14px', color: 'var(--color-text)', outline: 'none' }}
-                                onFocus={e => e.target.style.borderColor = 'var(--green)'}
                                 onBlur={e => e.target.style.borderColor = 'var(--border-surface)'}
                             />
                             {showDropdown && customers.length > 0 && (

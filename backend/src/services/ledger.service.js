@@ -120,12 +120,15 @@ class LedgerService {
      * Generate next Journal Number
      */
     async generateJournalNumber(trx) {
-        const sequence = await trx('sequences').where({ name: 'journal', tenant_id: this.tenantId }).forUpdate().first();
+        const updated = await trx('sequences')
+            .where({ name: 'journal', tenant_id: this.tenantId })
+            .increment('current_value', 1)
+            .returning(['current_value', 'prefix', 'pad_length']);
+
+        const sequence = updated[0];
         if (!sequence) throw new AppError('Journal sequence not found', 500);
 
-        const nextVal = parseInt(sequence.current_value) + 1;
-        await trx('sequences').where({ name: 'journal', tenant_id: this.tenantId }).update({ current_value: nextVal });
-
+        const nextVal = parseInt(sequence.current_value, 10);
         return `${sequence.prefix}${nextVal.toString().padStart(sequence.pad_length, '0')}`;
     }
 

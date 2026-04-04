@@ -1,14 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authorize } = require('../middleware/auth');
 const { AppError } = require('../middleware/errorHandler');
 const ExpenseService = require('../services/expense.service');
 const LedgerService = require('../services/ledger.service');
 const audit = require('../utils/audit');
 
 // Get all expenses
-router.get('/', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const ledgerService = new LedgerService(db, req.tenantId);
         const expenseService = new ExpenseService(db, ledgerService, req.tenantId);
@@ -20,7 +20,7 @@ router.get('/', authenticate, authorize('admin', 'manager'), async (req, res, ne
 });
 
 // Create expense
-router.post('/', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.post('/', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const ledgerService = new LedgerService(db, req.tenantId);
         const expenseService = new ExpenseService(db, ledgerService, req.tenantId);
@@ -44,7 +44,7 @@ router.post('/', authenticate, authorize('admin', 'manager'), async (req, res, n
 });
 
 // Get categories
-router.get('/categories', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/categories', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const categories = await db('expense_categories')
             .where('is_active', true)
@@ -57,7 +57,7 @@ router.get('/categories', authenticate, authorize('admin', 'manager'), async (re
 });
 
 // Create category
-router.post('/categories', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.post('/categories', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { name, account_id, description } = req.body;
         const [category] = await db('expense_categories')
@@ -70,7 +70,7 @@ router.post('/categories', authenticate, authorize('admin', 'manager'), async (r
 });
 
 // Delete expense (admin only)
-router.delete('/:id', authenticate, authorize('admin'), async (req, res, next) => {
+router.delete('/:id', authorize('admin'), async (req, res, next) => {
     try {
         // Fetch expense before deletion
         const oldExpense = await db('expenses')

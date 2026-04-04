@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authorize } = require('../middleware/auth');
 const { AppError } = require('../middleware/errorHandler');
 const { resolveSystemAccounts, SYSTEM_ACCOUNTS } = require('../utils/accountResolver');
 
 // POST /api/transfers/bank
 // Transfer funds between cash and bank accounts
-router.post('/bank', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.post('/bank', authorize('admin', 'manager'), async (req, res, next) => {
     const { from_account_code, to_account_code, amount, notes, transfer_date } = req.body;
 
     if (!from_account_code || !to_account_code || !amount || amount <= 0) {

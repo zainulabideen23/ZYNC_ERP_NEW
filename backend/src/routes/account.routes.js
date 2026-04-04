@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authorize } = require('../middleware/auth');
 const { AppError } = require('../middleware/errorHandler');
 const AccountService = require('../services/account.service');
 
 // Get Chart of Accounts (grouped)
-router.get('/', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const accountService = new AccountService(db, req.tenantId);
         const groupsWithAccounts = await accountService.listGroupsWithAccounts();
@@ -17,7 +17,7 @@ router.get('/', authenticate, authorize('admin', 'manager'), async (req, res, ne
 });
 
 // Get all groups
-router.get('/groups', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/groups', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const groups = await db('account_groups').where('tenant_id', req.tenantId).orderBy('sequence_order').orderBy('name');
         res.json({ success: true, data: groups });
@@ -27,7 +27,7 @@ router.get('/groups', authenticate, authorize('admin', 'manager'), async (req, r
 });
 
 // Get single account
-router.get('/:id', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/:id', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const accountService = new AccountService(db, req.tenantId);
         const account = await accountService.getById(req.params.id);
@@ -38,7 +38,7 @@ router.get('/:id', authenticate, authorize('admin', 'manager'), async (req, res,
 });
 
 // Get Trial Balance
-router.get('/report/trial-balance', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/report/trial-balance', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const accountService = new AccountService(db, req.tenantId);
         const { as_of_date } = req.query;
@@ -50,7 +50,7 @@ router.get('/report/trial-balance', authenticate, authorize('admin', 'manager'),
 });
 
 // Get account ledger
-router.get('/:id/ledger', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.get('/:id/ledger', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { from_date, to_date } = req.query;
         const account = await db('accounts').where('id', req.params.id).where('tenant_id', req.tenantId).first();
@@ -96,7 +96,7 @@ router.get('/:id/ledger', authenticate, authorize('admin', 'manager'), async (re
 
 // POST /api/accounts/opening-balances
 // Post opening balance journal entry (admin only, one-time, idempotent)
-router.post('/opening-balances', authenticate, authorize('admin'), async (req, res, next) => {
+router.post('/opening-balances', authorize('admin'), async (req, res, next) => {
     try {
         const tenantId = req.tenantId;
 
@@ -219,8 +219,7 @@ router.post('/opening-balances', authenticate, authorize('admin'), async (req, r
     }
 });
 
-// PATCH /:id - Update account (with system account protection)
-router.patch('/:id', authenticate, authorize('admin'), async (req, res, next) => {
+const updateAccount = async (req, res, next) => {
     try {
         const account = await db('accounts')
             .where({ id: req.params.id, tenant_id: req.tenantId })
@@ -228,10 +227,31 @@ router.patch('/:id', authenticate, authorize('admin'), async (req, res, next) =>
 
         if (!account) throw new AppError('Account not found', 404);
 
+        const inputFields = [
+            'code',
+            'name',
+            'group_id',
+            'account_type',
+            'is_bank_account',
+            'bank_name',
+            'account_number',
+            'opening_balance',
+            'description',
+            'is_active',
+            'notes'
+        ];
+
+        const updateData = { updated_at: new Date() };
+        for (const field of inputFields) {
+            if (req.body[field] !== undefined) {
+                updateData[field] = req.body[field];
+            }
+        }
+
         if (account.is_system) {
-            // Only allow changing description and is_active for system accounts
-            const allowedFields = ['description', 'is_active'];
-            const attempted = Object.keys(req.body).filter(k => !allowedFields.includes(k));
+            // System accounts allow only safe metadata and onboarding opening balance updates.
+            const allowedFields = ['description', 'is_active', 'opening_balance'];
+            const attempted = Object.keys(updateData).filter(k => k !== 'updated_at' && !allowedFields.includes(k));
             if (attempted.length > 0) {
                 return res.status(403).json({
                     error: `Cannot modify ${attempted.join(', ')} on system accounts.`
@@ -239,18 +259,42 @@ router.patch('/:id', authenticate, authorize('admin'), async (req, res, next) =>
             }
         }
 
+        if (updateData.opening_balance !== undefined) {
+            const openingBalance = Number(updateData.opening_balance);
+            if (!Number.isFinite(openingBalance)) {
+                return res.status(400).json({ error: 'opening_balance must be a valid number.' });
+            }
+
+            const hasLedgerEntries = await db('ledger_entries')
+                .where({ tenant_id: req.tenantId, account_id: account.id })
+                .first();
+
+            if (hasLedgerEntries) {
+                return res.status(409).json({
+                    error: 'Cannot change opening balance after ledger transactions exist for this account.'
+                });
+            }
+
+            updateData.opening_balance = openingBalance;
+            updateData.current_balance = openingBalance;
+        }
+
         await db('accounts')
             .where({ id: req.params.id, tenant_id: req.tenantId })
-            .update({ ...req.body, updated_at: new Date() });
+            .update(updateData);
 
         return res.json({ success: true });
     } catch (error) {
         next(error);
     }
-});
+};
+
+// PUT|PATCH /:id - Update account (with system account protection)
+router.put('/:id', authorize('admin'), updateAccount);
+router.patch('/:id', authorize('admin'), updateAccount);
 
 // DELETE /:id - Delete account (with system account protection)
-router.delete('/:id', authenticate, authorize('admin'), async (req, res, next) => {
+router.delete('/:id', authorize('admin'), async (req, res, next) => {
     try {
         const account = await db('accounts')
             .where({ id: req.params.id, tenant_id: req.tenantId })

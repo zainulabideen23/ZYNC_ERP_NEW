@@ -1,28 +1,65 @@
 const request = require('supertest');
 const express = require('express');
 
-// Mocks
 const mockReportServiceInstance = {
-    getTrialBalance: jest.fn(),
-    getProfitAndLoss: jest.fn(),
-    getBalanceSheet: jest.fn()
+    getProfitAndLoss: jest.fn()
 };
 
 const mockReportServiceClass = jest.fn(() => mockReportServiceInstance);
 
 jest.doMock('../src/services/report.service', () => mockReportServiceClass);
 
-// Auth Mock
 jest.doMock('../src/middleware/auth', () => ({
-    authenticate: (req, res, next) => {
+    authenticate: (req, _res, next) => {
         req.user = { id: 1, role: 'admin' };
         next();
     },
-    authorize: (...roles) => (req, res, next) => next()
+    authorize: () => (_req, _res, next) => next()
 }));
 
-// DB Mock for Routes
-const mockDb = jest.fn();
+const makeQuery = (trialBalanceRows, balanceSheetRows) => {
+    let isBalanceSheetQuery = false;
+
+    const query = {
+        join: jest.fn(() => query),
+        leftJoin: jest.fn(() => query),
+        where: jest.fn(() => query),
+        whereIn: jest.fn((columnName) => {
+            if (columnName === 'a.account_type') {
+                isBalanceSheetQuery = true;
+            }
+            return query;
+        }),
+        select: jest.fn(() => query),
+        groupBy: jest.fn(() => query),
+        orderBy: jest.fn().mockImplementation(async () => {
+            return isBalanceSheetQuery ? balanceSheetRows : trialBalanceRows;
+        })
+    };
+
+    return query;
+};
+
+const mockDb = jest.fn((tableName) => {
+    if (tableName === 'ledger_entries as le') {
+        const trialBalanceRows = [
+            { id: 1, code: '1001', name: 'Cash', group_name: 'Assets', debits: '1000', credits: '0' },
+            { id: 2, code: '4001', name: 'Sales', group_name: 'Income', debits: '0', credits: '1000' }
+        ];
+
+        const balanceSheetRows = [
+            { id: 1, code: '1001', name: 'Cash', account_type: 'asset', group_name: 'Assets', net_balance: '1000' },
+            { id: 2, code: '2001', name: 'Payable', account_type: 'liability', group_name: 'Liabilities', net_balance: '-400' },
+            { id: 3, code: '3001', name: 'Capital', account_type: 'equity', group_name: 'Equity', net_balance: '-600' }
+        ];
+
+        return makeQuery(trialBalanceRows, balanceSheetRows);
+    }
+
+    return makeQuery([], []);
+});
+mockDb.raw = jest.fn((sql) => sql);
+
 jest.doMock('../src/config/database', () => mockDb);
 
 const reportRoutes = require('../src/routes/report.routes');
@@ -33,24 +70,19 @@ describe('Financial Reporting Module', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+
         app = express();
         app.use(express.json());
+        app.use((req, _res, next) => {
+            req.user = { id: 1, role: 'admin' };
+            req.tenantId = 'tenant-1';
+            next();
+        });
         app.use('/api/reports', reportRoutes);
         app.use(errorHandler);
     });
 
     it('AC-001 / RP-003: Should generate balanced Trial Balance', async () => {
-        const mockTB = {
-            accounts: [
-                { code: '1001', name: 'Cash', debits: 1000, credits: 0, net_balance: 1000 },
-                { code: '4001', name: 'Sales', debits: 0, credits: 1000, net_balance: -1000 }
-            ],
-            totals: { debits: 1000, credits: 1000 },
-            is_balanced: true
-        };
-
-        mockReportServiceInstance.getTrialBalance.mockResolvedValue(mockTB);
-
         const res = await request(app)
             .get('/api/reports/trial-balance');
 
@@ -58,6 +90,7 @@ describe('Financial Reporting Module', () => {
         expect(res.body.success).toBe(true);
         expect(res.body.data.is_balanced).toBe(true);
         expect(res.body.data.totals.debits).toBe(1000);
+        expect(res.body.data.totals.credits).toBe(1000);
     });
 
     it('RP-001: Should calculate Profit & Loss accurately', async () => {
@@ -79,22 +112,21 @@ describe('Financial Reporting Module', () => {
     });
 
     it('RP-002: Should ensure Balance Sheet integrity (A = L + E)', async () => {
-        const mockBS = {
-            total_assets: 10000,
-            total_liabilities: 4000,
-            total_equity: 6000,
-            check: {
-                diff: 0
-            }
-        };
-
-        mockReportServiceInstance.getBalanceSheet.mockResolvedValue(mockBS);
+        mockReportServiceInstance.getProfitAndLoss.mockResolvedValue({
+            income: [],
+            expenses: [],
+            total_income: 0,
+            total_expenses: 0,
+            net_profit: 0
+        });
 
         const res = await request(app)
             .get('/api/reports/balance-sheet');
 
         expect(res.statusCode).toBe(200);
-        expect(res.body.data.check.diff).toBe(0);
+        expect(res.body.data.total_assets).toBe(1000);
+        expect(res.body.data.total_liabilities).toBe(400);
+        expect(res.body.data.total_equity).toBe(600);
         expect(res.body.data.total_assets).toBe(res.body.data.total_liabilities + res.body.data.total_equity);
     });
 });

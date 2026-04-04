@@ -85,7 +85,7 @@ app.use('/api/reports', authenticate, resolveTenant, reportRoutes);
 app.use('/api/expenses', authenticate, resolveTenant, expenseRoutes);
 app.use('/api/journals', authenticate, resolveTenant, journalRoutes);
 app.use('/api/users', authenticate, resolveTenant, userRoutes);
-app.use('/api/backups', backupRoutes);
+app.use('/api/backups', authenticate, resolveTenant, backupRoutes);
 app.use('/api/stock', authenticate, resolveTenant, stockRoutes);
 app.use('/api/quotations', authenticate, resolveTenant, quotationRoutes);
 app.use('/api/units', authenticate, resolveTenant, unitRoutes);

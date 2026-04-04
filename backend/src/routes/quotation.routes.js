@@ -2,12 +2,12 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 const QuotationService = require('../services/quotation.service');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authorize } = require('../middleware/auth');
 const { AppError } = require('../middleware/errorHandler');
 const audit = require('../utils/audit');
 
 // Get all quotations
-router.get('/', authenticate, async (req, res, next) => {
+router.get('/', async (req, res, next) => {
     try {
         const quotationService = new QuotationService(db, req.tenantId);
         const result = await quotationService.list(req.query);
@@ -18,7 +18,7 @@ router.get('/', authenticate, async (req, res, next) => {
 });
 
 // Get single quotation
-router.get('/:id', authenticate, async (req, res, next) => {
+router.get('/:id', async (req, res, next) => {
     try {
         const quotation = await db('quotations as q')
             .leftJoin('customers as c', 'q.customer_id', 'c.id')
@@ -41,7 +41,7 @@ router.get('/:id', authenticate, async (req, res, next) => {
 });
 
 // Create quotation
-router.post('/', authenticate, authorize('admin', 'manager', 'cashier'), async (req, res, next) => {
+router.post('/', authorize('admin', 'manager', 'cashier'), async (req, res, next) => {
     try {
         const quotationService = new QuotationService(db, req.tenantId);
         const quotation = await quotationService.create(req.body, req.user.id);
@@ -64,7 +64,7 @@ router.post('/', authenticate, authorize('admin', 'manager', 'cashier'), async (
 });
 
 // Update status
-router.patch('/:id/status', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.patch('/:id/status', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const { status } = req.body;
 

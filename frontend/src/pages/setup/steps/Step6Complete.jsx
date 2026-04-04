@@ -5,10 +5,10 @@ import { onboardingAPI } from '../../../services/api'
 import toast from 'react-hot-toast'
 import {
     CheckCircle, AlertTriangle, ArrowRight, Loader2,
-    Building2, Tag, Award, Ruler
+    Building2, Tag, Award, Ruler, Landmark
 } from 'lucide-react'
 
-function Step5Complete({ skippedSteps }) {
+function Step6Complete({ skippedSteps }) {
     const navigate = useNavigate()
     const { markOnboarded } = useAuthStore()
     const [status, setStatus] = useState(null)
@@ -61,6 +61,13 @@ function Step5Complete({ skippedSteps }) {
             key: 'units', label: 'Units', icon: Ruler,
             done: status?.completed_steps?.units,
             detail: status?.completed_steps?.units ? `${status.counts?.units || 0} ready` : 'Skipped',
+        },
+        {
+            key: 'opening_balances', label: 'Opening balances', icon: Landmark,
+            done: !skippedSteps?.has?.(5) && (status?.completed_steps?.opening_balances || false),
+            detail: skippedSteps?.has?.(5)
+                ? 'Skipped'
+                : (status?.completed_steps?.opening_balances ? 'Configured' : 'Not set'),
         },
     ]
 
@@ -150,4 +157,4 @@ function Step5Complete({ skippedSteps }) {
     )
 }
 
-export default Step5Complete
+export default Step6Complete

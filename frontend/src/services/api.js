@@ -114,7 +114,8 @@ export const purchasesAPI = {
 export const accountsAPI = {
     list: () => api.get('/accounts'),
     getGroups: () => api.get('/accounts/groups'),
-    getLedger: (id, params) => api.get(`/accounts/${id}/ledger`, { params })
+    getLedger: (id, params) => api.get(`/accounts/${id}/ledger`, { params }),
+    update: (id, data) => api.put(`/accounts/${id}`, data)
 }
 
 // Expenses

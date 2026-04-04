@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authorize } = require('../middleware/auth');
 
 /**
  * Helper: safely parse JSONB values that may arrive as strings
@@ -14,7 +14,7 @@ function safeJson(val) {
 
 // ─── GET /api/audit-logs/meta ────────────────────────────────
 // Returns dynamic filter options (users, distinct actions, distinct tables)
-router.get('/meta', authenticate, authorize('admin'), async (req, res, next) => {
+router.get('/meta', authorize('admin'), async (req, res, next) => {
     try {
         const tenantId = req.tenantId;
 
@@ -45,7 +45,7 @@ router.get('/meta', authenticate, authorize('admin'), async (req, res, next) => 
 
 // ─── GET /api/audit-logs ────────────────────────────────────
 // Admin-only listing with filtering and pagination
-router.get('/', authenticate, authorize('admin'), async (req, res, next) => {
+router.get('/', authorize('admin'), async (req, res, next) => {
     try {
         const tenantId = req.tenantId;
         const {

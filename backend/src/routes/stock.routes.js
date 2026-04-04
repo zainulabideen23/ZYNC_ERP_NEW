@@ -2,12 +2,12 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 const StockService = require('../services/stock.service');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authorize } = require('../middleware/auth');
 const { AppError } = require('../middleware/errorHandler');
 const audit = require('../utils/audit');
 
 // Batch stock adjustment
-router.post('/adjust', authenticate, authorize('admin', 'manager'), async (req, res, next) => {
+router.post('/adjust', authorize('admin', 'manager'), async (req, res, next) => {
     try {
         const stockService = new StockService(db, req.tenantId);
         const { adjustments, notes } = req.body;
@@ -48,7 +48,7 @@ router.post('/adjust', authenticate, authorize('admin', 'manager'), async (req, 
 });
 
 // Approve stock adjustment (admin only)
-router.post('/adjust/approve', authenticate, authorize('admin'), async (req, res, next) => {
+router.post('/adjust/approve', authorize('admin'), async (req, res, next) => {
     try {
         const { adjustment_id } = req.body;
         if (!adjustment_id) throw new AppError('adjustment_id is required', 400);
@@ -79,7 +79,7 @@ router.post('/adjust/approve', authenticate, authorize('admin'), async (req, res
 });
 
 // Reverse stock adjustment (admin only)
-router.post('/adjust/reverse', authenticate, authorize('admin'), async (req, res, next) => {
+router.post('/adjust/reverse', authorize('admin'), async (req, res, next) => {
     try {
         const { adjustment_id } = req.body;
         if (!adjustment_id) throw new AppError('adjustment_id is required', 400);

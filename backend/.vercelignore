@@ -1,0 +1,16 @@
+node_modules
+.env
+.git
+test-*.js
+check-*.js
+fix_*.js
+migrate_*.js
+verify_*.js
+add-*.js
+add_*.js
+setup_*.js
+sync_*.js
+simple_*.js
+restore_*.js
+run_*.js
+.gitignore

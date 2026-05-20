@@ -4,6 +4,7 @@ const db = require('../config/database');
 const { authorize } = require('../middleware/auth');
 const LedgerService = require('../services/ledger.service');
 const audit = require('../utils/audit');
+const { resolveSystemAccounts, SYSTEM_ACCOUNTS } = require('../utils/accountResolver');
 
 // List journals
 router.get('/', authorize('admin', 'manager'), async (req, res, next) => {
@@ -59,13 +60,21 @@ router.post('/', authorize('admin'), async (req, res, next) => {
 
         const journal = await db.transaction(async (trx) => {
             const ledgerService = new LedgerService(db, req.tenantId);
-            return await ledgerService.createJournalEntry({
+            const result = await ledgerService.createJournalEntry({
                 journal_date,
                 journal_type: 'general',
                 narration,
                 entries,
                 created_by: req.user.id
             }, trx);
+
+            // Handle customer receivable accounts sync
+            await syncCustomerAccountBalances(trx, req.tenantId, entries);
+            
+            // Handle supplier payable accounts sync
+            await syncSupplierAccountBalances(trx, req.tenantId, entries);
+
+            return result;
         });
 
         // Audit journal creation
@@ -82,6 +91,124 @@ router.post('/', authorize('admin'), async (req, res, next) => {
         });
 
         res.json({ success: true, data: journal });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// Helper function to sync customer account balances
+async function syncCustomerAccountBalances(trx, tenantId, entries) {
+    // Get 1201 control account
+    const accountIds = await resolveSystemAccounts(trx, tenantId, [SYSTEM_ACCOUNTS.CUSTOMER_RECEIVABLES]);
+    const controlAccountId = accountIds[SYSTEM_ACCOUNTS.CUSTOMER_RECEIVABLES];
+    
+    // Get all customer individual accounts (code 1204-1299)
+    const customerAccounts = await trx('accounts')
+        .where('tenant_id', tenantId)
+        .whereRaw("code >= '1204' AND code <= '1299'")
+        .where('is_active', true)
+        .select('id', 'code');
+    
+    // Check if any entries affect customer accounts
+    const affectedAccountIds = new Set();
+    for (const entry of entries || []) {
+        if (entry.account_id) {
+            affectedAccountIds.add(entry.account_id);
+        }
+    }
+    
+    // Update each affected customer account balance
+    for (const account of customerAccounts) {
+        if (affectedAccountIds.has(account.id)) {
+            // Get current balance from ledger
+            const ledgerEntries = await trx('ledger_entries')
+                .where({ tenant_id: tenantId, account_id: account.id });
+            
+            let balance = 0;
+            for (const e of ledgerEntries) {
+                if (e.entry_type === 'debit') balance += parseFloat(e.amount);
+                else balance -= parseFloat(e.amount);
+            }
+            
+            // Update account current_balance
+            await trx('accounts')
+                .where({ id: account.id })
+                .update({ current_balance: balance });
+        }
+    }
+    
+    // Update 1201 control account to sum of all individual accounts
+    let totalIndividual = 0;
+    for (const account of customerAccounts) {
+        const acc = await trx('accounts').where({ id: account.id }).first();
+        totalIndividual += parseFloat(acc?.current_balance || 0);
+    }
+    
+    await trx('accounts')
+        .where({ id: controlAccountId })
+        .update({ current_balance: totalIndividual });
+    
+    // Also sync supplier accounts (2001 control with 2204-2299)
+    await syncSupplierAccountBalances(trx, tenantId, entries);
+}
+
+async function syncSupplierAccountBalances(trx, tenantId, entries) {
+    // Get 2001 control account
+    const accountIds = await resolveSystemAccounts(trx, tenantId, [SYSTEM_ACCOUNTS.SUPPLIER_PAYABLES]);
+    const controlAccountId = accountIds[SYSTEM_ACCOUNTS.SUPPLIER_PAYABLES];
+    
+    // Get all supplier individual accounts (code 2204-2299)
+    const supplierAccounts = await trx('accounts')
+        .where('tenant_id', tenantId)
+        .whereRaw("code >= '2204' AND code <= '2299'")
+        .where('is_active', true)
+        .select('id', 'code');
+    
+    // Check if any entries affect supplier accounts
+    const affectedAccountIds = new Set();
+    for (const entry of entries || []) {
+        if (entry.account_id) {
+            affectedAccountIds.add(entry.account_id);
+        }
+    }
+    
+    // Update each affected supplier account balance
+    for (const account of supplierAccounts) {
+        if (affectedAccountIds.has(account.id)) {
+            const ledgerEntries = await trx('ledger_entries')
+                .where({ tenant_id: tenantId, account_id: account.id });
+            
+            let balance = 0;
+            for (const e of ledgerEntries) {
+                if (e.entry_type === 'credit') balance += parseFloat(e.amount);
+                else balance -= parseFloat(e.amount);
+            }
+            
+            await trx('accounts')
+                .where({ id: account.id })
+                .update({ current_balance: balance });
+        }
+    }
+    
+    // Update 2001 control account
+    let totalIndividual = 0;
+    for (const account of supplierAccounts) {
+        const acc = await trx('accounts').where({ id: account.id }).first();
+        totalIndividual += parseFloat(acc?.current_balance || 0);
+    }
+    
+    await trx('accounts')
+        .where({ id: controlAccountId })
+        .update({ current_balance: totalIndividual });
+}
+
+// Preview manual journal entries before posting
+router.post('/preview', authorize('admin', 'manager'), async (req, res, next) => {
+    try {
+        const { entries, journal_date, narration } = req.body;
+        const ledgerService = new LedgerService(db, req.tenantId);
+        const preview = await ledgerService.previewJournal(entries, { journal_date, narration });
+        res.json({ success: true, data: preview });
     } catch (error) {
         next(error);
     }

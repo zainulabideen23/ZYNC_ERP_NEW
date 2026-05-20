@@ -359,6 +359,11 @@ router.post('/tenants/:id/impersonate', async (req, res, next) => {
         // Generate impersonation JWT using the TENANT app secret
         const expiresIn = process.env.IMPERSONATION_JWT_EXPIRES_IN || '2h';
         const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+        const jwtSecret = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? null : 'dev-jwt-secret');
+
+        if (!jwtSecret) {
+            throw new AppError('JWT_SECRET not configured on server', 500);
+        }
 
         const token = jwt.sign(
             {
@@ -368,7 +373,7 @@ router.post('/tenants/:id/impersonate', async (req, res, next) => {
                 impersonatedBy: req.platformAdmin.id,
                 type: 'impersonation'
             },
-            process.env.JWT_SECRET,
+            jwtSecret,
             { expiresIn }
         );
 

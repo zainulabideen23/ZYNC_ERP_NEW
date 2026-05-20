@@ -6,31 +6,138 @@ import { useNavigate } from 'react-router-dom'
 import { 
     FileText, Plus, Search, X, Download, Eye, 
     Send, CheckCircle, XCircle, Clock, DollarSign,
-    TrendingUp, AlertCircle, ArrowUpRight, ArrowDownRight
+    TrendingUp, AlertCircle, ArrowUpRight, ArrowDownRight,
+    Mail, Copy, Pencil, Loader2
 } from 'lucide-react'
+import './Quotations.css'
+
+const formatCurrency = (value) => `Rs. ${Number(value).toLocaleString()}`
+const createInitialFormData = () => ({
+    customer_id: '',
+    quotation_date: format(new Date(), 'yyyy-MM-dd'),
+    valid_until: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
+    items: [{ product_id: '', quantity: 1, unit_price: 0, line_discount: 0, tax_rate: 0 }],
+    discount_amount: 0,
+    discount_percentage: 0,
+    tax_amount: 0,
+    notes: ''
+})
+
+const canEditQuotation = (status) => ['draft', 'sent', 'accepted', 'rejected'].includes(status)
+const RESPONSE_REMINDER_DAYS = 3
+
+const toDateSafe = (value) => {
+    const parsed = new Date(value)
+    return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+const getDaysSince = (value) => {
+    const dateValue = toDateSafe(value)
+    if (!dateValue) return 0
+    const diffMs = Date.now() - dateValue.getTime()
+    return Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)))
+}
+
+const isAwaitingResponse = (quotation) => {
+    if (!quotation) return false
+    return Boolean(quotation.email_sent_at) && !quotation.responded_at && !['accepted', 'rejected', 'converted'].includes(quotation.status)
+}
+
+const isReminderOverdue = (quotation) => isAwaitingResponse(quotation) && getDaysSince(quotation.email_sent_at) >= RESPONSE_REMINDER_DAYS
+
+const formatOptionalDateTime = (value) => {
+    const parsed = toDateSafe(value)
+    if (!parsed) return '-'
+    return format(parsed, 'dd MMM yyyy HH:mm')
+}
+
+const getFilenameFromDisposition = (contentDisposition) => {
+    if (!contentDisposition) return null
+    const match = /filename="?([^";]+)"?/i.exec(contentDisposition)
+    return match ? match[1] : null
+}
+
+const toDateInput = (value, fallbackDate = new Date()) => {
+    const raw = value ? new Date(value) : fallbackDate
+    return Number.isNaN(raw.getTime()) ? format(fallbackDate, 'yyyy-MM-dd') : format(raw, 'yyyy-MM-dd')
+}
+
+const mapQuotationToFormData = (quotation) => ({
+    customer_id: String(quotation.customer_id || ''),
+    quotation_date: toDateInput(quotation.quotation_date),
+    valid_until: toDateInput(quotation.valid_until, new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
+    items: (quotation.items || []).length > 0
+        ? quotation.items.map((item) => ({
+            product_id: String(item.product_id || ''),
+            quantity: Number(item.quantity || 1),
+            unit_price: Number(item.unit_price || 0),
+            line_discount: Number(item.line_discount || 0),
+            tax_rate: Number(item.tax_rate || 0),
+            line_total: Number(item.line_total || ((Number(item.quantity || 0) * Number(item.unit_price || 0)) - Number(item.line_discount || 0)))
+        }))
+        : [{ product_id: '', quantity: 1, unit_price: 0, line_discount: 0, tax_rate: 0 }],
+    discount_amount: Number(quotation.discount_amount || 0),
+    discount_percentage: 0,
+    tax_amount: Number(quotation.tax_amount || 0),
+    notes: quotation.notes || ''
+})
+
+const getQuotationSequence = (quotationNumber) => {
+    const normalized = String(quotationNumber || '').trim()
+    const match = normalized.match(/(\d+)(?!.*\d)/)
+    if (!match) return Number.NaN
+    return Number.parseInt(match[1], 10)
+}
+
+const sortQuotationsByNumber = (items = []) => {
+    return [...items].sort((left, right) => {
+        const leftSeq = getQuotationSequence(left.quotation_number)
+        const rightSeq = getQuotationSequence(right.quotation_number)
+
+        if (Number.isFinite(leftSeq) && Number.isFinite(rightSeq) && leftSeq !== rightSeq) {
+            return rightSeq - leftSeq
+        }
+
+        const lexicalSort = String(right.quotation_number || '').localeCompare(
+            String(left.quotation_number || ''),
+            undefined,
+            { numeric: true, sensitivity: 'base' }
+        )
+
+        if (lexicalSort !== 0) return lexicalSort
+
+        const leftDate = toDateSafe(left.quotation_date)?.getTime() || 0
+        const rightDate = toDateSafe(right.quotation_date)?.getTime() || 0
+        return rightDate - leftDate
+    })
+}
 
 function Quotations() {
     const navigate = useNavigate()
     const [quotations, setQuotations] = useState([])
     const [loading, setLoading] = useState(true)
     const [selectedQuotation, setSelectedQuotation] = useState(null)
+    const [loadingSelectedQuotation, setLoadingSelectedQuotation] = useState(false)
     const [showModal, setShowModal] = useState(false)
     const [showCreateModal, setShowCreateModal] = useState(false)
+    const [showEmailModal, setShowEmailModal] = useState(false)
     const [statusFilter, setStatusFilter] = useState('')
     const [searchQuery, setSearchQuery] = useState('')
     const [dateRange, setDateRange] = useState({ from: '', to: '' })
+    const [editingQuotationId, setEditingQuotationId] = useState(null)
+    const [isSubmittingQuotation, setIsSubmittingQuotation] = useState(false)
+    const [emailing, setEmailing] = useState(false)
+    const [activeEmailQuotation, setActiveEmailQuotation] = useState(null)
 
     const [customers, setCustomers] = useState([])
     const [products, setProducts] = useState([])
-    const [formData, setFormData] = useState({
-        customer_id: '',
-        quotation_date: new Date().toISOString().split('T')[0],
-        valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        items: [{ product_id: '', quantity: 1, unit_price: 0, line_discount: 0, tax_rate: 0 }],
-        discount_amount: 0,
-        discount_percentage: 0,
-        tax_amount: 0,
-        notes: ''
+    const [formData, setFormData] = useState(createInitialFormData())
+    const [emailForm, setEmailForm] = useState({
+        toEmail: '',
+        subject: '',
+        message: '',
+        includePdf: true,
+        tokenExpiryDays: ''
     })
 
     useEffect(() => {
@@ -44,8 +151,8 @@ function Quotations() {
                 customersAPI.list({ limit: 500 }),
                 productsAPI.list({ limit: 500 })
             ])
-            setCustomers(custRes.data)
-            setProducts(prodRes.data)
+            setCustomers(custRes.data || [])
+            setProducts(prodRes.data || [])
         } catch (error) {
             console.error('Failed to load master data')
         }
@@ -58,13 +165,42 @@ function Quotations() {
             if (searchQuery) params.search = searchQuery
             if (dateRange.from) params.from_date = dateRange.from
             if (dateRange.to) params.to_date = dateRange.to
-            
+
             const response = await quotationsAPI.list(params)
-            setQuotations(response.data || [])
+            setQuotations(sortQuotationsByNumber(response.data || []))
         } catch (error) {
             toast.error('Failed to load quotations')
         } finally {
             setLoading(false)
+        }
+    }
+
+    const loadQuotationDetail = async (quotationId) => {
+        const response = await quotationsAPI.get(quotationId)
+        return response.data
+    }
+
+    const resetQuotationForm = () => {
+        setEditingQuotationId(null)
+        setFormData(createInitialFormData())
+    }
+
+    const openCreateQuotationModal = () => {
+        resetQuotationForm()
+        setShowCreateModal(true)
+    }
+
+    const openQuotationDetailModal = async (quotation) => {
+        setShowModal(true)
+        setSelectedQuotation(quotation)
+        setLoadingSelectedQuotation(true)
+        try {
+            const detail = await loadQuotationDetail(quotation.id)
+            setSelectedQuotation(detail)
+        } catch (error) {
+            toast.error(`Failed to load quotation: ${error.message}`)
+        } finally {
+            setLoadingSelectedQuotation(false)
         }
     }
 
@@ -87,18 +223,179 @@ function Quotations() {
         try {
             await quotationsAPI.updateStatus(quotation.id, newStatus)
             toast.success(`Status updated to ${newStatus}`)
-            loadQuotations()
+            await loadQuotations()
+
+            if (selectedQuotation?.id === quotation.id) {
+                const detail = await loadQuotationDetail(quotation.id)
+                setSelectedQuotation(detail)
+            }
         } catch (error) {
             toast.error(`Failed to update status: ${error.message}`)
         }
     }
 
-    const handleSendEmail = async (quotation) => {
+    const handleOpenEditQuotation = async (quotation) => {
+        if (!canEditQuotation(quotation.status)) {
+            toast.error('This quotation cannot be edited')
+            return
+        }
+
         try {
-            await quotationsAPI.send(quotation.id)
-            toast.success('Quotation sent to customer')
+            const detail = await loadQuotationDetail(quotation.id)
+            setEditingQuotationId(detail.id)
+            setFormData(mapQuotationToFormData(detail))
+            setShowCreateModal(true)
+            setShowModal(false)
         } catch (error) {
-            toast.error('Failed to send quotation')
+            toast.error(`Failed to load quotation for editing: ${error.message}`)
+        }
+    }
+
+    const handleDuplicateQuotation = async (quotation) => {
+        try {
+            const response = await quotationsAPI.duplicate(quotation.id)
+            toast.success(`Duplicated as ${response.data.quotation_number}`)
+            await loadQuotations()
+        } catch (error) {
+            toast.error(`Failed to duplicate quotation: ${error.message}`)
+        }
+    }
+
+    const handleDownloadPdf = async (quotation) => {
+        try {
+            const response = await quotationsAPI.getPDF(quotation.id)
+            const blob = new Blob([response.data], { type: 'application/pdf' })
+            const filenameFromHeader = getFilenameFromDisposition(response.headers['content-disposition'])
+            const fallbackName = `${quotation.quotation_number || 'quotation'}.pdf`
+
+            const link = document.createElement('a')
+            link.href = URL.createObjectURL(blob)
+            link.download = filenameFromHeader || fallbackName
+            link.click()
+            URL.revokeObjectURL(link.href)
+        } catch (error) {
+            toast.error(`Failed to download PDF: ${error.message}`)
+        }
+    }
+
+    const handleOpenEmailModal = async (quotation) => {
+        try {
+            const detail = await loadQuotationDetail(quotation.id)
+            setActiveEmailQuotation(detail)
+            setEmailForm({
+                toEmail: detail.customer_email || '',
+                subject: `Quotation ${detail.quotation_number}`,
+                message: 'Please find your quotation attached. Let us know if you have any questions.',
+                includePdf: true,
+                tokenExpiryDays: ''
+            })
+            setShowEmailModal(true)
+        } catch (error) {
+            toast.error(`Failed to load quotation for email: ${error.message}`)
+        }
+    }
+
+    const handleSendQuotationEmail = async (event) => {
+        event.preventDefault()
+        if (!activeEmailQuotation) return
+
+        try {
+            setEmailing(true)
+            const emailPayload = {
+                ...emailForm,
+            }
+
+            const normalizedTokenExpiry = String(emailForm.tokenExpiryDays || '').trim()
+            if (normalizedTokenExpiry !== '') {
+                const parsedDays = Number.parseInt(normalizedTokenExpiry, 10)
+                if (!Number.isInteger(parsedDays) || parsedDays <= 0) {
+                    toast.error('Token expiry days must be a positive number')
+                    return
+                }
+                emailPayload.token_expiry_days = parsedDays
+            }
+
+            delete emailPayload.tokenExpiryDays
+
+            await quotationsAPI.sendEmail(activeEmailQuotation.id, emailPayload)
+            toast.success('Quotation email sent successfully')
+            setShowEmailModal(false)
+            setActiveEmailQuotation(null)
+
+            if (selectedQuotation?.id === activeEmailQuotation.id) {
+                const refreshed = await loadQuotationDetail(activeEmailQuotation.id)
+                setSelectedQuotation(refreshed)
+            }
+
+            await loadQuotations()
+        } catch (error) {
+            toast.error(`Failed to send email: ${error.message}`)
+        } finally {
+            setEmailing(false)
+        }
+    }
+
+    const handleSendReminder = async (quotation) => {
+        try {
+            await quotationsAPI.sendReminder(quotation.id, {
+                toEmail: quotation.customer_email || undefined,
+                includePdf: true,
+            })
+            toast.success('Reminder email sent')
+
+            await loadQuotations()
+            if (selectedQuotation?.id === quotation.id) {
+                const refreshed = await loadQuotationDetail(quotation.id)
+                setSelectedQuotation(refreshed)
+            }
+        } catch (error) {
+            toast.error(`Failed to send reminder: ${error.message}`)
+        }
+    }
+
+    const handleSubmitQuotationForm = async (e) => {
+        e.preventDefault()
+
+        try {
+            setIsSubmittingQuotation(true)
+
+            const subtotal = formData.items.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.unit_price)), 0)
+            const totalAmount = (subtotal - Number(formData.discount_amount || 0)) + Number(formData.tax_amount || 0)
+
+            const payload = {
+                ...formData,
+                subtotal,
+                total_amount: totalAmount,
+                items: formData.items.map((item) => ({
+                    ...item,
+                    quantity: Number(item.quantity || 0),
+                    unit_price: Number(item.unit_price || 0),
+                    line_discount: Number(item.line_discount || 0),
+                    tax_rate: Number(item.tax_rate || 0),
+                    line_total: Number(item.line_total || ((Number(item.quantity || 0) * Number(item.unit_price || 0)) - Number(item.line_discount || 0)))
+                }))
+            }
+
+            if (editingQuotationId) {
+                await quotationsAPI.update(editingQuotationId, payload)
+                toast.success('Quotation updated successfully')
+
+                if (selectedQuotation?.id === editingQuotationId) {
+                    const refreshed = await loadQuotationDetail(editingQuotationId)
+                    setSelectedQuotation(refreshed)
+                }
+            } else {
+                await quotationsAPI.create(payload)
+                toast.success('Quotation created successfully')
+            }
+
+            setShowCreateModal(false)
+            resetQuotationForm()
+            await loadQuotations()
+        } catch (error) {
+            toast.error(error.message)
+        } finally {
+            setIsSubmittingQuotation(false)
         }
     }
 
@@ -122,8 +419,6 @@ function Quotations() {
         link.download = `quotations_export_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`
         link.click()
     }
-
-    const formatCurrency = (value) => `Rs. ${Number(value).toLocaleString()}`
 
     const StatusBadge = ({ status }) => {
         const config = {
@@ -149,7 +444,7 @@ function Quotations() {
         )
     }
 
-    const MetricCard = ({ label, value, icon: Icon, color, subtext, trend }) => (
+    const MetricCard = ({ label, value, icon: Icon, color, subtext, trend, index = 0 }) => (
         <div style={{
             background: 'var(--color-panel)',
             border: '1px solid var(--border-surface)',
@@ -159,8 +454,10 @@ function Quotations() {
             minWidth: 0,
             position: 'relative',
             overflow: 'hidden',
-            transition: 'all 0.2s'
+            transition: 'all 0.2s',
+            animationDelay: `${index * 70}ms`
         }}
+        className="quote-ui-metric-card quote-ui-fade-up"
         onMouseEnter={e => {
             e.currentTarget.style.borderColor = color + '40'
             e.currentTarget.style.transform = 'translateY(-2px)'
@@ -224,16 +521,16 @@ function Quotations() {
             margin: '0 auto',
             background: 'var(--color-bg)',
             minHeight: '100vh'
-        }}>
+        }} className="quote-ui-page">
             {/* Page Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }} className="quote-ui-page-header quote-ui-fade-up">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                     <div style={{
                         width: '44px', height: '44px', borderRadius: '10px',
                         background: 'rgba(139, 92, 246, 0.12)',
                         border: '1px solid rgba(139, 92, 246, 0.2)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}>
+                    }} className="quote-ui-title-icon">
                         <FileText size={20} color="var(--purple)" />
                     </div>
                     <div>
@@ -243,7 +540,7 @@ function Quotations() {
                 </div>
 
                 <button
-                    onClick={() => setShowCreateModal(true)}
+                    onClick={openCreateQuotationModal}
                     style={{
                         height: '38px', padding: '0 16px',
                         borderRadius: '8px', border: 'none',
@@ -252,6 +549,7 @@ function Quotations() {
                         display: 'flex', alignItems: 'center', gap: '6px',
                         boxShadow: '0 2px 8px rgba(139, 92, 246, 0.3)'
                     }}
+                    className="quote-ui-primary-btn"
                 >
                     <Plus size={16} />
                     New Quotation
@@ -259,13 +557,14 @@ function Quotations() {
             </div>
 
             {/* Metrics Row */}
-            <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }} className="quote-ui-metrics-row">
                 <MetricCard
                     label="Total Value"
                     value={formatCurrency(totals.totalValue)}
                     icon={DollarSign}
                     color="#8b5cf6"
                     subtext="All quotations"
+                    index={0}
                 />
                 <MetricCard
                     label="Accepted"
@@ -274,6 +573,7 @@ function Quotations() {
                     color="#10b981"
                     subtext="Ready to convert"
                     trend={5}
+                    index={1}
                 />
                 <MetricCard
                     label="Pending"
@@ -281,6 +581,7 @@ function Quotations() {
                     icon={Clock}
                     color="#f59e0b"
                     subtext="Awaiting response"
+                    index={2}
                 />
                 <MetricCard
                     label="Converted"
@@ -288,6 +589,7 @@ function Quotations() {
                     icon={TrendingUp}
                     color="#3b82f6"
                     subtext="To sales"
+                    index={3}
                 />
             </div>
 
@@ -297,7 +599,7 @@ function Quotations() {
                 background: 'var(--color-panel)',
                 borderRadius: '12px', padding: '14px 16px',
                 marginBottom: '16px', border: '1px solid var(--border-surface)'
-            }}>
+            }} className="quote-ui-toolbar quote-ui-fade-up">
                 {/* Search */}
                 <div style={{ position: 'relative', flex: '0 0 260px' }}>
                     <Search size={15} style={{
@@ -408,7 +710,7 @@ function Quotations() {
                 background: 'var(--color-panel)',
                 borderRadius: '12px', border: '1px solid var(--border-surface)',
                 overflow: 'hidden'
-            }}>
+            }} className="quote-ui-table-wrap quote-ui-fade-up">
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                         <tr style={{ background: 'var(--color-panel-2)', borderBottom: '1px solid var(--border-surface)' }}>
@@ -418,7 +720,8 @@ function Quotations() {
                             <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Valid Until</th>
                             <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Amount</th>
                             <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
-                            <th style={{ width: '100px', padding: '12px 16px' }}></th>
+                            <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Response</th>
+                            <th style={{ width: '220px', padding: '12px 16px' }}></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -448,6 +751,9 @@ function Quotations() {
                                             <div style={{ width: '70px', height: '24px', background: 'var(--color-panel-2)', borderRadius: '6px' }} />
                                         </td>
                                         <td style={{ padding: '14px 16px' }}>
+                                            <div style={{ width: '110px', height: '14px', background: 'var(--color-panel-2)', borderRadius: '4px' }} />
+                                        </td>
+                                        <td style={{ padding: '14px 16px' }}>
                                             <div style={{ width: '60px', height: '30px', background: 'var(--color-panel-2)', borderRadius: '6px', marginLeft: 'auto' }} />
                                         </td>
                                     </tr>
@@ -455,7 +761,7 @@ function Quotations() {
                             </>
                         ) : quotations.length === 0 ? (
                             <tr>
-                                <td colSpan={7} style={{ padding: '80px 16px', textAlign: 'center' }}>
+                                <td colSpan={8} style={{ padding: '80px 16px', textAlign: 'center' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
                                         <div style={{
                                             width: '56px', height: '56px', borderRadius: '16px',
@@ -469,7 +775,7 @@ function Quotations() {
                                             <p style={{ fontSize: '13px', color: 'var(--color-hint)', margin: 0 }}>Create your first quotation to get started</p>
                                         </div>
                                         <button
-                                            onClick={() => setShowCreateModal(true)}
+                                            onClick={openCreateQuotationModal}
                                             style={{
                                                 marginTop: '8px', padding: '8px 16px',
                                                 borderRadius: '8px', border: 'none',
@@ -485,21 +791,23 @@ function Quotations() {
                             </tr>
                         ) : quotations.map((quote, index) => {
                             const isExpired = new Date(quote.valid_until) < new Date() && !['converted', 'rejected'].includes(quote.status)
+                            const awaitingResponse = isAwaitingResponse(quote)
+                            const overdueReminder = isReminderOverdue(quote)
+                            const baseRowBackground = overdueReminder ? 'rgba(245, 158, 11, 0.08)' : 'var(--color-panel)'
+
                             return (
                                 <tr
                                     key={quote.id}
+                                    className="quote-ui-table-row"
                                     style={{
                                         borderBottom: index < quotations.length - 1 ? '1px solid var(--border-light)' : 'none',
-                                        background: 'var(--color-panel)',
+                                        background: baseRowBackground,
                                         transition: 'background 0.15s',
                                         cursor: 'pointer'
                                     }}
-                                    onClick={() => {
-                                        setSelectedQuotation(quote)
-                                        setShowModal(true)
-                                    }}
+                                    onClick={() => openQuotationDetailModal(quote)}
                                     onMouseEnter={e => e.currentTarget.style.background = 'var(--color-panel-2)'}
-                                    onMouseLeave={e => e.currentTarget.style.background = 'var(--color-panel)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = baseRowBackground}
                                 >
                                     <td style={{ padding: '14px 16px' }}>
                                         <span style={{
@@ -537,13 +845,90 @@ function Quotations() {
                                     <td style={{ padding: '14px 16px' }}>
                                         <StatusBadge status={isExpired ? 'expired' : quote.status} />
                                     </td>
+                                    <td style={{ padding: '14px 16px', fontSize: '12px', color: 'var(--color-text-dim)' }}>
+                                        {quote.responded_at ? (
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#10b981' }}>
+                                                <CheckCircle size={13} />
+                                                {formatOptionalDateTime(quote.responded_at)}
+                                            </span>
+                                        ) : awaitingResponse ? (
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: overdueReminder ? '#f59e0b' : '#3b82f6' }}>
+                                                <Clock size={13} />
+                                                {overdueReminder ? `Awaiting (${getDaysSince(quote.email_sent_at)}d)` : 'Awaiting response'}
+                                            </span>
+                                        ) : quote.email_sent_at ? (
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--color-hint)' }}>
+                                                <Mail size={13} />
+                                                Sent {formatOptionalDateTime(quote.email_sent_at)}
+                                            </span>
+                                        ) : (
+                                            <span style={{ color: 'var(--color-hint)' }}>-</span>
+                                        )}
+                                    </td>
                                     <td style={{ padding: '14px 16px', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px', opacity: 0.5, transition: 'opacity 0.15s' }}
                                         onMouseEnter={e => e.currentTarget.style.opacity = 1}
                                         onMouseLeave={e => e.currentTarget.style.opacity = 0.5}>
+                                            {quote.status !== 'converted' && (
+                                                <button
+                                                    onClick={() => handleOpenEmailModal(quote)}
+                                                    className="quote-ui-action-btn"
+                                                    style={{
+                                                        width: '30px', height: '30px', borderRadius: '6px',
+                                                        border: '1px solid var(--border-surface)',
+                                                        background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6',
+                                                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                    }}
+                                                    title="Send Email"
+                                                >
+                                                    <Mail size={14} />
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={() => handleDownloadPdf(quote)}
+                                                className="quote-ui-action-btn"
+                                                style={{
+                                                    width: '30px', height: '30px', borderRadius: '6px',
+                                                    border: '1px solid var(--border-surface)',
+                                                    background: 'rgba(139, 92, 246, 0.12)', color: 'var(--purple)',
+                                                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                }}
+                                                title="Download PDF"
+                                            >
+                                                <Download size={14} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDuplicateQuotation(quote)}
+                                                className="quote-ui-action-btn"
+                                                style={{
+                                                    width: '30px', height: '30px', borderRadius: '6px',
+                                                    border: '1px solid var(--border-surface)',
+                                                    background: 'transparent', color: 'var(--color-muted)',
+                                                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                }}
+                                                title="Duplicate"
+                                            >
+                                                <Copy size={14} />
+                                            </button>
+                                            {canEditQuotation(quote.status) && (
+                                                <button
+                                                    onClick={() => handleOpenEditQuotation(quote)}
+                                                    className="quote-ui-action-btn"
+                                                    style={{
+                                                        width: '30px', height: '30px', borderRadius: '6px',
+                                                        border: '1px solid var(--border-surface)',
+                                                        background: 'transparent', color: 'var(--color-muted)',
+                                                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                    }}
+                                                    title="Edit"
+                                                >
+                                                    <Pencil size={14} />
+                                                </button>
+                                            )}
                                             {quote.status === 'accepted' && (
                                                 <button
                                                     onClick={() => handleConvertToSale(quote)}
+                                                    className="quote-ui-action-btn"
                                                     style={{
                                                         width: '30px', height: '30px', borderRadius: '6px',
                                                         border: '1px solid var(--border-surface)',
@@ -555,22 +940,9 @@ function Quotations() {
                                                     <DollarSign size={14} />
                                                 </button>
                                             )}
-                                            {['draft', 'sent'].includes(quote.status) && (
-                                                <button
-                                                    onClick={() => handleSendEmail(quote)}
-                                                    style={{
-                                                        width: '30px', height: '30px', borderRadius: '6px',
-                                                        border: '1px solid var(--border-surface)',
-                                                        background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6',
-                                                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                                    }}
-                                                    title="Send Email"
-                                                >
-                                                    <Send size={14} />
-                                                </button>
-                                            )}
                                             <button
-                                                onClick={() => { setSelectedQuotation(quote); setShowModal(true) }}
+                                                onClick={() => openQuotationDetailModal(quote)}
+                                                className="quote-ui-action-btn"
                                                 style={{
                                                     width: '30px', height: '30px', borderRadius: '6px',
                                                     border: '1px solid var(--border-surface)',
@@ -617,6 +989,7 @@ function Quotations() {
                         zIndex: 1000,
                         backdropFilter: 'blur(4px)'
                     }}
+                    className="quote-ui-overlay"
                     onClick={() => setShowModal(false)}
                 >
                     <div
@@ -629,6 +1002,7 @@ function Quotations() {
                             overflowY: 'auto',
                             border: '1px solid var(--border-surface)'
                         }}
+                        className="quote-ui-modal-card"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Modal Header */}
@@ -691,6 +1065,46 @@ function Quotations() {
                                 <StatusBadge status={selectedQuotation.status} />
                             </div>
 
+                            <div style={{ marginBottom: '24px' }}>
+                                <h4 style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-muted)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Response Tracking</h4>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                    <div style={{ padding: '12px', borderRadius: '10px', background: 'var(--color-panel-2)' }}>
+                                        <div style={{ fontSize: '11px', color: 'var(--color-muted)', marginBottom: '4px' }}>Email Sent Count</div>
+                                        <div style={{ fontSize: '14px', color: 'var(--color-text)', fontWeight: 600 }}>{Number(selectedQuotation.email_sent_count || 0)}</div>
+                                    </div>
+                                    <div style={{ padding: '12px', borderRadius: '10px', background: 'var(--color-panel-2)' }}>
+                                        <div style={{ fontSize: '11px', color: 'var(--color-muted)', marginBottom: '4px' }}>Last Emailed To</div>
+                                        <div style={{ fontSize: '13px', color: 'var(--color-text)' }}>{selectedQuotation.last_emailed_to || '-'}</div>
+                                    </div>
+                                    <div style={{ padding: '12px', borderRadius: '10px', background: 'var(--color-panel-2)' }}>
+                                        <div style={{ fontSize: '11px', color: 'var(--color-muted)', marginBottom: '4px' }}>Link Expires</div>
+                                        <div style={{ fontSize: '13px', color: 'var(--color-text)' }}>{formatOptionalDateTime(selectedQuotation.token_expires_at)}</div>
+                                    </div>
+                                    <div style={{ padding: '12px', borderRadius: '10px', background: 'var(--color-panel-2)' }}>
+                                        <div style={{ fontSize: '11px', color: 'var(--color-muted)', marginBottom: '4px' }}>Responded At</div>
+                                        <div style={{ fontSize: '13px', color: 'var(--color-text)' }}>{formatOptionalDateTime(selectedQuotation.responded_at)}</div>
+                                    </div>
+                                    <div style={{ padding: '12px', borderRadius: '10px', background: 'var(--color-panel-2)', gridColumn: '1 / -1' }}>
+                                        <div style={{ fontSize: '11px', color: 'var(--color-muted)', marginBottom: '4px' }}>Response IP</div>
+                                        <div style={{ fontSize: '13px', color: 'var(--color-text)' }}>{selectedQuotation.response_ip || '-'}</div>
+                                    </div>
+                                </div>
+
+                                {selectedQuotation.customer_response_notes && (
+                                    <div style={{ marginTop: '10px', padding: '12px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+                                        <div style={{ fontSize: '11px', color: '#065f46', marginBottom: '4px', fontWeight: 600 }}>Customer Notes</div>
+                                        <div style={{ fontSize: '13px', color: '#065f46', whiteSpace: 'pre-wrap' }}>{selectedQuotation.customer_response_notes}</div>
+                                    </div>
+                                )}
+
+                                {isAwaitingResponse(selectedQuotation) && (
+                                    <div style={{ marginTop: '10px', fontSize: '12px', color: isReminderOverdue(selectedQuotation) ? '#f59e0b' : '#3b82f6' }}>
+                                        Awaiting response for {getDaysSince(selectedQuotation.email_sent_at)} day(s).
+                                    </div>
+                                )}
+                            </div>
+
                             <div style={{ borderTop: '1px solid var(--border-surface)', paddingTop: '20px' }}>
                                 <h4 style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-muted)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Items</h4>
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -703,7 +1117,22 @@ function Quotations() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {(selectedQuotation.items || []).map((item, idx) => (
+                                        {loadingSelectedQuotation ? (
+                                            <tr>
+                                                <td colSpan={4} style={{ padding: '20px', textAlign: 'center', color: 'var(--color-hint)', fontSize: '13px' }}>
+                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                                                        <Loader2 size={14} />
+                                                        Loading items...
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ) : (selectedQuotation.items || []).length === 0 ? (
+                                            <tr>
+                                                <td colSpan={4} style={{ padding: '20px', textAlign: 'center', color: 'var(--color-hint)', fontSize: '13px' }}>
+                                                    No items found for this quotation.
+                                                </td>
+                                            </tr>
+                                        ) : (selectedQuotation.items || []).map((item, idx) => (
                                             <tr key={idx} style={{ borderBottom: idx < selectedQuotation.items.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
                                                 <td style={{ padding: '12px', fontSize: '13px', color: 'var(--color-text)' }}>{item.product_name}</td>
                                                 <td style={{ padding: '12px', textAlign: 'center', fontSize: '13px', color: 'var(--color-text-dim)' }}>{item.quantity}</td>
@@ -717,42 +1146,94 @@ function Quotations() {
                         </div>
 
                         {/* Modal Footer */}
-                        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-surface)', display: 'flex', gap: '10px' }}>
+                        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-surface)', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                            {selectedQuotation.status !== 'converted' && (
+                                <button
+                                    onClick={() => handleOpenEmailModal(selectedQuotation)}
+                                    style={{
+                                        height: '40px', padding: '0 14px', borderRadius: '8px',
+                                        border: 'none', background: '#3b82f6', color: '#fff',
+                                        fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', gap: '6px'
+                                    }}
+                                >
+                                    <Mail size={14} /> Send Email
+                                </button>
+                            )}
+                            {isAwaitingResponse(selectedQuotation) && (
+                                <button
+                                    onClick={() => handleSendReminder(selectedQuotation)}
+                                    style={{
+                                        height: '40px', padding: '0 14px', borderRadius: '8px',
+                                        border: '1px solid rgba(245, 158, 11, 0.35)',
+                                        background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b',
+                                        fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', gap: '6px'
+                                    }}
+                                >
+                                    <Clock size={14} /> Send Reminder
+                                </button>
+                            )}
+                            <button
+                                onClick={() => handleDownloadPdf(selectedQuotation)}
+                                style={{
+                                    height: '40px', padding: '0 14px', borderRadius: '8px',
+                                    border: '1px solid var(--border-surface)',
+                                    background: 'transparent', color: 'var(--color-text)',
+                                    fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', gap: '6px'
+                                }}
+                            >
+                                <Download size={14} /> PDF
+                            </button>
+                            <button
+                                onClick={() => handleDuplicateQuotation(selectedQuotation)}
+                                style={{
+                                    height: '40px', padding: '0 14px', borderRadius: '8px',
+                                    border: '1px solid var(--border-surface)',
+                                    background: 'transparent', color: 'var(--color-text)',
+                                    fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', gap: '6px'
+                                }}
+                            >
+                                <Copy size={14} /> Duplicate
+                            </button>
+                            {canEditQuotation(selectedQuotation.status) && (
+                                <button
+                                    onClick={() => handleOpenEditQuotation(selectedQuotation)}
+                                    style={{
+                                        height: '40px', padding: '0 14px', borderRadius: '8px',
+                                        border: '1px solid var(--border-surface)',
+                                        background: 'transparent', color: 'var(--color-text)',
+                                        fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', gap: '6px'
+                                    }}
+                                >
+                                    <Pencil size={14} /> Edit
+                                </button>
+                            )}
                             {selectedQuotation.status === 'draft' && (
-                                <>
-                                    <button
-                                        onClick={() => { handleUpdateStatus(selectedQuotation, 'sent'); setShowModal(false) }}
-                                        style={{
-                                            flex: 1, height: '40px', borderRadius: '8px',
-                                            border: 'none', background: 'var(--blue)', color: '#fff',
-                                            fontSize: '13px', fontWeight: 500, cursor: 'pointer',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
-                                        }}
-                                    >
-                                        <Send size={14} /> Send to Customer
-                                    </button>
-                                    <button
-                                        onClick={() => { handleUpdateStatus(selectedQuotation, 'rejected'); setShowModal(false) }}
-                                        style={{
-                                            height: '40px', padding: '0 16px', borderRadius: '8px',
-                                            border: '1px solid rgba(239, 68, 68, 0.3)',
-                                            background: 'transparent', color: '#ef4444',
-                                            fontSize: '13px', fontWeight: 500, cursor: 'pointer',
-                                            display: 'flex', alignItems: 'center', gap: '6px'
-                                        }}
-                                    >
-                                        <XCircle size={14} />
-                                    </button>
-                                </>
+                                <button
+                                    onClick={() => { handleUpdateStatus(selectedQuotation, 'rejected'); setShowModal(false) }}
+                                    style={{
+                                        height: '40px', padding: '0 14px', borderRadius: '8px',
+                                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                                        background: 'transparent', color: '#ef4444',
+                                        fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', gap: '6px'
+                                    }}
+                                >
+                                    <XCircle size={14} /> Reject
+                                </button>
                             )}
                             {selectedQuotation.status === 'accepted' && (
                                 <button
                                     onClick={() => { handleConvertToSale(selectedQuotation); setShowModal(false) }}
                                     style={{
-                                        flex: 1, height: '40px', borderRadius: '8px',
+                                        height: '40px', padding: '0 14px', borderRadius: '8px',
                                         border: 'none', background: '#10b981', color: '#fff',
                                         fontSize: '13px', fontWeight: 500, cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                                        display: 'flex', alignItems: 'center', gap: '6px'
                                     }}
                                 >
                                     <DollarSign size={14} /> Convert to Sale
@@ -774,57 +1255,258 @@ function Quotations() {
                 </div>
             )}
 
+            <SendQuotationEmailModal
+                show={showEmailModal}
+                onClose={() => {
+                    setShowEmailModal(false)
+                    setActiveEmailQuotation(null)
+                }}
+                onSubmit={handleSendQuotationEmail}
+                quotation={activeEmailQuotation}
+                emailForm={emailForm}
+                setEmailForm={setEmailForm}
+                sending={emailing}
+            />
+
             <CreateQuotationModal
                 show={showCreateModal}
-                onClose={() => setShowCreateModal(false)}
+                onClose={() => {
+                    setShowCreateModal(false)
+                    resetQuotationForm()
+                }}
+                title={editingQuotationId ? 'Edit Quotation' : 'Create New Quotation'}
+                submitLabel={editingQuotationId ? 'Update Quotation' : 'Create Quotation'}
+                submitting={isSubmittingQuotation}
                 customers={customers}
                 products={products}
                 formData={formData}
                 setFormData={setFormData}
-                onAddItem={() => setFormData({ ...formData, items: [...formData.items, { product_id: '', quantity: 1, unit_price: 0 }] })}
+                onAddItem={() => setFormData({ ...formData, items: [...formData.items, { product_id: '', quantity: 1, unit_price: 0, line_discount: 0, tax_rate: 0 }] })}
                 onRemoveItem={(idx) => setFormData({ ...formData, items: formData.items.filter((_, i) => i !== idx) })}
                 onItemChange={(idx, field, value) => {
                     const newItems = [...formData.items]
                     newItems[idx][field] = value
                     if (field === 'product_id') {
-                        const product = products.find(p => p.id === value)
+                        const product = products.find(p => String(p.id) === String(value))
                         if (product) newItems[idx].unit_price = product.retail_price
                     }
                     setFormData({ ...formData, items: newItems })
                 }}
-                onSubmit={async (e) => {
-                    e.preventDefault()
-                    try {
-                        const subtotal = formData.items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0)
-                        const totalAmount = (subtotal - formData.discount_amount) + formData.tax_amount
-                        await quotationsAPI.create({ ...formData, subtotal, total_amount: totalAmount })
-                        toast.success('Quotation created successfully')
-                        setShowCreateModal(false)
-                        setFormData({
-                            customer_id: '',
-                            quotation_date: format(new Date(), 'yyyy-MM-dd'),
-                            valid_until: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
-                            items: [{ product_id: '', quantity: 1, unit_price: 0, line_discount: 0, tax_rate: 0 }],
-                            discount_amount: 0,
-                            discount_percentage: 0,
-                            tax_amount: 0,
-                            notes: ''
-                        })
-                        loadQuotations()
-                    } catch (error) {
-                        toast.error(error.message)
-                    }
-                }}
+                onSubmit={handleSubmitQuotationForm}
             />
         </div>
     )
 }
 
-function CreateQuotationModal({ show, onClose, customers, products, formData, setFormData, onAddItem, onRemoveItem, onItemChange, onSubmit }) {
+function SendQuotationEmailModal({ show, onClose, onSubmit, quotation, emailForm, setEmailForm, sending }) {
+    if (!show || !quotation) return null
+
+    return (
+        <div
+            style={{
+                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                background: 'rgba(0,0,0,0.6)', display: 'flex',
+                alignItems: 'center', justifyContent: 'center',
+                zIndex: 1200, backdropFilter: 'blur(4px)'
+            }}
+            className="quote-ui-overlay"
+            onClick={() => {
+                if (!sending) onClose()
+            }}
+        >
+            <div
+                style={{
+                    width: '92%', maxWidth: '560px',
+                    background: 'var(--color-panel)', borderRadius: '14px',
+                    border: '1px solid var(--border-surface)',
+                    overflow: 'hidden'
+                }}
+                className="quote-ui-modal-card quote-ui-email-modal"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border-surface)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--color-text)' }}>Send Quotation Email</h3>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--color-hint)' }}>{quotation.quotation_number}</p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        disabled={sending}
+                        style={{
+                            width: '30px', height: '30px', borderRadius: '8px',
+                            border: '1px solid var(--border-surface)',
+                            background: 'transparent', color: 'var(--color-muted)',
+                            cursor: sending ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            opacity: sending ? 0.5 : 1
+                        }}
+                    >
+                        <X size={14} />
+                    </button>
+                </div>
+
+                {sending && (
+                    <div className="quote-ui-mail-sending-banner" role="status" aria-live="polite">
+                        <div className="quote-ui-mail-progress" />
+                        <div className="quote-ui-mail-sending-text">
+                            <Loader2 size={14} className="quote-ui-spin" />
+                            Sending quotation email...
+                        </div>
+                    </div>
+                )}
+
+                <form onSubmit={onSubmit} aria-busy={sending}>
+                    <div style={{ padding: '18px 20px', display: 'grid', gap: '12px' }}>
+                        <div>
+                            <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-muted)', display: 'block', marginBottom: '6px' }}>To Email *</label>
+                            <input
+                                type="email"
+                                value={emailForm.toEmail}
+                                onChange={(e) => setEmailForm({ ...emailForm, toEmail: e.target.value })}
+                                required
+                                placeholder="customer@example.com"
+                                style={{
+                                    width: '100%', height: '38px',
+                                    background: 'var(--color-panel-2)',
+                                    border: '1px solid var(--border-surface)',
+                                    borderRadius: '8px', padding: '0 10px',
+                                    fontSize: '13px', color: 'var(--color-text)', outline: 'none'
+                                }}
+                            />
+                        </div>
+
+                        <div>
+                            <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-muted)', display: 'block', marginBottom: '6px' }}>Subject *</label>
+                            <input
+                                type="text"
+                                value={emailForm.subject}
+                                onChange={(e) => setEmailForm({ ...emailForm, subject: e.target.value })}
+                                required
+                                style={{
+                                    width: '100%', height: '38px',
+                                    background: 'var(--color-panel-2)',
+                                    border: '1px solid var(--border-surface)',
+                                    borderRadius: '8px', padding: '0 10px',
+                                    fontSize: '13px', color: 'var(--color-text)', outline: 'none'
+                                }}
+                            />
+                        </div>
+
+                        <div>
+                            <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-muted)', display: 'block', marginBottom: '6px' }}>Message (optional)</label>
+                            <textarea
+                                value={emailForm.message}
+                                onChange={(e) => setEmailForm({ ...emailForm, message: e.target.value })}
+                                rows={5}
+                                style={{
+                                    width: '100%',
+                                    background: 'var(--color-panel-2)',
+                                    border: '1px solid var(--border-surface)',
+                                    borderRadius: '8px', padding: '10px',
+                                    fontSize: '13px', color: 'var(--color-text)',
+                                    outline: 'none', resize: 'vertical'
+                                }}
+                            />
+                        </div>
+
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--color-text)' }}>
+                            <input
+                                type="checkbox"
+                                checked={Boolean(emailForm.includePdf)}
+                                onChange={(e) => setEmailForm({ ...emailForm, includePdf: e.target.checked })}
+                            />
+                            Attach PDF quotation
+                        </label>
+
+                        <div>
+                            <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-muted)', display: 'block', marginBottom: '6px' }}>
+                                Response Link Expiry (days, optional)
+                            </label>
+                            <input
+                                type="number"
+                                min="1"
+                                value={emailForm.tokenExpiryDays || ''}
+                                onChange={(e) => setEmailForm({ ...emailForm, tokenExpiryDays: e.target.value })}
+                                placeholder="Use quotation valid-until date by default"
+                                style={{
+                                    width: '100%', height: '38px',
+                                    background: 'var(--color-panel-2)',
+                                    border: '1px solid var(--border-surface)',
+                                    borderRadius: '8px', padding: '0 10px',
+                                    fontSize: '13px', color: 'var(--color-text)', outline: 'none'
+                                }}
+                            />
+                        </div>
+
+                    </div>
+
+                    <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border-surface)', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            disabled={sending}
+                            style={{
+                                height: '38px', padding: '0 14px', borderRadius: '8px',
+                                border: '1px solid var(--border-surface)', background: 'transparent',
+                                color: 'var(--color-muted)', fontSize: '13px', cursor: sending ? 'not-allowed' : 'pointer', opacity: sending ? 0.6 : 1
+                            }}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={sending}
+                            style={{
+                                height: '38px', padding: '0 14px', borderRadius: '8px',
+                                border: 'none', background: '#3b82f6', color: '#fff',
+                                fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+                                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                opacity: sending ? 0.7 : 1
+                            }}
+                            className={sending ? 'quote-ui-sending-btn' : ''}
+                        >
+                            {sending ? <Loader2 size={14} className="quote-ui-spin" /> : <Send size={14} />}
+                            {sending ? 'Sending Email...' : 'Send Email'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    )
+}
+
+function CreateQuotationModal({
+    show,
+    onClose,
+    customers,
+    products,
+    formData,
+    setFormData,
+    onAddItem,
+    onRemoveItem,
+    onItemChange,
+    onSubmit,
+    title,
+    submitLabel,
+    submitting
+}) {
+    const [productSearch, setProductSearch] = useState('')
+
     if (!show) return null
 
     const subtotal = formData.items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0)
     const total = subtotal - formData.discount_amount + formData.tax_amount
+
+    const normalizedProductSearch = productSearch.trim().toLowerCase()
+    const filteredProducts = normalizedProductSearch
+        ? products.filter((product) => {
+            const name = String(product.name || '').toLowerCase()
+            const code = String(product.code || '').toLowerCase()
+            return name.includes(normalizedProductSearch) || code.includes(normalizedProductSearch)
+        })
+        : products
+
+    const isSameId = (a, b) => String(a) === String(b)
+    const getProductLabel = (product) => product.code ? `${product.name} (${product.code})` : product.name
 
     return (
         <div
@@ -854,7 +1536,7 @@ function CreateQuotationModal({ show, onClose, customers, products, formData, se
                         }}>
                             <FileText size={18} color="var(--purple)" />
                         </div>
-                        <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text)', margin: 0 }}>Create New Quotation</h2>
+                        <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text)', margin: 0 }}>{title}</h2>
                     </div>
                     <button
                         onClick={onClose}
@@ -932,22 +1614,70 @@ function CreateQuotationModal({ show, onClose, customers, products, formData, se
 
                         {/* Items Table */}
                         <div style={{ marginBottom: '20px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                                 <h4 style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Items</h4>
-                                <button
-                                    type="button"
-                                    onClick={onAddItem}
-                                    style={{
-                                        height: '32px', padding: '0 12px',
-                                        borderRadius: '6px', border: '1px solid var(--border-surface)',
-                                        background: 'transparent', color: 'var(--purple)',
-                                        fontSize: '12px', fontWeight: 500, cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', gap: '4px'
-                                    }}
-                                >
-                                    <Plus size={14} /> Add Item
-                                </button>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div style={{ position: 'relative', width: '220px' }}>
+                                        <Search
+                                            size={14}
+                                            style={{
+                                                position: 'absolute',
+                                                left: '10px',
+                                                top: '50%',
+                                                transform: 'translateY(-50%)',
+                                                color: 'var(--color-hint)'
+                                            }}
+                                        />
+                                        <input
+                                            type="text"
+                                            value={productSearch}
+                                            onChange={(e) => setProductSearch(e.target.value)}
+                                            placeholder="Search product..."
+                                            style={{
+                                                width: '100%',
+                                                height: '32px',
+                                                background: 'var(--color-panel)',
+                                                border: '1px solid var(--border-surface)',
+                                                borderRadius: '6px',
+                                                paddingLeft: '32px',
+                                                paddingRight: '10px',
+                                                fontSize: '12px',
+                                                color: 'var(--color-text)',
+                                                outline: 'none'
+                                            }}
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={onAddItem}
+                                        style={{
+                                            height: '32px', padding: '0 12px',
+                                            borderRadius: '6px', border: '1px solid var(--border-surface)',
+                                            background: 'transparent', color: 'var(--purple)',
+                                            fontSize: '12px', fontWeight: 500, cursor: 'pointer',
+                                            display: 'flex', alignItems: 'center', gap: '4px'
+                                        }}
+                                    >
+                                        <Plus size={14} /> Add Item
+                                    </button>
+                                </div>
                             </div>
+
+                            {productSearch && filteredProducts.length === 0 && (
+                                <div style={{
+                                    marginBottom: '10px',
+                                    padding: '8px 10px',
+                                    borderRadius: '6px',
+                                    background: 'rgba(245, 158, 11, 0.12)',
+                                    border: '1px solid rgba(245, 158, 11, 0.25)',
+                                    color: '#f59e0b',
+                                    fontSize: '12px'
+                                }}>
+                                    No products match "{productSearch}".
+                                </div>
+                            )}
+
                             <table style={{ width: '100%', borderCollapse: 'collapse', background: 'var(--color-panel-2)', borderRadius: '10px', overflow: 'hidden' }}>
                                 <thead>
                                     <tr style={{ borderBottom: '1px solid var(--border-surface)' }}>
@@ -975,8 +1705,15 @@ function CreateQuotationModal({ show, onClose, customers, products, formData, se
                                                         outline: 'none', cursor: 'pointer'
                                                     }}
                                                 >
-                                                    <option value="">Select...</option>
-                                                    {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                                    <option value="">{productSearch ? 'Select from filtered...' : 'Select...'}</option>
+                                                    {item.product_id && !filteredProducts.some((p) => isSameId(p.id, item.product_id)) && (
+                                                        <option value={item.product_id}>
+                                                            {getProductLabel(products.find((p) => isSameId(p.id, item.product_id)) || { name: 'Selected product' })}
+                                                        </option>
+                                                    )}
+                                                    {filteredProducts.map((p) => (
+                                                        <option key={p.id} value={p.id}>{getProductLabel(p)}</option>
+                                                    ))}
                                                 </select>
                                             </td>
                                             <td style={{ padding: '10px 12px' }}>
@@ -1117,14 +1854,20 @@ function CreateQuotationModal({ show, onClose, customers, products, formData, se
                         </button>
                         <button
                             type="submit"
+                            disabled={submitting}
                             style={{
                                 height: '40px', padding: '0 20px', borderRadius: '8px',
                                 border: 'none', background: 'var(--purple)', color: '#fff',
                                 fontSize: '13px', fontWeight: 500, cursor: 'pointer',
-                                boxShadow: '0 2px 8px rgba(139, 92, 246, 0.3)'
+                                boxShadow: '0 2px 8px rgba(139, 92, 246, 0.3)',
+                                opacity: submitting ? 0.7 : 1,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px'
                             }}
                         >
-                            Create Quotation
+                            {submitting && <Loader2 size={14} />}
+                            {submitLabel}
                         </button>
                     </div>
                 </form>

@@ -29,6 +29,11 @@ const Units = lazy(() => import('./pages/Units'))
 const SetupWizard = lazy(() => import('./pages/setup/SetupWizard'))
 const CustomerPayment = lazy(() => import('./pages/CustomerPayment'))
 const SupplierPayment = lazy(() => import('./pages/SupplierPayment'))
+const Loans = lazy(() => import('./pages/Loans'))
+const Equity = lazy(() => import('./pages/Equity'))
+const QuoteAccept = lazy(() => import('./pages/QuoteAccept'))
+const QuoteReject = lazy(() => import('./pages/QuoteReject'))
+const QuoteConfirm = lazy(() => import('./pages/QuoteConfirm'))
 
 // Platform Admin imports
 const PlatformLayout = lazy(() => import('./components/platform/PlatformLayout'))
@@ -157,6 +162,10 @@ function App() {
         <Suspense fallback={<RouteFallback />}>
             <ImpersonationBanner />
             <Routes>
+                <Route path="/quote/accept/:token" element={<QuoteAccept />} />
+                <Route path="/quote/reject/:token" element={<QuoteReject />} />
+                <Route path="/quote/confirm/:token" element={<QuoteConfirm />} />
+
                 <Route path="/login" element={<Login />} />
 
                 {/* Impersonation entry point */}
@@ -209,6 +218,8 @@ function App() {
                     <Route path="purchases" element={<RoleRoute roles={['admin', 'manager']}><Purchases /></RoleRoute>} />
                     <Route path="purchases/new" element={<RoleRoute roles={['admin', 'manager']}><NewPurchase /></RoleRoute>} />
                     <Route path="expenses" element={<RoleRoute roles={['admin', 'manager']}><Expenses /></RoleRoute>} />
+                    <Route path="loans" element={<RoleRoute roles={['admin', 'manager']}><Loans /></RoleRoute>} />
+                    <Route path="equity" element={<RoleRoute roles={['admin', 'manager']}><Equity /></RoleRoute>} />
                     <Route path="journals" element={<RoleRoute roles={['admin', 'manager']}><Journals /></RoleRoute>} />
                     <Route path="reports" element={<RoleRoute roles={['admin', 'manager']}><Reports /></RoleRoute>} />
                     <Route path="inventory/adjustments" element={<RoleRoute roles={['admin', 'manager']}><StockAdjustment /></RoleRoute>} />
@@ -221,9 +232,9 @@ function App() {
 
                 <Route path="/pos" element={
                     <ProtectedRoute>
-                        <div style={{ padding: 'var(--space-4)', background: 'var(--color-bg-primary)', minHeight: '100vh' }}>
+                        <OnboardingGuard>
                             <NewSale />
-                        </div>
+                        </OnboardingGuard>
                     </ProtectedRoute>
                 } />
 

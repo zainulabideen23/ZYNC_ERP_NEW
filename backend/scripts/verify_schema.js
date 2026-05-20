@@ -1,207 +1,267 @@
-
 const knex = require('knex');
 const config = require('../knexfile');
+
 const db = knex(config.development);
 
-const ProductService = require('../src/services/product.service');
-const SaleService = require('../src/services/sale.service');
-const PurchaseService = require('../src/services/purchase.service');
-const CustomerService = require('../src/services/customer.service');
-const SupplierService = require('../src/services/supplier.service');
-const LedgerService = require('../src/services/ledger.service');
+const requiredSchema = {
+    suppliers: ['credit_limit', 'current_credit_used'],
+    purchases: ['duplicate_fingerprint', 'cancelled_at', 'cancelled_by', 'return_reason'],
+    purchase_templates: [
+        'tenant_id',
+        'name',
+        'supplier_id',
+        'items',
+        'is_active',
+        'is_deleted',
+    ],
+    stock_movements: ['tenant_id', 'movement_type', 'reference_type', 'created_at'],
+};
+
+const requiredIndexes = [
+    'idx_suppliers_tenant_credit_limit',
+    'idx_suppliers_tenant_credit_used',
+    'idx_purchases_tenant_purchase_date',
+    'idx_purchases_tenant_supplier_date',
+    'idx_purchases_tenant_supplier_due_aging',
+    'idx_purchase_items_tenant_product_date',
+    'idx_stock_movements_tenant_product_date',
+    'idx_purchases_tenant_duplicate_fingerprint',
+    'idx_purchases_tenant_cancelled_at',
+    'idx_purchase_templates_tenant_active',
+    'idx_purchase_templates_tenant_supplier',
+    'uq_purchase_templates_tenant_name_active',
+];
+
+const requiredPolicies = [
+    'tenant_isolation_stock_movements',
+    'app_bypass_stock_movements',
+];
+
+const requiredTriggers = [
+    'no_ledger_updates',
+    'trigger_ledger_immutability',
+];
+
+const round2 = (value) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+
+function printCheck(ok, message) {
+    const icon = ok ? '✅' : '❌';
+    console.log(`${icon} ${message}`);
+}
+
+async function tableExists(tableName) {
+    return db.schema.hasTable(tableName);
+}
+
+async function columnExists(tableName, columnName) {
+    return db.schema.hasColumn(tableName, columnName);
+}
+
+async function verifySchemaPresence() {
+    console.log('\n📦 Schema presence checks');
+    let failed = 0;
+
+    for (const [tableName, columns] of Object.entries(requiredSchema)) {
+        const hasTable = await tableExists(tableName);
+        printCheck(hasTable, `Table exists: ${tableName}`);
+        if (!hasTable) {
+            failed += 1;
+            continue;
+        }
+
+        for (const columnName of columns) {
+            const hasColumn = await columnExists(tableName, columnName);
+            printCheck(hasColumn, `Column exists: ${tableName}.${columnName}`);
+            if (!hasColumn) failed += 1;
+        }
+    }
+
+    return failed;
+}
+
+async function verifyIndexes() {
+    console.log('\n🧭 Index checks');
+    const indexRows = await db('pg_indexes')
+        .where('schemaname', 'public')
+        .whereIn('indexname', requiredIndexes)
+        .select('indexname');
+
+    const present = new Set(indexRows.map((row) => row.indexname));
+    let failed = 0;
+
+    for (const name of requiredIndexes) {
+        const ok = present.has(name);
+        printCheck(ok, `Index exists: ${name}`);
+        if (!ok) failed += 1;
+    }
+
+    return failed;
+}
+
+async function verifyStockMovementPolicies() {
+    console.log('\n🔐 RLS policy checks (stock_movements)');
+    let failed = 0;
+
+    const policyRows = await db('pg_policies')
+        .where('schemaname', 'public')
+        .andWhere('tablename', 'stock_movements')
+        .select('policyname');
+
+    const presentPolicies = new Set(policyRows.map((row) => row.policyname));
+    for (const policy of requiredPolicies) {
+        const ok = presentPolicies.has(policy);
+        printCheck(ok, `Policy exists: ${policy}`);
+        if (!ok) failed += 1;
+    }
+
+    const rlsState = await db('pg_class as c')
+        .join('pg_namespace as n', 'n.oid', 'c.relnamespace')
+        .where('n.nspname', 'public')
+        .andWhere('c.relname', 'stock_movements')
+        .select('c.relrowsecurity', 'c.relforcerowsecurity')
+        .first();
+
+    const rlsEnabled = Boolean(rlsState?.relrowsecurity);
+    const rlsForced = Boolean(rlsState?.relforcerowsecurity);
+
+    printCheck(rlsEnabled, 'RLS enabled on stock_movements');
+    if (!rlsEnabled) failed += 1;
+
+    printCheck(rlsForced, 'RLS forced on stock_movements');
+    if (!rlsForced) failed += 1;
+
+    return failed;
+}
+
+async function verifyLedgerGuards() {
+    console.log('\n🧾 Ledger guard checks');
+    let failed = 0;
+
+    const triggerRows = await db('pg_trigger as t')
+        .join('pg_class as c', 'c.oid', 't.tgrelid')
+        .where('c.relname', 'ledger_entries')
+        .whereIn('t.tgname', requiredTriggers)
+        .select('t.tgname');
+
+    const presentTriggers = new Set(triggerRows.map((row) => row.tgname));
+    for (const triggerName of requiredTriggers) {
+        const ok = presentTriggers.has(triggerName);
+        printCheck(ok, `Trigger exists: ${triggerName}`);
+        if (!ok) failed += 1;
+    }
+
+    const journalTotals = await db('ledger_entries')
+        .select('entry_type')
+        .sum({ total: 'amount' })
+        .groupBy('entry_type');
+
+    const debitTotal = Number(journalTotals.find((row) => row.entry_type === 'debit')?.total || 0);
+    const creditTotal = Number(journalTotals.find((row) => row.entry_type === 'credit')?.total || 0);
+    const isBalanced = Math.abs(debitTotal - creditTotal) < 0.01;
+
+    printCheck(
+        isBalanced,
+        `Ledger totals balanced (debit=${round2(debitTotal)}, credit=${round2(creditTotal)})`
+    );
+    if (!isBalanced) failed += 1;
+
+    const unbalancedJournal = await db('journals as j')
+        .leftJoin('ledger_entries as le', 'le.journal_id', 'j.id')
+        .where('j.tenant_id', db.raw('le.tenant_id'))
+        .groupBy('j.id')
+        .havingRaw(
+            "ABS(COALESCE(SUM(CASE WHEN le.entry_type = 'debit' THEN le.amount ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN le.entry_type = 'credit' THEN le.amount ELSE 0 END), 0)) > 0.01"
+        )
+        .first('j.id');
+
+    const hasNoUnbalancedJournal = !unbalancedJournal;
+    printCheck(hasNoUnbalancedJournal, 'No unbalanced journals detected');
+    if (!hasNoUnbalancedJournal) failed += 1;
+
+    return failed;
+}
+
+async function verifyMigrationApplied() {
+    console.log('\n🛠️ Migration checks');
+    let failed = 0;
+
+    const requiredMigrations = [
+        '20260415130000_purchase_engine_foundations_v1.js',
+        '20260415170000_purchase_enhancements_v1.js',
+    ];
+
+    const rows = await db('knex_migrations')
+        .whereIn('name', requiredMigrations)
+        .select('name');
+
+    const applied = new Set(rows.map((row) => row.name));
+
+    for (const migrationName of requiredMigrations) {
+        const ok = applied.has(migrationName);
+        printCheck(ok, `Migration applied: ${migrationName}`);
+        if (!ok) failed += 1;
+    }
+
+    return failed;
+}
+
+async function verifyTenantCoverage() {
+    console.log('\n🏢 Tenant coverage checks');
+    const tablesWithoutTenantId = ['platform_admins', 'tenants'];
+
+    const result = await db.raw(`
+        SELECT table_name
+        FROM information_schema.tables t
+        WHERE table_schema = 'public'
+          AND table_type = 'BASE TABLE'
+          AND table_name NOT LIKE 'knex_%'
+          AND NOT EXISTS (
+            SELECT 1
+            FROM information_schema.columns c
+            WHERE c.table_schema = 'public'
+              AND c.table_name = t.table_name
+              AND c.column_name = 'tenant_id'
+          )
+        ORDER BY table_name;
+    `);
+
+    const rows = result.rows || [];
+    const found = rows.map((row) => row.table_name);
+    const unexpected = found.filter((name) => !tablesWithoutTenantId.includes(name));
+
+    printCheck(
+        unexpected.length === 0,
+        `Only expected tenant-less tables found: ${found.join(', ') || 'none'}`
+    );
+
+    return unexpected.length;
+}
 
 async function verify() {
-    console.log('🚀 Starting Verification...');
+    console.log('🚀 Starting read-only schema verification...');
+
+    let failures = 0;
 
     try {
-        console.log('🧹 Cleaning up old test data...');
-        // Delete in order of constraints
-        await db('ledger_entries').del();
-        await db('journals').del();
-        await db('sale_items').del();
-        await db('purchase_items').del();
-        await db('sales').del();
-        await db('purchases').del();
-        await db('stock_movements').del();
+        failures += await verifySchemaPresence();
+        failures += await verifyIndexes();
+        failures += await verifyStockMovementPolicies();
+        failures += await verifyLedgerGuards();
+        failures += await verifyMigrationApplied();
+        failures += await verifyTenantCoverage();
 
-        // Delete test products, suppliers, customers
-        await db('products').where('name', 'Test Product').del();
-        await db('suppliers').where('name', 'Test Supplier').del();
-        await db('customers').where('name', 'Test Customer').del();
-
-        // Clean up accounts created by services for these test entities
-        await db('accounts').where('name', 'like', 'Payable - Test Supplier%').del();
-        await db('accounts').where('name', 'like', 'Receivable - Test Customer%').del();
-
-        // 1. Get an existing user
-        const user = await db('users').first();
-        if (!user) {
-            console.log('❌ No user found. Run initial setup first.');
-            process.exit(1);
-        }
-        const userId = user.id;
-
-        // 2. Ensure Unit and Category exist (standard ones or create if missing)
-        let unit = await db('units').first();
-        if (!unit) {
-            console.log('📦 Creating default unit...');
-            [unit] = await db('units').insert({ name: 'Each', abbreviation: 'pcs' }).returning('*');
-        }
-
-        let cat = await db('categories').first();
-        if (!cat) {
-            console.log('📦 Creating default category...');
-            [cat] = await db('categories').insert({ name: 'General' }).returning('*');
-        }
-
-        // 2.5 Consolidate duplicate account groups and fix codes
-        const allGroups = await db('account_groups').select('*');
-        const groupedByName = allGroups.reduce((acc, g) => {
-            acc[g.name] = acc[g.name] || [];
-            acc[g.name].push(g);
-            return acc;
-        }, {});
-
-        for (const name in groupedByName) {
-            const list = groupedByName[name];
-            if (list.length > 1) {
-                console.log(`🔧 Consolidating duplicate group: ${name}`);
-                const primary = list.find(g => g.code) || list[0];
-                const others = list.filter(g => g.id !== primary.id);
-                for (const other of others) {
-                    await db('accounts').where('group_id', other.id).update({ group_id: primary.id });
-                    await db('account_groups').where('parent_id', other.id).update({ parent_id: primary.id });
-                    await db('account_groups').where('id', other.id).del();
-                }
-            }
-        }
-
-        const groupsToFix = [
-            { name: 'Receivables', code: '1200' },
-            { name: 'Payables', code: '2000' },
-            { name: 'Inventory', code: '1400' },
-            { name: 'Sales Revenue', code: '4000' },
-            { name: 'Cost of Goods Sold', code: '5000' },
-            { name: 'Cash', code: '1000' },
-            { name: 'Bank Accounts', code: '1100' }
-        ];
-        for (const g of groupsToFix) {
-            const group = await db('account_groups').where('name', g.name).first();
-            if (group) {
-                if (!group.code) {
-                    console.log(`🔧 Fixing group code: ${g.name} -> ${g.code}`);
-                    await db('account_groups').where('id', group.id).update({ code: g.code });
-                }
-            }
-        }
-
-        // 3. Create a Product
-        const productService = new ProductService(db);
-        const product = await productService.create({
-            code: 'T-VERIFY-' + Date.now().toString().slice(-4),
-            name: 'Test Product',
-            category_id: cat.id,
-            unit_id: unit.id,
-            cost_price: 100,
-            retail_price: 150,
-            opening_stock: 10,
-            track_stock: true
-        }, userId);
-        console.log('   ✓ Product created:', product.name, 'with 10 opening stock');
-
-        // 4. Create a Supplier and Customer
-        console.log('🚛 Creating test supplier...');
-        const supplierService = new SupplierService(db);
-        const supplier = await supplierService.create({
-            code: 'SUP-P' + Date.now().toString().slice(-4),
-            name: 'Test Supplier',
-            phone_number: '123456789',
-            address_line1: 'Supplier Addr',
-            city: 'City'
-        }, userId);
-
-        console.log('👥 Creating test customer...');
-        const customerService = new CustomerService(db);
-        const customer = await customerService.create({
-            code: 'CUS-P' + Date.now().toString().slice(-4),
-            name: 'Test Customer',
-            phone_number: '987654321',
-            address_line1: 'Customer Addr',
-            city: 'City'
-        }, userId);
-
-        // 5. Create a Purchase (Add stock at different cost)
-        console.log('🚛 Recording purchase (FIFO test)...');
-        const purchaseService = new PurchaseService(db);
-        await purchaseService.createPurchase({
-            supplier_id: supplier.id,
-            purchase_date: new Date(),
-            items: [{
-                product_id: product.id,
-                quantity: 5,
-                unit_cost: 120 // Higher cost
-            }],
-            amount_paid: 600,
-            payment_method: 'cash'
-        }, userId);
-        console.log('   ✓ Purchase recorded for 5 units @ 120');
-
-        // Total Stock should be 15
-        const currentStock = await db('products').where('id', product.id).select('current_stock').first();
-        console.log('   ✓ Current Stock:', currentStock.current_stock);
-
-        // 6. Create a Sale (Consume stock - should take 10 @ 100 first)
-        console.log('💰 Recording sale (12 units)...');
-        const saleService = new SaleService(db);
-        const sale = await saleService.createSale({
-            customer_id: customer.id,
-            items: [{
-                product_id: product.id,
-                quantity: 12,
-                unit_price: 200
-            }],
-            amount_paid: 2400,
-            payment_method: 'cash'
-        }, userId);
-        console.log('   ✓ Sale recorded for 12 units');
-
-        // 7. Verify FIFO Costing
-        // COGS should be: (10 * 100) + (2 * 120) = 1000 + 240 = 1240
-        const journalEntriesData = await db('journals')
-            .join('ledger_entries', 'journals.id', 'ledger_entries.journal_id')
-            .join('accounts', 'ledger_entries.account_id', 'accounts.id')
-            .where('journals.reference_type', 'sale')
-            .where('accounts.code', '5001') // COGS
-            .select('ledger_entries.amount', 'ledger_entries.entry_type');
-
-        const saleCogsEntry = journalEntriesData.find(e => e.entry_type === 'debit');
-        console.log('📊 Verification - Accounting:');
-        console.log('   - Expected COGS (FIFO): 1240.00');
-        console.log('   - Actual COGS Entry:', saleCogsEntry ? saleCogsEntry.amount : 'NOT FOUND');
-
-        if (saleCogsEntry && Math.abs(parseFloat(saleCogsEntry.amount) - 1240) < 0.01) {
-            console.log('✅ FIFO Costing Verified!');
+        console.log('\n📌 Verification summary');
+        if (failures === 0) {
+            console.log('✅ PASS: all schema integrity checks passed.');
+            process.exitCode = 0;
         } else {
-            console.log('❌ FIFO Costing Mismatch!');
+            console.log(`❌ FAIL: ${failures} check(s) failed.`);
+            process.exitCode = 1;
         }
-
-        // 8. Verify balanced ledger
-        const totals = await db('ledger_entries').select('entry_type').sum('amount as total').groupBy('entry_type');
-        const debits = parseFloat(totals.find(t => t.entry_type === 'debit')?.total || 0);
-        const credits = parseFloat(totals.find(t => t.entry_type === 'credit')?.total || 0);
-
-        console.log(`   - Total Ledger Debits: ${debits}`);
-        console.log(`   - Total Ledger Credits: ${credits}`);
-
-        if (Math.abs(debits - credits) < 0.01) {
-            console.log('✅ Ledger is Balanced!');
-        } else {
-            console.log('❌ Ledger is UNBALANCED!');
-        }
-
     } catch (error) {
-        console.error('❌ Verification Failed:', error.message);
+        console.error('❌ Verification failed with runtime error:', error.message);
         console.error(error.stack);
+        process.exitCode = 1;
     } finally {
         await db.destroy();
     }

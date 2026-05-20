@@ -103,6 +103,7 @@ exports.seed = async function (knex) {
         { code: '1201', name: 'Customer Receivables', group_id: accountGroups[3], account_type: 'asset', is_system: true, is_active: true, opening_balance: 0, current_balance: 0 },
         // Payables
         { code: '2001', name: 'Supplier Payables', group_id: accountGroups[4], account_type: 'liability', is_system: true, is_active: true, opening_balance: 0, current_balance: 0 },
+        { code: '2100', name: 'Bank Loans', group_id: accountGroups[5], account_type: 'liability', is_system: true, is_active: true, opening_balance: 0, current_balance: 0 },
         // Sales
         { code: '4001', name: 'Sales Income', group_id: accountGroups[6], account_type: 'income', is_system: true, is_active: true, opening_balance: 0, current_balance: 0 },
         { code: '4002', name: 'Sales Discount', group_id: accountGroups[6], account_type: 'income', is_system: true, is_active: true, opening_balance: 0, current_balance: 0 },
@@ -111,11 +112,20 @@ exports.seed = async function (knex) {
         // Operating Expenses
         { code: '6001', name: 'Salaries & Wages', group_id: accountGroups[8], account_type: 'expense', is_system: true, is_active: true },
         { code: '6002', name: 'Rent & Utilities', group_id: accountGroups[8], account_type: 'expense', is_system: true, is_active: true },
-        { code: '6003', name: 'Marketing & Advertising', group_id: accountGroups[8], account_type: 'expense', is_system: true, is_active: true },
+{ code: '6003', name: 'Interest Expense', group_id: accountGroups[8], account_type: 'expense', is_system: true, is_active: true },
+        { code: '6006', name: 'Marketing & Advertising', group_id: accountGroups[8], account_type: 'expense', is_system: true, is_active: true },
+        { code: '6200', name: 'Late Payment Penalty', group_id: accountGroups[8], account_type: 'expense', is_system: true, is_active: true },
         // Capital
-        { code: '3001', name: 'Owner Capital', group_id: accountGroups[9], account_type: 'equity', is_system: true, is_active: true, opening_balance: 600000, current_balance: 600000 }
+        { code: '3001', name: 'Owner Capital', group_id: accountGroups[9], account_type: 'equity', is_system: true, is_active: true, opening_balance: 600000, current_balance: 600000 },
+        { code: '3002', name: 'Retained Earnings', group_id: accountGroups[9], account_type: 'equity', is_system: true, is_active: true, opening_balance: 0, current_balance: 0 },
+        { code: '3003', name: 'Owner Drawings', group_id: accountGroups[9], account_type: 'equity', is_system: true, is_active: true, opening_balance: 0, current_balance: 0 }
     ]).returning('id');
     const accounts = accountResults.map(row => row.id || row);
+
+    const [transportationAccount, officeSuppliesAccount] = await knex('accounts').insert([
+        { code: '6004', name: 'Transportation Expense', group_id: accountGroups[8], account_type: 'expense', is_system: true, is_active: true },
+        { code: '6005', name: 'Office Supplies', group_id: accountGroups[8], account_type: 'expense', is_system: true, is_active: true },
+    ]).returning('id');
 
     // =====================================================
     // 4. CREATE UNITS OF MEASURE
@@ -377,12 +387,12 @@ exports.seed = async function (knex) {
     // 10. CREATE EXPENSE CATEGORIES
     // =====================================================
     await knex('expense_categories').insert([
-        { name: 'Salaries', account_id: accounts[8] },
-        { name: 'Rent', account_id: accounts[9] },
-        { name: 'Utilities', account_id: accounts[9] },
-        { name: 'Marketing', account_id: accounts[10] },
-        { name: 'Transportation', account_id: accounts[10] },
-        { name: 'Office Supplies', account_id: accounts[10] }
+        { name: 'Salaries', account_id: accounts[9] },
+        { name: 'Rent', account_id: accounts[10] },
+        { name: 'Utilities', account_id: accounts[10] },
+        { name: 'Marketing', account_id: accounts[12] },
+        { name: 'Transportation', account_id: transportationAccount.id || transportationAccount },
+        { name: 'Office Supplies', account_id: officeSuppliesAccount.id || officeSuppliesAccount }
     ]);
 
     // =====================================================

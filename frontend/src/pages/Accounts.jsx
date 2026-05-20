@@ -103,7 +103,7 @@ function Accounts() {
                     const style = getGroupStyle(group.account_type || group.type)
                     const isExpanded = expandedGroups[group.id] !== false
                     const GroupIcon = style.icon
-                    const groupTotal = groupAccounts.reduce((sum, a) => sum + Number(a.current_balance || 0), 0)
+                    const groupTotal = groupAccounts.reduce((sum, a) => sum + Number(a.computed_balance ?? a.current_balance ?? 0), 0)
 
                     return (
                         <div key={group.id} style={{ background: 'var(--color-panel)', borderRadius: '12px', border: '1px solid var(--border-surface)', overflow: 'hidden' }}>
@@ -167,8 +167,8 @@ function Accounts() {
                                                 <td style={{ padding: '12px 16px', textAlign: 'right', fontSize: '13px', color: 'var(--color-text-dim)' }}>
                                                     {formatCurrency(account.opening_balance)}
                                                 </td>
-                                                <td style={{ padding: '12px 16px', textAlign: 'right', fontSize: '13px', fontWeight: Number(account.current_balance) !== 0 ? 600 : 400, color: Number(account.current_balance) !== 0 ? 'var(--color-text)' : 'var(--color-text-dim)' }}>
-                                                    {formatCurrency(account.current_balance)}
+                                                <td style={{ padding: '12px 16px', textAlign: 'right', fontSize: '13px', fontWeight: Number(account.computed_balance ?? account.current_balance) !== 0 ? 600 : 400, color: Number(account.computed_balance ?? account.current_balance) !== 0 ? 'var(--color-text)' : 'var(--color-text-dim)' }}>
+                                                    {formatCurrency(account.computed_balance ?? account.current_balance)}
                                                 </td>
                                                 <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                                                     <Link to={`/accounts/${account.id}/ledger`} style={{ minWidth: '44px', height: '32px', padding: '0 12px', borderRadius: '6px', border: '1px solid var(--border-surface)', background: 'transparent', color: 'var(--blue)', fontSize: '12px', fontWeight: 500, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none', transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--blue)'; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--blue)' }} aria-label={`View ledger for ${account.name}`}>

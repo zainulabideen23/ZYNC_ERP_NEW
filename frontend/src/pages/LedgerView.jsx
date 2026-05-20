@@ -5,13 +5,17 @@ import { format } from 'date-fns'
 import { toast } from 'react-hot-toast'
 
 function LedgerView({ type }) { // type: 'customer' | 'supplier'
+    const LEDGER_PAGE_LIMIT = 200
     const { id } = useParams()
     const navigate = useNavigate()
     const [entity, setEntity] = useState(null)
     const [entries, setEntries] = useState([])
     const [loading, setLoading] = useState(true)
     const [openingBalance, setOpeningBalance] = useState(0)
+    const [pageOpeningBalance, setPageOpeningBalance] = useState(0)
     const [closingBalance, setClosingBalance] = useState(0)
+    const [page, setPage] = useState(1)
+    const [pagination, setPagination] = useState({ page: 1, limit: LEDGER_PAGE_LIMIT, total: 0, pages: 1, has_next: false, has_previous: false })
     const [filters, setFilters] = useState({
         from_date: format(new Date(new Date().getFullYear(), 0, 1), 'yyyy-MM-dd'), // Start of this year
         to_date: format(new Date(), 'yyyy-MM-dd')
@@ -24,20 +28,31 @@ function LedgerView({ type }) { // type: 'customer' | 'supplier'
 
     useEffect(() => {
         loadLedger()
-    }, [id, filters.from_date, filters.to_date])
+    }, [id, filters.from_date, filters.to_date, page])
 
     const loadLedger = async () => {
         setLoading(true)
         try {
             const response = await api.getLedger(id, {
                 from_date: filters.from_date,
-                to_date: filters.to_date
+                to_date: filters.to_date,
+                page,
+                limit: LEDGER_PAGE_LIMIT,
             })
 
             setEntity(response.data[type])
-            setEntries(response.data.entries)
-            setOpeningBalance(response.data.opening_balance)
-            setClosingBalance(response.data.closing_balance)
+            setEntries(response.data.entries || [])
+            setOpeningBalance(Number(response.data.opening_balance || 0))
+            setPageOpeningBalance(Number(response.data.page_opening_balance || response.data.opening_balance || 0))
+            setClosingBalance(Number(response.data.closing_balance || 0))
+            setPagination(response.data.pagination || {
+                page,
+                limit: LEDGER_PAGE_LIMIT,
+                total: response.data.entries?.length || 0,
+                pages: 1,
+                has_next: false,
+                has_previous: false,
+            })
         } catch (error) {
             toast.error(error.message || 'Failed to load ledger')
             navigate(backLink)
@@ -66,14 +81,20 @@ function LedgerView({ type }) { // type: 'customer' | 'supplier'
                             type="date"
                             className="form-input"
                             value={filters.from_date}
-                            onChange={(e) => setFilters({ ...filters, from_date: e.target.value })}
+                            onChange={(e) => {
+                                setPage(1)
+                                setFilters({ ...filters, from_date: e.target.value })
+                            }}
                         />
                         <span className="self-center">-</span>
                         <input
                             type="date"
                             className="form-input"
                             value={filters.to_date}
-                            onChange={(e) => setFilters({ ...filters, to_date: e.target.value })}
+                            onChange={(e) => {
+                                setPage(1)
+                                setFilters({ ...filters, to_date: e.target.value })
+                            }}
                         />
                     </div>
                 </div>
@@ -85,7 +106,7 @@ function LedgerView({ type }) { // type: 'customer' | 'supplier'
                         <div>
                             <h2 className="text-xl font-bold mb-1">{entity.name}</h2>
                             <div className="text-secondary text-sm space-y-1">
-                                <p>{entity.city ? `${entity.city}` : ''} {entity.phone ? ` • ${entity.phone}` : ''}</p>
+                                <p>{entity.city ? `${entity.city}` : ''} {entity.phone_number ? ` • ${entity.phone_number}` : ''}</p>
                                 <p className="font-mono text-muted">{entity.code}</p>
                             </div>
                         </div>
@@ -105,7 +126,7 @@ function LedgerView({ type }) { // type: 'customer' | 'supplier'
                         <tr>
                             <th style={{ width: '120px' }}>Date</th>
                             <th>Description</th>
-                            <th>Ref</th>
+                            <th style={{ width: '160px' }}>Ref</th>
                             <th className="text-right" style={{ width: '150px' }}>{type === 'customer' ? 'Debit (Out)' : (type === 'supplier' ? 'Debit (Paid)' : 'Debit')}</th>
                             <th className="text-right" style={{ width: '150px' }}>{type === 'customer' ? 'Credit (In)' : (type === 'supplier' ? 'Credit (Bill)' : 'Credit')}</th>
                             <th className="text-right" style={{ width: '180px' }}>Balance</th>
@@ -126,9 +147,11 @@ function LedgerView({ type }) { // type: 'customer' | 'supplier'
                                     <td>{format(new Date(entry.entry_date), 'dd MMM yyyy')}</td>
                                     <td>
                                         <div className="font-medium">{entry.narration}</div>
-                                        <div className="text-xs text-muted font-mono">{new Date(entry.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                        <div className="text-xs text-muted font-mono">{(entry.entry_time || entry.created_at)
+                                            ? new Date(entry.entry_time || entry.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                            : '-'}</div>
                                     </td>
-                                    <td className="font-mono text-xs">{entry.reference_type} #{entry.reference_id}</td>
+                                    <td className="font-mono text-xs">{entry.reference_label || (entry.reference_type ? String(entry.reference_type).toUpperCase() : '-')}</td>
 
                                     {/* Debit Amount */}
                                     <td className="text-right">
@@ -154,6 +177,32 @@ function LedgerView({ type }) { // type: 'customer' | 'supplier'
                     </tbody>
                 </table>
             </div>
+
+            {pagination.pages > 1 && (
+                <div className="no-print" style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="text-sm text-muted">
+                        Showing page {pagination.page} of {pagination.pages} ({pagination.total.toLocaleString()} entries) | Page Opening: Rs. {Math.abs(pageOpeningBalance).toLocaleString()}
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            type="button"
+                            className="btn btn-secondary"
+                            disabled={!pagination.has_previous}
+                            onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                        >
+                            Previous
+                        </button>
+                        <button
+                            type="button"
+                            className="btn btn-secondary"
+                            disabled={!pagination.has_next}
+                            onClick={() => setPage((prev) => prev + 1)}
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
+            )}
 
             <style>{`
                 @media print {

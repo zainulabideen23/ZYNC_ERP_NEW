@@ -4,7 +4,7 @@ import { salesAPI } from '../services/api'
 import { format } from 'date-fns'
 import { useDataSync, DataSyncEvents } from '../utils/dataSync'
 import SaleDetailModal from '../components/SaleDetailModal'
-import { Printer, TrendingUp, FileText, Banknote, AlertCircle, ShoppingCart, Plus, Search, X, Download, CornerDownLeft, Eye, TrendingDown } from 'lucide-react'
+import { Printer, TrendingUp, FileText, Banknote, AlertCircle, ShoppingCart, Plus, Search, X, Eye, TrendingDown } from 'lucide-react'
 
 function Sales() {
     const [sales, setSales] = useState([])
@@ -13,8 +13,6 @@ function Sales() {
     const [selectedSale, setSelectedSale] = useState(null)
     const [pagination, setPagination] = useState({ page: 1, limit: 50, total: 0, pages: 1 })
     const [aggregates, setAggregates] = useState(null)
-    const [selectedIds, setSelectedIds] = useState([])
-    const [showBulkActions, setShowBulkActions] = useState(false)
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -24,6 +22,10 @@ function Sales() {
     }, [filters, pagination.page])
 
     useDataSync(DataSyncEvents.SALE_CREATED, () => {
+        loadData()
+    })
+
+    useDataSync(DataSyncEvents.SALE_UPDATED, () => {
         loadData()
     })
 
@@ -47,49 +49,6 @@ function Sales() {
 
     const clearFilters = () => {
         setFilters({ search: '', status: '', from_date: '', to_date: '' })
-    }
-
-    const handleSelectAll = (e) => {
-        if (e.target.checked) {
-            setSelectedIds(sales.map(s => s.id))
-            setShowBulkActions(true)
-        } else {
-            setSelectedIds([])
-            setShowBulkActions(false)
-        }
-    }
-
-    const handleSelectRow = (id, e) => {
-        e.stopPropagation()
-        const newSelected = e.target.checked
-            ? [...selectedIds, id]
-            : selectedIds.filter(x => x !== id)
-        setSelectedIds(newSelected)
-        setShowBulkActions(newSelected.length > 0)
-    }
-
-    const handleExportCSV = () => {
-        const selectedSales = sales.filter(s => selectedIds.includes(s.id))
-        const dataToExport = selectedSales.length > 0 ? selectedSales : sales
-        if (dataToExport.length === 0) return
-
-        const headers = ['Invoice', 'Date', 'Customer', 'Total', 'Paid', 'Due', 'Status']
-        const rows = dataToExport.map(s => [
-            s.invoice_number,
-            format(new Date(s.sale_date), 'yyyy-MM-dd'),
-            s.customer_name || 'Walk-in',
-            s.total_amount,
-            s.amount_paid,
-            s.amount_due,
-            s.status
-        ])
-
-        const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-        const link = document.createElement('a')
-        link.href = URL.createObjectURL(blob)
-        link.download = `sales_export_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`
-        link.click()
     }
 
     const formatCurrency = (value) => `Rs. ${Number(value).toLocaleString()}`
@@ -154,15 +113,28 @@ function Sales() {
         }
     }
 
+    const getDisplayStatus = (sale) => {
+        const currentStatus = String(sale?.status || '').toLowerCase()
+        const returnedAmount = Number(sale?.returned_amount || 0)
+
+        if (currentStatus !== 'returned' && returnedAmount > 0.0001) {
+            return 'partially_returned'
+        }
+
+        return currentStatus
+    }
+
     // Status Badge with proper colors
-    const StatusBadge = ({ status }) => {
+    const StatusBadge = ({ sale }) => {
+        const status = getDisplayStatus(sale)
         const styles = {
             completed: { bg: 'rgba(16, 185, 129, 0.15)', color: '#10b981', label: 'Paid' },
             paid: { bg: 'rgba(16, 185, 129, 0.15)', color: '#10b981', label: 'Paid' },
             confirmed: { bg: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', label: 'Confirmed' },
-            pending: { bg: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', label: 'Pending' },
-            partial: { bg: 'rgba(139, 92, 246, 0.15)', color: '#8b5cf6', label: 'Partial' },
+            draft: { bg: 'rgba(100, 116, 139, 0.15)', color: '#94a3b8', label: 'Draft' },
             cancelled: { bg: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', label: 'Cancelled' },
+            returned: { bg: 'rgba(168, 85, 247, 0.15)', color: '#a855f7', label: 'Returned' },
+            partially_returned: { bg: 'rgba(124, 58, 237, 0.15)', color: '#8b5cf6', label: 'Partial Return' },
         }
         const s = styles[status] || { bg: 'rgba(100, 116, 139, 0.15)', color: '#64748b', label: status || 'N/A' }
         return (
@@ -299,18 +271,17 @@ function Sales() {
             <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
                 <MetricCard
                     label="Total Revenue"
-                    value={formatCurrency(aggregates?.total_revenue || 0)}
+                    value={formatCurrency(aggregates?.total_sales || 0)}
                     icon={TrendingUp}
                     color="#3b82f6"
-                    subtext="This month"
-                    trend={12}
+                    subtext="Filtered total"
                 />
                 <MetricCard
                     label="Invoices"
-                    value={aggregates?.total_invoices || 0}
+                    value={aggregates?.count || 0}
                     icon={FileText}
                     color="#8b5cf6"
-                    subtext="Total"
+                    subtext="Filtered count"
                 />
                 <MetricCard
                     label="Received"
@@ -372,10 +343,11 @@ function Sales() {
                     }}
                 >
                     <option value="">All Statuses</option>
+                    <option value="draft">Draft</option>
                     <option value="completed">Completed</option>
-                    <option value="pending">Pending</option>
                     <option value="confirmed">Confirmed</option>
                     <option value="cancelled">Cancelled</option>
+                    <option value="returned">Returned</option>
                 </select>
 
                 {/* Date Range */}
@@ -421,48 +393,7 @@ function Sales() {
                     </button>
                 )}
 
-                <div style={{ flex: 1 }} />
-
-                {/* Export */}
-                <button
-                    onClick={handleExportCSV}
-                    style={{
-                        height: '36px', padding: '0 12px',
-                        borderRadius: '8px', border: '1px solid var(--border-surface)',
-                        background: 'transparent', color: 'var(--color-muted)',
-                        fontSize: '13px', fontWeight: 500, cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '6px'
-                    }}
-                >
-                    <Download size={14} /> Export
-                </button>
             </div>
-
-            {/* Bulk Actions */}
-            {showBulkActions && selectedIds.length > 0 && (
-                <div style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '12px 16px', borderRadius: '10px',
-                    background: 'rgba(59, 130, 246, 0.1)',
-                    border: '1px solid rgba(59, 130, 246, 0.3)',
-                    marginBottom: '16px'
-                }}>
-                    <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--blue)' }}>
-                        {selectedIds.length} selected
-                    </span>
-                    <button
-                        onClick={() => { setSelectedIds([]); setShowBulkActions(false) }}
-                        style={{
-                            padding: '6px 12px', borderRadius: '6px',
-                            border: 'none', background: 'var(--color-panel-2)',
-                            color: 'var(--color-muted)', fontSize: '12px', cursor: 'pointer'
-                        }}
-                    >
-                        Clear
-                    </button>
-                </div>
-            )}
-
             {/* Table */}
             <div style={{
                 background: 'var(--color-panel)',
@@ -472,14 +403,6 @@ function Sales() {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                         <tr style={{ background: 'var(--color-panel-2)', borderBottom: '1px solid var(--border-surface)' }}>
-                            <th style={{ width: '44px', padding: '12px 16px' }}>
-                                <input
-                                    type="checkbox"
-                                    checked={sales.length > 0 && selectedIds.length === sales.length}
-                                    onChange={handleSelectAll}
-                                    style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: 'var(--blue)' }}
-                                />
-                            </th>
                             <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Invoice</th>
                             <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</th>
                             <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Customer</th>
@@ -495,9 +418,6 @@ function Sales() {
                             <>
                                 {[1, 2, 3, 4, 5].map(i => (
                                     <tr key={i} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                                        <td style={{ padding: '14px 16px' }}>
-                                            <div style={{ width: '16px', height: '16px', background: 'var(--color-panel-2)', borderRadius: '4px' }} />
-                                        </td>
                                         <td style={{ padding: '14px 16px' }}>
                                             <div style={{ width: '80px', height: '14px', background: 'var(--color-panel-2)', borderRadius: '4px' }} />
                                         </td>
@@ -530,7 +450,7 @@ function Sales() {
                             </>
                         ) : sales.length === 0 ? (
                             <tr>
-                                <td colSpan={9} style={{ padding: '80px 16px', textAlign: 'center' }}>
+                                <td colSpan={8} style={{ padding: '80px 16px', textAlign: 'center' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
                                         <div style={{
                                             width: '56px', height: '56px', borderRadius: '16px',
@@ -570,14 +490,6 @@ function Sales() {
                                 onMouseEnter={e => e.currentTarget.style.background = 'var(--color-panel-2)'}
                                 onMouseLeave={e => e.currentTarget.style.background = 'var(--color-panel)'}
                             >
-                                <td style={{ padding: '14px 16px' }} onClick={e => e.stopPropagation()}>
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedIds.includes(sale.id)}
-                                        onChange={e => handleSelectRow(sale.id, e)}
-                                        style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: 'var(--blue)' }}
-                                    />
-                                </td>
                                 <td style={{ padding: '14px 16px' }}>
                                     <button
                                         onClick={(e) => { e.stopPropagation(); setSelectedSale(sale) }}
@@ -608,7 +520,12 @@ function Sales() {
                                     </div>
                                 </td>
                                 <td style={{ padding: '14px 16px', textAlign: 'right', fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>
-                                    {formatCurrency(sale.total_amount)}
+                                    <div>{formatCurrency(sale.total_amount)}</div>
+                                    {Number(sale.returned_amount || 0) > 0 && (
+                                        <div style={{ fontSize: '11px', color: '#a78bfa', marginTop: '2px' }}>
+                                            Returned {formatCurrency(sale.returned_amount)}
+                                        </div>
+                                    )}
                                 </td>
                                 <td style={{ padding: '14px 16px', textAlign: 'right', fontSize: '13px', color: '#10b981' }}>
                                     {formatCurrency(sale.amount_paid)}
@@ -617,7 +534,7 @@ function Sales() {
                                     {parseFloat(sale.amount_due) > 0 ? formatCurrency(sale.amount_due) : '—'}
                                 </td>
                                 <td style={{ padding: '14px 16px' }}>
-                                    <StatusBadge status={sale.status} />
+                                    <StatusBadge sale={sale} />
                                 </td>
                                 <td style={{ padding: '14px 16px', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px', opacity: 0.5, transition: 'opacity 0.15s' }}
@@ -701,6 +618,7 @@ function Sales() {
                     saleId={selectedSale.id}
                     onClose={() => setSelectedSale(null)}
                     onPrint={handlePrintInvoice}
+                    onReturned={() => loadData()}
                 />
             )}
         </div>

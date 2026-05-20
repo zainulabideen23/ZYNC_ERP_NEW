@@ -14,6 +14,9 @@ import './Reports.css'
 const allTabs = [
     { id: 'stock', label: 'Stock', icon: Package },
     { id: 'sales', label: 'Sales', icon: DollarSign },
+    { id: 'purchases_report', label: 'Purchases', icon: ShoppingCart },
+    { id: 'supplier_aging', label: 'Supplier Aging', icon: Truck },
+    { id: 'stock_movements', label: 'Stock Moves', icon: Activity },
     { id: 'pl', label: 'P&L', icon: TrendingUp },
     { id: 'expense_summary', label: 'Expenses', icon: Receipt },
     { id: 'trial', label: 'Trial Balance', icon: Scale },
@@ -71,6 +74,25 @@ function Reports() {
                 case 'sales':
                     response = await reportsAPI.salesByDate({ from_date: tabFilters.from_date, to_date: tabFilters.to_date })
                     break
+                case 'purchases_report':
+                    response = await reportsAPI.purchases({
+                        from_date: tabFilters.from_date,
+                        to_date: tabFilters.to_date,
+                        page: 1,
+                        limit: 500,
+                    })
+                    break
+                case 'supplier_aging':
+                    response = await reportsAPI.supplierAging({ as_of_date: tabFilters.as_of_date })
+                    break
+                case 'stock_movements':
+                    response = await reportsAPI.stockMovements({
+                        from_date: tabFilters.from_date,
+                        to_date: tabFilters.to_date,
+                        page: 1,
+                        limit: 500,
+                    })
+                    break
                 case 'trial':
                     response = await reportsAPI.trialBalance({ as_of_date: tabFilters.as_of_date })
                     break
@@ -96,6 +118,10 @@ function Reports() {
                     response = { data: null }
             }
             const rawData = response.data
+            if (['purchases_report', 'supplier_aging', 'stock_movements'].includes(tab)) {
+                setData(rawData || null)
+                return
+            }
             if (rawData && typeof rawData === 'object' && Array.isArray(rawData.data)) {
                 setData(rawData.data)
             } else if (rawData && typeof rawData === 'object' && 'items' in rawData) {
@@ -156,9 +182,18 @@ function Reports() {
         if (searchQuery) {
             const query = searchQuery.toLowerCase()
             filtered = filtered.filter(item => 
-                item.name?.toLowerCase().includes(query) || 
-                item.code?.toLowerCase().includes(query) ||
-                item.category?.toLowerCase().includes(query)
+                String(item.name || '').toLowerCase().includes(query) ||
+                String(item.code || '').toLowerCase().includes(query) ||
+                String(item.category || '').toLowerCase().includes(query) ||
+                String(item.bill_number || '').toLowerCase().includes(query) ||
+                String(item.reference_number || '').toLowerCase().includes(query) ||
+                String(item.supplier_name || '').toLowerCase().includes(query) ||
+                String(item.supplier_code || '').toLowerCase().includes(query) ||
+                String(item.product_name || '').toLowerCase().includes(query) ||
+                String(item.product_code || '').toLowerCase().includes(query) ||
+                String(item.movement_type || '').toLowerCase().includes(query) ||
+                String(item.reference_type || '').toLowerCase().includes(query) ||
+                String(item.status || '').toLowerCase().includes(query)
             )
         }
         
@@ -186,7 +221,45 @@ function Reports() {
 
     const handleExport = (format) => {
         setShowExportMenu(false)
-        console.log(`Exporting ${activeTab} as ${format}`)
+        if (format !== 'csv') {
+            toast('CSV export is available in this build')
+            return
+        }
+
+        const tabRows = (() => {
+            if (activeTab === 'stock') return getFilteredData(data?.items || [])
+            if (activeTab === 'sales') return getFilteredData(getDataItems(data) || [])
+            if (activeTab === 'purchases_report') return getFilteredData(data?.data || [])
+            if (activeTab === 'supplier_aging') return getFilteredData(data?.data || [])
+            if (activeTab === 'stock_movements') return getFilteredData(data?.data || [])
+            if (activeTab === 'trial') return data?.accounts || []
+            return Array.isArray(getDataItems(data)) ? getDataItems(data) : []
+        })()
+
+        if (!tabRows || tabRows.length === 0) {
+            toast.error('No rows to export')
+            return
+        }
+
+        const headers = Object.keys(tabRows[0] || {})
+        const csvRows = [
+            headers.join(','),
+            ...tabRows.map((row) => headers.map((key) => {
+                const value = row[key]
+                if (value === null || value === undefined) return ''
+                const text = String(value).replace(/"/g, '""')
+                return `"${text}"`
+            }).join(','))
+        ]
+
+        const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `${activeTab}_${format(new Date(), 'yyyyMMdd_HHmmss')}.csv`
+        link.click()
+        URL.revokeObjectURL(url)
+        toast.success('CSV exported')
     }
 
     const handleRefresh = () => {
@@ -426,7 +499,7 @@ function Reports() {
                         <span className="filter-divider" />
                     </>
                 )}
-                {['pl', 'sales', 'sales_product', 'sales_customer', 'purchase_supplier', 'expense_summary'].includes(activeTab) && (
+                {['pl', 'sales', 'sales_product', 'sales_customer', 'purchase_supplier', 'expense_summary', 'purchases_report', 'stock_movements'].includes(activeTab) && (
                     <>
                         <div className="date-range">
                             <input
@@ -444,7 +517,7 @@ function Reports() {
                         <span className="filter-divider" />
                     </>
                 )}
-                {['trial', 'bs'].includes(activeTab) && (
+                {['trial', 'bs', 'supplier_aging'].includes(activeTab) && (
                     <>
                         <span className="filter-label">As of:</span>
                         <input
@@ -579,6 +652,171 @@ function Reports() {
                                 ))
                             )}
                         </tbody>
+                    </table>
+                )}
+
+                {activeTab === 'purchases_report' && (
+                    <table className="data-table">
+                        <thead>
+                            <tr>
+                                <th>Bill #</th>
+                                <th>Date</th>
+                                <th>Supplier</th>
+                                <th>Status</th>
+                                <th className="num-col">Total</th>
+                                <th className="num-col">Paid</th>
+                                <th className="num-col">Due</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {loading ? (
+                                [...Array(8)].map((_, i) => (
+                                    <tr key={i}><td colSpan={7}><div className="skeleton" /></td></tr>
+                                ))
+                            ) : getFilteredData(data?.data || []).length === 0 ? (
+                                <tr className="empty-row">
+                                    <td colSpan={7}>
+                                        <div className="empty-state">
+                                            <ShoppingCart size={24} />
+                                            <span>No purchase rows found</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : (
+                                getFilteredData(data?.data || []).map((row) => (
+                                    <tr key={row.id}>
+                                        <td><code>{row.bill_number}</code></td>
+                                        <td>{row.purchase_date ? format(new Date(row.purchase_date), 'dd MMM yyyy') : '—'}</td>
+                                        <td>{row.supplier_name || '—'}</td>
+                                        <td><span className="cat-tag">{String(row.status || '').toUpperCase()}</span></td>
+                                        <td className="num-col">{Number(row.total_amount || 0).toLocaleString()}</td>
+                                        <td className="num-col green">{Number(row.amount_paid || 0).toLocaleString()}</td>
+                                        <td className="num-col red">{Number(row.amount_due || 0).toLocaleString()}</td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                        {data?.summary && (
+                            <tfoot>
+                                <tr className="totals-row">
+                                    <td colSpan={4}>Summary</td>
+                                    <td className="num-col">{Number(data.summary.total_amount || 0).toLocaleString()}</td>
+                                    <td className="num-col">{Number(data.summary.total_paid || 0).toLocaleString()}</td>
+                                    <td className="num-col">{Number(data.summary.total_due || 0).toLocaleString()}</td>
+                                </tr>
+                            </tfoot>
+                        )}
+                    </table>
+                )}
+
+                {activeTab === 'supplier_aging' && (
+                    <table className="data-table">
+                        <thead>
+                            <tr>
+                                <th>Supplier</th>
+                                <th className="num-col">Open Invoices</th>
+                                <th className="num-col">0-30</th>
+                                <th className="num-col">31-60</th>
+                                <th className="num-col">61-90</th>
+                                <th className="num-col">90+</th>
+                                <th className="num-col">Total Due</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {loading ? (
+                                [...Array(8)].map((_, i) => (
+                                    <tr key={i}><td colSpan={7}><div className="skeleton" /></td></tr>
+                                ))
+                            ) : getFilteredData(data?.data || []).length === 0 ? (
+                                <tr className="empty-row">
+                                    <td colSpan={7}>
+                                        <div className="empty-state">
+                                            <Truck size={24} />
+                                            <span>No supplier aging rows found</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : (
+                                getFilteredData(data?.data || []).map((row) => (
+                                    <tr key={row.supplier_id}>
+                                        <td>{row.supplier_name || row.supplier_code || '—'}</td>
+                                        <td className="num-col">{Number(row.open_invoices || 0).toLocaleString()}</td>
+                                        <td className="num-col">{Number(row.current_0_30 || 0).toLocaleString()}</td>
+                                        <td className="num-col">{Number(row.overdue_31_60 || 0).toLocaleString()}</td>
+                                        <td className="num-col">{Number(row.overdue_61_90 || 0).toLocaleString()}</td>
+                                        <td className="num-col red">{Number(row.overdue_90_plus || 0).toLocaleString()}</td>
+                                        <td className="num-col">{Number(row.total_due || 0).toLocaleString()}</td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                        {data?.summary && (
+                            <tfoot>
+                                <tr className="totals-row">
+                                    <td>Summary</td>
+                                    <td className="num-col">{Number(data.summary.open_invoices || 0).toLocaleString()}</td>
+                                    <td className="num-col">{Number(data.summary.current_0_30 || 0).toLocaleString()}</td>
+                                    <td className="num-col">{Number(data.summary.overdue_31_60 || 0).toLocaleString()}</td>
+                                    <td className="num-col">{Number(data.summary.overdue_61_90 || 0).toLocaleString()}</td>
+                                    <td className="num-col">{Number(data.summary.overdue_90_plus || 0).toLocaleString()}</td>
+                                    <td className="num-col">{Number(data.summary.total_due || 0).toLocaleString()}</td>
+                                </tr>
+                            </tfoot>
+                        )}
+                    </table>
+                )}
+
+                {activeTab === 'stock_movements' && (
+                    <table className="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Product</th>
+                                <th>Type</th>
+                                <th>Reference</th>
+                                <th className="num-col">Qty</th>
+                                <th className="num-col">Unit Cost</th>
+                                <th className="num-col">Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {loading ? (
+                                [...Array(8)].map((_, i) => (
+                                    <tr key={i}><td colSpan={7}><div className="skeleton" /></td></tr>
+                                ))
+                            ) : getFilteredData(data?.data || []).length === 0 ? (
+                                <tr className="empty-row">
+                                    <td colSpan={7}>
+                                        <div className="empty-state">
+                                            <Activity size={24} />
+                                            <span>No stock movement rows found</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : (
+                                getFilteredData(data?.data || []).map((row) => (
+                                    <tr key={row.id}>
+                                        <td>{row.created_at ? format(new Date(row.created_at), 'dd MMM yyyy HH:mm') : '—'}</td>
+                                        <td>{row.product_name} <span className="muted">({row.product_code})</span></td>
+                                        <td><span className="cat-tag">{String(row.movement_type || '').toUpperCase()}</span></td>
+                                        <td>{String(row.reference_type || '').toUpperCase()}</td>
+                                        <td className="num-col">{Number(row.quantity || 0).toLocaleString()}</td>
+                                        <td className="num-col">{Number(row.unit_cost || 0).toLocaleString()}</td>
+                                        <td className="num-col">{Number(row.movement_value || 0).toLocaleString()}</td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                        {data?.summary && (
+                            <tfoot>
+                                <tr className="totals-row">
+                                    <td colSpan={4}>Summary</td>
+                                    <td className="num-col">IN {Number(data.summary.total_in_qty || 0).toLocaleString()} / OUT {Number(data.summary.total_out_qty || 0).toLocaleString()}</td>
+                                    <td className="num-col">Adj {Number(data.summary.total_adjustment_qty || 0).toLocaleString()}</td>
+                                    <td className="num-col">{Number(data.summary.total_movement_value || 0).toLocaleString()}</td>
+                                </tr>
+                            </tfoot>
+                        )}
                     </table>
                 )}
 

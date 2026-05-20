@@ -34,6 +34,7 @@ function Products() {
 
     useEffect(() => { loadData() }, [search])
     useDataSync(DataSyncEvents.SALE_CREATED, () => { loadData() })
+    useDataSync(DataSyncEvents.SALE_UPDATED, () => { loadData() })
     useDataSync(DataSyncEvents.PURCHASE_CREATED, () => { loadData() })
 
     const loadData = async () => {

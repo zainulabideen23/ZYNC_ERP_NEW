@@ -1,6 +1,7 @@
-const { exec } = require('child_process');
+const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const { URL } = require('url');
 const logger = require('../utils/logger');
 
 class BackupService {
@@ -11,33 +12,83 @@ class BackupService {
         }
     }
 
+    isSafeBackupFilename(filename) {
+        const safeFilename = path.basename(filename || '');
+        return safeFilename === filename && /^[a-zA-Z0-9._-]+\.sql$/.test(safeFilename);
+    }
+
+    getDatabaseConnectionDetails() {
+        if (process.env.DATABASE_URL) {
+            const parsed = new URL(process.env.DATABASE_URL);
+            return {
+                host: parsed.hostname,
+                port: parsed.port || '5432',
+                user: decodeURIComponent(parsed.username || ''),
+                password: decodeURIComponent(parsed.password || ''),
+                database: (parsed.pathname || '').replace(/^\//, ''),
+            };
+        }
+
+        return {
+            host: process.env.DB_HOST,
+            port: process.env.DB_PORT || '5432',
+            user: process.env.DB_USER,
+            password: process.env.DB_PASSWORD || '',
+            database: process.env.DB_NAME,
+        };
+    }
+
     async createBackup() {
         return new Promise((resolve, reject) => {
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
             const filename = `backup-${timestamp}.sql`;
             const filePath = path.join(this.backupDir, filename);
 
-            // Get DB config from process.env via connection string or individual vars
-            // Assuming DATABASE_URL is available or we use components
-            // For pg_dump, we usually need the connection string or environment vars set.
-
-            const dbUrl = process.env.DATABASE_URL;
-            if (!dbUrl) {
-                return reject(new Error('DATABASE_URL environment variable is not set.'));
+            const { host, port, user, password, database } = this.getDatabaseConnectionDetails();
+            if (!host || !user || !database) {
+                return reject(new Error('Database connection details are incomplete for backup.'));
             }
 
-            // Command: pg_dump --dbname=postgresql://user:pass@host:port/db > filePath
-            const cmd = `pg_dump "${dbUrl}" > "${filePath}"`;
+            const args = [
+                '--format=plain',
+                '--no-owner',
+                '--no-privileges',
+                '--host', host,
+                '--port', String(port),
+                '--username', user,
+                '--file', filePath,
+                database
+            ];
 
             logger.info(`Starting database backup: ${filename}`);
 
-            exec(cmd, (error, stdout, stderr) => {
-                if (error) {
-                    logger.error(`Backup failed: ${error.message}`);
-                    return reject(error);
+            const child = spawn('pg_dump', args, {
+                env: {
+                    ...process.env,
+                    PGPASSWORD: password || ''
+                },
+                stdio: ['ignore', 'pipe', 'pipe']
+            });
+
+            let stderrOutput = '';
+            child.stderr.on('data', (chunk) => {
+                stderrOutput += chunk.toString();
+            });
+
+            child.on('error', (error) => {
+                logger.error(`Backup failed: ${error.message}`);
+                reject(error);
+            });
+
+            child.on('close', (code) => {
+                if (code !== 0) {
+                    const message = stderrOutput.trim() || `pg_dump exited with code ${code}`;
+                    logger.error(`Backup failed: ${message}`);
+                    return reject(new Error(message));
                 }
-                if (stderr && !stderr.includes('dumping contents')) {
-                    logger.warn(`Backup stderr: ${stderr}`);
+
+                if (stderrOutput.trim()) {
+                    logger.warn(`Backup stderr: ${stderrOutput.trim()}`);
                 }
 
                 logger.info(`Backup completed successfully: ${filename}`);
@@ -69,6 +120,10 @@ class BackupService {
     }
 
     async deleteBackup(filename) {
+        if (!this.isSafeBackupFilename(filename)) {
+            throw new Error('Invalid backup filename');
+        }
+
         const filePath = path.join(this.backupDir, filename);
         if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
@@ -78,6 +133,10 @@ class BackupService {
     }
 
     getBackupPath(filename) {
+        if (!this.isSafeBackupFilename(filename)) {
+            return null;
+        }
+
         const filePath = path.join(this.backupDir, filename);
         if (fs.existsSync(filePath)) {
             return filePath;

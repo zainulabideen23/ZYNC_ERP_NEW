@@ -54,15 +54,21 @@ const errorHandler = (err, req, res, next) => {
     });
 };
 
-// Handle unhandled rejections
-process.on('unhandledRejection', (reason, promise) => {
-    logger.error('Unhandled Rejection:', reason);
-});
+const processListenerFlag = '__zyncErrorListenersAttached';
 
-// Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-    logger.error('Uncaught Exception:', error);
-    process.exit(1);
-});
+if (!process[processListenerFlag]) {
+    process[processListenerFlag] = true;
+
+    // Handle unhandled rejections
+    process.on('unhandledRejection', (reason) => {
+        logger.error('Unhandled Rejection:', reason);
+    });
+
+    // Handle uncaught exceptions
+    process.on('uncaughtException', (error) => {
+        logger.error('Uncaught Exception:', error);
+        process.exit(1);
+    });
+}
 
 module.exports = { AppError, errorHandler };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { can } from './permissions'
+import { can, canAny } from './permissions'
 
 describe('permissions utility', () => {
     it('allows admin-only permissions only for admin', () => {
@@ -22,5 +22,13 @@ describe('permissions utility', () => {
 
     it('returns false for unknown permissions', () => {
         expect(can('admin', 'unknown.permission')).toBe(false)
+    })
+
+    it('canAny returns true when at least one permission is allowed', () => {
+        expect(canAny('manager', ['users.manage', 'products.edit'])).toBe(true)
+    })
+
+    it('canAny returns false when no permissions are allowed', () => {
+        expect(canAny('cashier', ['users.manage', 'products.delete'])).toBe(false)
     })
 })

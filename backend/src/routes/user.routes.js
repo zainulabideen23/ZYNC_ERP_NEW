@@ -8,6 +8,8 @@ const audit = require('../utils/audit');
 const { phoneRule } = require('../validators/phone.validator');
 const { validationResult } = require('express-validator');
 
+const BCRYPT_ROUNDS = Number.parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
+
 // Middleware: All routes require 'admin' role
 router.use(authorize('admin'));
 
@@ -50,7 +52,7 @@ router.post('/', [phoneRule('phone', true)], async (req, res, next) => {
             throw new AppError('Username already taken', 409);
         }
 
-        const password_hash = await bcrypt.hash(password, 10);
+        const password_hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
         const [newUser] = await db('users').insert({
             username,
@@ -140,7 +142,7 @@ router.post('/:id/reset-password', async (req, res, next) => {
             throw new AppError('Password must be at least 6 characters', 400);
         }
 
-        const password_hash = await bcrypt.hash(newPassword, 10);
+        const password_hash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
 
         const rowsAffected = await db('users')
             .where({ id: req.params.id, tenant_id: req.tenantId })

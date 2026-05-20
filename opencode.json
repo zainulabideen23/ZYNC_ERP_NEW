@@ -3,10 +3,10 @@
   "provider": {
     "openrouter": {
       "options": {
-        "apiKey": "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"
+        "apiKey": ""
       }
     }
   },
-  "model": "openrouter/minimax/minimax-m2.5:free",
-  "small_model": "openrouter/google/gemini-2.0-flash-exp:free"
+  "model": "qwen/qwen3-coder:free",
+  "small_model": "google/gemma-3-4b-it:free"
 }

@@ -27,7 +27,7 @@ const STEPS = [
 function SetupWizard() {
     const navigate = useNavigate()
     const [searchParams, setSearchParams] = useSearchParams()
-    const { tenant, updateOnboardingStep } = useAuthStore()
+    const { tenant, updateOnboardingStep, markOnboarded } = useAuthStore()
 
     const initialStep = parseInt(searchParams.get('step')) || tenant?.onboarding_step || 1
     const [currentStep, setCurrentStep] = useState(Math.min(Math.max(initialStep, 1), 6))
@@ -82,6 +82,19 @@ function SetupWizard() {
         await goToStep(currentStep + 1)
     }, [currentStep, goToStep])
 
+    const handleFinish = useCallback(async () => {
+        try {
+            setSaving(true)
+            await onboardingAPI.complete()
+            markOnboarded()
+            navigate('/')
+        } catch (err) {
+            toast.error('Failed to complete setup')
+        } finally {
+            setSaving(false)
+        }
+    }, [markOnboarded, navigate])
+
     const renderStep = () => {
         switch (currentStep) {
             case 1: return <Step1Company onContinue={handleContinue} saving={saving} setSaving={setSaving} />
@@ -89,7 +102,7 @@ function SetupWizard() {
             case 3: return <Step3Brands onContinue={handleContinue} saving={saving} />
             case 4: return <Step4Units onContinue={handleContinue} saving={saving} />
             case 5: return <Step5OpeningBalances onContinue={handleContinue} onSkip={handleSkip} saving={saving} setSaving={setSaving} />
-            case 6: return <Step6Complete skippedSteps={skippedSteps} />
+            case 6: return <Step6Complete skippedSteps={skippedSteps} onFinish={handleFinish} />
             default: return null
         }
     }
@@ -208,7 +221,7 @@ function SetupWizard() {
 
                 {/* Skip + Continue */}
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    {currentStep < 6 && (
+                    {currentStep < 5 && (
                         <button
                             onClick={handleSkip}
                             disabled={saving}

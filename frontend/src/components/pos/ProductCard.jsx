@@ -100,14 +100,13 @@ const ProductCard = memo(function ProductCard({
             <div className="card-footer">
                 {/* Price - Bottom Left */}
                 <div className="product-price">
-                    {priceLabel !== 'Price' && <span className="price-label">{priceLabel}: </span>}
+                    {priceLabel !== 'Price' && <span className="price-label">{priceLabel}</span>}
                     Rs. {Number(displayPrice).toLocaleString()}
                 </div>
 
                 {/* In-cart pill indicator - Bottom Right */}
                 {inCart && (
                     <div className="in-cart-pill" aria-label={`${cartQuantity} in cart`}>
-                        <span className="pill-icon">🛒</span>
                         <span className="pill-qty">{cartQuantity}</span>
                     </div>
                 )}

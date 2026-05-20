@@ -1,9 +1,11 @@
 const { AppError } = require('../middleware/errorHandler');
+const StockService = require('./stock.service');
 
 class ProductService {
     constructor(db, tenantId) {
         this.db = db;
         this.tenantId = tenantId;
+        this.stockService = new StockService(db, tenantId);
     }
 
     /**
@@ -138,22 +140,15 @@ class ProductService {
 
             // Handle Opening Stock
             if (opening_stock > 0) {
-                await trx('stock_movements').insert({
+                await this.stockService.createMovement({
                     product_id: product.id,
                     movement_type: 'IN',
                     reference_type: 'opening',
                     quantity: opening_stock,
                     unit_cost: cost_price,
-                    remaining_qty: opening_stock,
-                    created_by: userId,
                     notes: 'Opening Stock',
-                    tenant_id: this.tenantId
-                });
-
-                // Update current_stock in products table
-                await trx('products')
-                    .where('id', product.id)
-                    .update({ current_stock: opening_stock });
+                    created_by: userId,
+                }, trx);
 
                 product.current_stock = opening_stock;
             }
@@ -252,6 +247,94 @@ class ProductService {
         }
 
         return product;
+    }
+
+    async getCostHistory(id, options = {}) {
+        const {
+            limit = 100,
+            from_date = null,
+            to_date = null,
+        } = options;
+
+        const normalizedLimit = Number(limit) > 0 ? Math.min(Number(limit), 500) : 100;
+
+        const product = await this.getById(id);
+
+        const query = this.db('purchase_items as pi')
+            .join('purchases as p', function joinPurchases() {
+                this.on('p.id', '=', 'pi.purchase_id').andOn('p.tenant_id', '=', 'pi.tenant_id');
+            })
+            .leftJoin('suppliers as s', function joinSuppliers() {
+                this.on('s.id', '=', 'p.supplier_id').andOn('s.tenant_id', '=', 'p.tenant_id');
+            })
+            .select(
+                'pi.id as purchase_item_id',
+                'p.id as purchase_id',
+                'p.bill_number',
+                'p.purchase_date',
+                'p.reference_number',
+                'p.status as purchase_status',
+                'pi.quantity',
+                'pi.unit_cost',
+                this.db.raw('(COALESCE(pi.quantity, 0) * COALESCE(pi.unit_cost, 0)) as line_cost'),
+                's.id as supplier_id',
+                's.name as supplier_name',
+                'pi.created_at'
+            )
+            .where('pi.tenant_id', this.tenantId)
+            .where('p.tenant_id', this.tenantId)
+            .where('pi.product_id', id)
+            .where('p.is_deleted', false)
+            .where((builder) => builder.whereNull('p.is_return').orWhere('p.is_return', false));
+
+        if (from_date) query.where('p.purchase_date', '>=', from_date);
+        if (to_date) query.where('p.purchase_date', '<=', to_date);
+
+        const rows = await query
+            .orderBy('p.purchase_date', 'desc')
+            .orderBy('pi.created_at', 'desc')
+            .limit(normalizedLimit);
+
+        const summary = rows.reduce((acc, row) => {
+            const qty = Number(row.quantity || 0);
+            const unitCost = Number(row.unit_cost || 0);
+
+            acc.totalLines += 1;
+            acc.totalQuantity += qty;
+            acc.totalLineCost += qty * unitCost;
+
+            if (acc.minCost === null || unitCost < acc.minCost) {
+                acc.minCost = unitCost;
+            }
+            if (acc.maxCost === null || unitCost > acc.maxCost) {
+                acc.maxCost = unitCost;
+            }
+
+            return acc;
+        }, {
+            totalLines: 0,
+            totalQuantity: 0,
+            totalLineCost: 0,
+            minCost: null,
+            maxCost: null,
+        });
+
+        const weightedAverage = summary.totalQuantity > 0
+            ? summary.totalLineCost / summary.totalQuantity
+            : 0;
+
+        return {
+            product,
+            history: rows,
+            summary: {
+                total_lines: summary.totalLines,
+                total_quantity: Number(summary.totalQuantity.toFixed(2)),
+                min_unit_cost: summary.minCost === null ? null : Number(summary.minCost.toFixed(2)),
+                max_unit_cost: summary.maxCost === null ? null : Number(summary.maxCost.toFixed(2)),
+                weighted_avg_unit_cost: Number(weightedAverage.toFixed(2)),
+                latest_unit_cost: rows.length > 0 ? Number(Number(rows[0].unit_cost || 0).toFixed(2)) : null,
+            },
+        };
     }
 }
 

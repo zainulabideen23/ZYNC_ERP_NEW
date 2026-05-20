@@ -1,10 +1,12 @@
 const { AppError } = require('../middleware/errorHandler');
 const { resolveSystemAccounts, SYSTEM_ACCOUNTS } = require('../utils/accountResolver');
+const LedgerService = require('./ledger.service');
 
 class StockService {
     constructor(db, tenantId) {
         this.db = db;
         this.tenantId = tenantId;
+        this.ledgerService = new LedgerService(db, tenantId);
     }
 
     /**
@@ -24,8 +26,70 @@ class StockService {
             created_by
         } = data;
 
+        // Validate created_by is a valid UUID
+        const isValidUUID = (val) => {
+            if (!val || typeof val !== 'string') return false;
+            const regex = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$', 'i');
+            return regex.test(val);
+        };
+        
+        if (!isValidUUID(created_by)) {
+            throw new AppError(`Invalid user ID format for stock movement: ${created_by}. Must be a valid UUID.`, 400);
+        }
+
+        const validMovementTypes = ['IN', 'OUT', 'ADJUSTMENT', 'DAMAGE', 'RETURN'];
+        const validReferenceTypes = ['purchase', 'sale', 'adjustment', 'opening', 'damage', 'return'];
+
+        if (!validMovementTypes.includes(movement_type)) {
+            throw new AppError(`Invalid stock movement_type: ${movement_type}`, 400);
+        }
+
+        if (!validReferenceTypes.includes(reference_type)) {
+            throw new AppError(`Invalid stock reference_type: ${reference_type}`, 400);
+        }
+
+        const numericQuantity = Number(quantity);
+        if (!Number.isFinite(numericQuantity) || numericQuantity === 0) {
+            throw new AppError('Stock movement quantity must be a non-zero number', 400);
+        }
+
+        const numericUnitCost = Number(unit_cost || 0);
+        if (!Number.isFinite(numericUnitCost) || numericUnitCost < 0) {
+            throw new AppError('unit_cost must be a valid non-negative number', 400);
+        }
+
+        const product = await query('products')
+            .where({ id: product_id, tenant_id: this.tenantId, is_deleted: false })
+            .first();
+
+        if (!product) {
+            throw new AppError(`Product not found: ${product_id}`, 404);
+        }
+
         // movement_type check (handled by DB ENUM, but for clarity)
         // IN, OUT, ADJUSTMENT, DAMAGE, RETURN
+
+        // Update product current_stock
+        // quantity should be treated based on movement_type
+        let stockDelta = 0;
+        if (['IN', 'RETURN'].includes(movement_type)) {
+            stockDelta = Math.abs(numericQuantity);
+        } else if (['OUT', 'DAMAGE'].includes(movement_type)) {
+            stockDelta = -Math.abs(numericQuantity);
+        } else if (movement_type === 'ADJUSTMENT') {
+            stockDelta = numericQuantity; // Adjustments can be positive or negative
+        }
+
+        const currentStock = Number(product.current_stock || 0);
+        if (currentStock + stockDelta < -0.0001) {
+            throw new AppError(
+                `Insufficient stock for ${product.name}. Requested change: ${stockDelta}, available: ${currentStock}`,
+                400
+            );
+        }
+
+        const absoluteQuantity = Math.abs(numericQuantity);
+        const remainingQty = stockDelta > 0 ? absoluteQuantity : 0;
 
         const [movement] = await query('stock_movements')
             .insert({
@@ -33,39 +97,90 @@ class StockService {
                 movement_type,
                 reference_type,
                 reference_id,
-                quantity: Math.abs(quantity),
-                unit_cost: unit_cost || 0,
-                remaining_qty: (movement_type === 'IN' || reference_type === 'opening') ? Math.abs(quantity) : 0,
+                quantity: absoluteQuantity,
+                unit_cost: numericUnitCost,
+                remaining_qty: remainingQty,
                 notes,
                 created_by,
                 tenant_id: this.tenantId
             })
             .returning('*');
 
-        // Update product current_stock
-        // quantity should be treated based on movement_type
-        let stockDelta = 0;
-        if (['IN', 'RETURN'].includes(movement_type)) {
-            stockDelta = Math.abs(quantity);
-        } else if (['OUT', 'DAMAGE'].includes(movement_type)) {
-            stockDelta = -Math.abs(quantity);
-        } else if (movement_type === 'ADJUSTMENT') {
-            stockDelta = quantity; // Adjustments can be positive or negative
-        }
+        const updatedRows = await query('products')
+            .where({ id: product_id, tenant_id: this.tenantId })
+            .update({
+                current_stock: query.raw('current_stock + ?', [stockDelta]),
+                updated_at: new Date()
+            });
 
-        await query('products')
-            .where('id', product_id)
-            .increment('current_stock', stockDelta)
-            .update({ updated_at: new Date() });
+        if (!updatedRows) {
+            throw new AppError(`Failed to update stock for product: ${product_id}`, 500);
+        }
 
         // Update product cost_price for purchases
         if (movement_type === 'IN' && reference_type === 'purchase') {
             await query('products')
-                .where('id', product_id)
-                .update({ cost_price: unit_cost });
+                .where({ id: product_id, tenant_id: this.tenantId })
+                .update({ cost_price: numericUnitCost });
         }
 
         return movement;
+    }
+
+    /**
+     * Adjust stock quantity and keep FIFO integrity for negative moves.
+     */
+    async adjustStock(data, trx = null) {
+        const query = trx || this.db;
+        const {
+            product_id,
+            quantity,
+            unit_cost = 0,
+            notes,
+            created_by,
+            adjustment_reason = 'other',
+            reference_type = 'adjustment',
+            reference_id = null,
+        } = data;
+
+        const numericQuantity = Number(quantity);
+        if (!Number.isFinite(numericQuantity) || numericQuantity === 0) {
+            throw new AppError('Adjustment quantity must be a non-zero number', 400);
+        }
+
+        let movementType = 'ADJUSTMENT';
+        let effectiveCost = Number(unit_cost || 0);
+        let movementQty = numericQuantity;
+
+        if (numericQuantity < 0) {
+            const qtyToConsume = Math.abs(numericQuantity);
+            const consumption = await this.consumeStockFifo(product_id, qtyToConsume, query);
+            if (consumption.shortage > 0) {
+                throw new AppError(`Insufficient stock to adjust. Shortage: ${consumption.shortage}`, 400);
+            }
+
+            const reason = String(adjustment_reason || '').toLowerCase();
+            movementType = ['damage', 'shrinkage', 'theft'].includes(reason) ? 'DAMAGE' : 'OUT';
+            movementQty = qtyToConsume;
+            if (!Number.isFinite(effectiveCost) || effectiveCost <= 0) {
+                effectiveCost = Number(consumption.avgCost || 0);
+            }
+        }
+
+        if (!Number.isFinite(effectiveCost) || effectiveCost < 0) {
+            effectiveCost = 0;
+        }
+
+        return this.createMovement({
+            product_id,
+            movement_type: movementType,
+            reference_type,
+            reference_id,
+            quantity: movementQty,
+            unit_cost: effectiveCost,
+            notes,
+            created_by,
+        }, query);
     }
 
     /**
@@ -75,10 +190,15 @@ class StockService {
     async consumeStockFifo(productId, requiredQty, trx) {
         if (!trx) throw new Error('consumeStockFifo requires a transaction');
 
+        const qty = Number(requiredQty);
+        if (!Number.isFinite(qty) || qty <= 0) {
+            throw new AppError('requiredQty must be a positive number', 400);
+        }
+
         // Get available stock movements (IN) with remaining quantity, ordered by date (FIFO)
         const movements = await trx('stock_movements')
             .where('product_id', productId)
-            .where('movement_type', 'IN')
+            .whereIn('movement_type', ['IN', 'RETURN', 'ADJUSTMENT'])
             .where('remaining_qty', '>', 0)
             .where('tenant_id', this.tenantId)
             .orderBy('created_at', 'asc')
@@ -86,16 +206,18 @@ class StockService {
             .select('id', 'unit_cost', 'remaining_qty');
 
         if (movements.length === 0) {
-            const product = await trx('products').where('id', productId).first();
+            const product = await trx('products')
+                .where({ id: productId, tenant_id: this.tenantId })
+                .first();
             return {
                 avgCost: product?.cost_price || 0,
                 breakdown: [],
                 totalCost: 0,
-                shortage: requiredQty
+                shortage: qty
             };
         }
 
-        let remainingQty = requiredQty;
+        let remainingQty = qty;
         let totalCost = 0;
         const breakdown = [];
 
@@ -122,7 +244,8 @@ class StockService {
                 .update({ remaining_qty: mvRemaining - takeQty });
         }
 
-        const avgCost = requiredQty > 0 ? totalCost / (requiredQty - (remainingQty > 0 ? remainingQty : 0)) : 0;
+        const consumedQty = qty - (remainingQty > 0 ? remainingQty : 0);
+        const avgCost = consumedQty > 0 ? totalCost / consumedQty : 0;
 
         return {
             avgCost: isNaN(avgCost) ? 0 : avgCost,
@@ -199,16 +322,16 @@ class StockService {
                 approved_at: new Date()
             });
 
-        // Create the actual movement
-        await this.createMovement({
+        // Create the actual movement with FIFO-safe negative handling
+        await this.adjustStock({
             product_id: adjustment.product_id,
-            movement_type: 'ADJUSTMENT',
-            reference_type: 'adjustment',
-            reference_id: adjustmentId,
             quantity: adjustment.quantity_adjusted,
             unit_cost: 0,
             notes: adjustment.reason_notes,
-            created_by: userId
+            created_by: userId,
+            adjustment_reason: adjustment.adjustment_type,
+            reference_type: 'adjustment',
+            reference_id: adjustmentId,
         }, query);
 
         // For negative adjustments (stock reduction/write-offs), create GL journal entry
@@ -224,9 +347,11 @@ class StockService {
      */
     async createWriteOffJournal(adjustment, trx, userId) {
         const adjustmentQty = Math.abs(adjustment.quantity_adjusted);
-        
+
         // Get product to calculate write-off value
-        const product = await trx('products').where('id', adjustment.product_id).first();
+        const product = await trx('products')
+            .where({ id: adjustment.product_id, tenant_id: this.tenantId })
+            .first();
         const writeOffValue = adjustmentQty * (product?.cost_price || 0);
 
         if (writeOffValue <= 0) return;
@@ -237,56 +362,28 @@ class StockService {
             SYSTEM_ACCOUNTS.INVENTORY,
         ]);
 
-        // Get next journal sequence
-        const seq = await trx('sequences')
-            .where({ tenant_id: this.tenantId, name: 'journal' })
-            .forUpdate()
-            .first();
-
-        const nextNum = seq.current_value + 1;
-        const journalNumber = `${seq.prefix}${String(nextNum).padStart(seq.pad_length, '0')}`;
-
-        await trx('sequences')
-            .where({ tenant_id: this.tenantId, name: 'journal' })
-            .update({ current_value: nextNum });
-
-        // Create journal entry
-        const [journal] = await trx('journals').insert({
-            tenant_id: this.tenantId,
-            journal_number: journalNumber,
+        await this.ledgerService.createJournalEntry({
             journal_date: new Date(),
+            transaction_type: 'adjustment',
             reference_type: 'adjustment',
             reference_id: adjustment.id,
-            description: `Stock Write-Off: ${product?.name || 'Product'} — ${adjustment.reason_notes || 'Adjustment'}`,
-            total_debit: writeOffValue,
-            total_credit: writeOffValue,
-            is_balanced: true,
+            narration: `Stock Write-Off: ${product?.name || 'Product'} - ${adjustment.reason_notes || 'Adjustment'}`,
+            entries: [
+                {
+                    account_id: accountIds[SYSTEM_ACCOUNTS.INVENTORY_LOSS],
+                    entry_type: 'debit',
+                    amount: writeOffValue,
+                    narration: `Inventory Loss: ${product?.name || 'Product'}`,
+                },
+                {
+                    account_id: accountIds[SYSTEM_ACCOUNTS.INVENTORY],
+                    entry_type: 'credit',
+                    amount: writeOffValue,
+                    narration: `Stock Write-Off: ${product?.name || 'Product'}`,
+                },
+            ],
             created_by: userId,
-            created_at: trx.fn.now(),
-        }).returning('*');
-
-        // Create ledger entries
-        // Debit Inventory Loss (6004) — operating loss
-        await trx('ledger_entries').insert({
-            tenant_id: this.tenantId,
-            journal_id: journal.id,
-            account_id: accountIds[SYSTEM_ACCOUNTS.INVENTORY_LOSS],
-            entry_type: 'debit',
-            amount: writeOffValue,
-            description: `Inventory Loss: ${product?.name || 'Product'}`,
-            created_at: trx.fn.now(),
-        });
-
-        // Credit Inventory (1004) — stock leaves the books
-        await trx('ledger_entries').insert({
-            tenant_id: this.tenantId,
-            journal_id: journal.id,
-            account_id: accountIds[SYSTEM_ACCOUNTS.INVENTORY],
-            entry_type: 'credit',
-            amount: writeOffValue,
-            description: `Stock Write-Off: ${product?.name || 'Product'}`,
-            created_at: trx.fn.now(),
-        });
+        }, trx);
     }
 }
 

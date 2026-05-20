@@ -73,6 +73,7 @@ const ICON_TINT = {
 }
 import toast from 'react-hot-toast'
 import './Dashboard.css'
+import CashFlowTrendChart from '../components/dashboard/CashFlowTrendChart'
 
 // ─── Animating Counter Component ───
 const Counter = ({ value, duration = 1000, prefix = '', className = '' }) => {
@@ -142,7 +143,9 @@ function Dashboard() {
         }
     }, [user?.role, tenant?.is_onboarded, bannerDismissed])
     useDataSync(DataSyncEvents.SALE_CREATED, loadDashboard)
+    useDataSync(DataSyncEvents.SALE_UPDATED, loadDashboard)
     useDataSync(DataSyncEvents.PURCHASE_CREATED, loadDashboard)
+    useDataSync(DataSyncEvents.DASHBOARD_REFRESH, loadDashboard)
 
     // Auto-refresh recent activity every 60 seconds
     useEffect(() => {
@@ -192,16 +195,6 @@ function Dashboard() {
         if (hour < 18) return 'Good Afternoon'
         return 'Good Evening'
     }
-
-    const getMaxChartValue = () => {
-        if (!data) return 100
-        const maxSale = Math.max(...(data.sales_trend?.map(d => d.amount) || [0]))
-        const maxPurch = Math.max(...(data.purchase_trend?.map(d => d.amount) || [0]))
-        return Math.max(maxSale, maxPurch, 100)
-    }
-
-    const maxChartVal = getMaxChartValue()
-    const hasChartActivity = maxChartVal > 100
 
     const getDonutGradient = () => {
         if (!data?.expense_breakdown?.length) return 'conic-gradient(#1e293b 0% 100%)'
@@ -492,65 +485,10 @@ function Dashboard() {
 
             {/* 3. Charts Section */}
             <div className="chart-section">
-                {/* Cash Flow Chart */}
-                <div className="chart-card fixed-height">
-                    <div className="chart-header">
-                        <h3 className="chart-title">Cash Flow Trend</h3>
-                        <div className="chart-legend">
-                            <div className="legend-pill"><div className="legend-color bg-accent"></div> Sales</div>
-                            <div className="legend-pill"><div className="legend-color bg-danger opacity-80"></div> Purchases</div>
-                        </div>
-                        <div className="time-range-selector">
-                            <button className="time-range-btn active">7 Days</button>
-                            <button className="time-range-btn">30 Days</button>
-                            <button className="time-range-btn">90 Days</button>
-                        </div>
-                    </div>
-
-                    {hasChartActivity ? (
-                        <div className="dual-bar-chart">
-                            <div className="chart-bg-lines">
-                                <div className="chart-line"></div>
-                                <div className="chart-line"></div>
-                                <div className="chart-line"></div>
-                                <div className="chart-line"></div>
-                                <div className="chart-line"></div>
-                            </div>
-                            {data?.sales_trend?.map((day, i) => {
-                                const salesVal = day.amount
-                                const purchVal = data?.purchase_trend?.[i]?.amount || 0
-                                const maxSqrt = Math.sqrt(maxChartVal)
-                                const salesH = salesVal > 0 ? Math.max((Math.sqrt(salesVal) / maxSqrt) * 100, 4) : 0
-                                const purchH = purchVal > 0 ? Math.max((Math.sqrt(purchVal) / maxSqrt) * 100, 4) : 0
-
-                                return (
-                                    <div key={i} className="chart-col">
-                                        <div className="bars-group">
-                                            <div className="bar bar-sales" style={{ height: `${salesH}%`, minHeight: salesVal > 0 ? '4px' : '0' }}></div>
-                                            <div className="bar bar-purchase" style={{ height: `${purchH}%`, minHeight: purchVal > 0 ? '4px' : '0' }}></div>
-                                        </div>
-                                        <span className="chart-label">{format(new Date(day.date), 'dd MMM')}</span>
-                                        <div className="tooltip">
-                                            <div className="font-bold mb-1">{format(new Date(day.date), 'EEE, dd MMM')}</div>
-                                            <div className="flex justify-between gap-4 text-xs">
-                                                <span>Sale:</span>
-                                                <span className="font-mono">{formatCurrency(salesVal)}</span>
-                                            </div>
-                                            <div className="flex justify-between gap-4 text-xs">
-                                                <span>Buy:</span>
-                                                <span className="font-mono">{formatCurrency(purchVal)}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    ) : (
-                        <div className="chart-empty">
-                            <div>No significant activity in last 7 days</div>
-                        </div>
-                    )}
-                </div>
+                <CashFlowTrendChart
+                    salesTrend={data?.sales_trend || []}
+                    expenseTrend={data?.purchase_trend || []}
+                />
 
                 {/* Recent Activity */}
                 <div className="chart-card fixed-height">

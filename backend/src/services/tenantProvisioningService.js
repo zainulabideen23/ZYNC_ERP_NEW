@@ -13,6 +13,8 @@ const db = require('../config/database');
 const { AppError } = require('../middleware/errorHandler');
 const logger = require('../utils/logger');
 
+const BCRYPT_ROUNDS = Number.parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
+
 /**
  * Provision a new tenant with all default data.
  * 
@@ -108,17 +110,22 @@ async function provisionTenant({
         };
 
         // =====================================================
-        // c) Seed default accounts (17 standard accounts)
+        // c) Seed default accounts
         // =====================================================
         const accountInserts = [
             { code: '1001', name: 'Cash in Hand', account_type: 'asset', group_id: groups.cash, opening_balance: 0, current_balance: 0, is_system: true, is_active: true, tenant_id: tenantId },
             { code: '1002', name: 'Bank Account', account_type: 'asset', group_id: groups.bank, opening_balance: 0, current_balance: 0, is_bank_account: true, bank_name: 'Primary Bank', is_system: true, is_active: true, tenant_id: tenantId },
             { code: '1004', name: 'Inventory', account_type: 'asset', group_id: groups.inventory, opening_balance: 0, current_balance: 0, is_system: true, is_active: true, tenant_id: tenantId },
             { code: '1201', name: 'Customer Receivables', account_type: 'asset', group_id: groups.receivables, opening_balance: 0, current_balance: 0, is_system: true, is_active: true, tenant_id: tenantId },
+            { code: '1202', name: 'Supplier Advances', account_type: 'asset', group_id: groups.receivables, opening_balance: 0, current_balance: 0, is_system: true, is_active: true, tenant_id: tenantId },
+            { code: '1203', name: 'GST Receivable', account_type: 'asset', group_id: groups.receivables, opening_balance: 0, current_balance: 0, is_system: true, is_active: true, tenant_id: tenantId },
             { code: '2001', name: 'Supplier Payables', account_type: 'liability', group_id: groups.payables, opening_balance: 0, current_balance: 0, is_system: true, is_active: true, tenant_id: tenantId },
-            { code: '2002', name: 'Tax Payable', account_type: 'liability', group_id: groups.taxLiabilities, opening_balance: 0, current_balance: 0, is_system: true, is_active: true, tenant_id: tenantId },
+            { code: '2002', name: 'GST Payable', account_type: 'liability', group_id: groups.taxLiabilities, opening_balance: 0, current_balance: 0, is_system: true, is_active: true, tenant_id: tenantId },
+            { code: '2003', name: 'Customer Advances', account_type: 'liability', group_id: groups.payables, opening_balance: 0, current_balance: 0, is_system: true, is_active: true, tenant_id: tenantId },
+            { code: '2100', name: 'Bank Loans', account_type: 'liability', group_id: groups.bankLoans, opening_balance: 0, current_balance: 0, is_system: true, is_active: true, tenant_id: tenantId },
             { code: '3001', name: 'Owner Capital', account_type: 'equity', group_id: groups.equity, opening_balance: 0, current_balance: 0, is_system: true, is_active: true, tenant_id: tenantId },
             { code: '3002', name: 'Retained Earnings', account_type: 'equity', group_id: groups.equity, opening_balance: 0, current_balance: 0, is_system: true, is_active: true, tenant_id: tenantId },
+            { code: '3003', name: 'Owner Drawings', account_type: 'equity', group_id: groups.equity, opening_balance: 0, current_balance: 0, is_system: true, is_active: true, tenant_id: tenantId },
             { code: '4001', name: 'Sales Income', account_type: 'income', group_id: groups.sales, opening_balance: 0, current_balance: 0, is_system: true, is_active: true, tenant_id: tenantId },
             { code: '4002', name: 'Sales Discount', account_type: 'income', group_id: groups.sales, opening_balance: 0, current_balance: 0, is_system: true, is_active: true, tenant_id: tenantId },
             { code: '4003', name: 'Sales Returns', account_type: 'income', group_id: groups.sales, opening_balance: 0, current_balance: 0, is_system: true, is_active: true, tenant_id: tenantId },
@@ -126,8 +133,10 @@ async function provisionTenant({
             { code: '5002', name: 'Purchase Returns', account_type: 'expense', group_id: groups.cogs, opening_balance: 0, current_balance: 0, is_system: true, is_active: true, tenant_id: tenantId },
             { code: '6001', name: 'Salaries & Wages', account_type: 'expense', group_id: groups.opex, opening_balance: 0, current_balance: 0, is_system: true, is_active: true, tenant_id: tenantId },
             { code: '6002', name: 'Rent & Utilities', account_type: 'expense', group_id: groups.opex, opening_balance: 0, current_balance: 0, is_system: true, is_active: true, tenant_id: tenantId },
-            { code: '6003', name: 'Marketing & Advertising', account_type: 'expense', group_id: groups.opex, opening_balance: 0, current_balance: 0, is_system: true, is_active: true, tenant_id: tenantId },
+            { code: '6003', name: 'Interest Expense', account_type: 'expense', group_id: groups.opex, opening_balance: 0, current_balance: 0, is_system: true, is_active: true, tenant_id: tenantId },
             { code: '6004', name: 'Inventory Loss', account_type: 'expense', group_id: groups.opex, opening_balance: 0, current_balance: 0, is_system: true, is_active: true, tenant_id: tenantId },
+            { code: '6005', name: 'Office Supplies', account_type: 'expense', group_id: groups.opex, opening_balance: 0, current_balance: 0, is_system: true, is_active: true, tenant_id: tenantId },
+            { code: '6200', name: 'Late Payment Penalty', account_type: 'expense', group_id: groups.opex, opening_balance: 0, current_balance: 0, is_system: true, is_active: true, tenant_id: tenantId },
         ];
 
         await trx('accounts').insert(accountInserts);
@@ -173,7 +182,7 @@ async function provisionTenant({
         // =====================================================
         // f) Create the first admin user
         // =====================================================
-        const passwordHash = await bcrypt.hash(adminPassword, 10);
+        const passwordHash = await bcrypt.hash(adminPassword, BCRYPT_ROUNDS);
 
         const [adminUser] = await trx('users').insert({
             username: adminUsername,

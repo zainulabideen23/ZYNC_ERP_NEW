@@ -20,6 +20,7 @@ router.post('/adjust', authorize('admin', 'manager'), async (req, res, next) => 
             const processed = [];
             for (const adj of adjustments) {
                 const { product_id, quantity, adjustment_type, reason, notes: adjNotes } = adj;
+                const safeReason = String(reason || 'other');
 
                 // Final quantity to add to database (+ve for add, -ve for remove)
                 const adjQty = adjustment_type === 'remove' ? -Math.abs(quantity) : Math.abs(quantity);
@@ -32,7 +33,8 @@ router.post('/adjust', authorize('admin', 'manager'), async (req, res, next) => 
                     product_id,
                     quantity: adjQty,
                     unit_cost: product.cost_price || 0,
-                    notes: `${reason.toUpperCase()}: ${adjNotes || notes || ''}`,
+                    adjustment_reason: safeReason,
+                    notes: `${safeReason.toUpperCase()}: ${adjNotes || notes || ''}`,
                     created_by: req.user.id
                 }, trx);
 
@@ -95,15 +97,15 @@ router.post('/adjust/reverse', authorize('admin'), async (req, res, next) => {
 
         // Create reverse movement
         await db.transaction(async (trx) => {
-            await stockService.createMovement({
+            await stockService.adjustStock({
                 product_id: adjustment.product_id,
-                movement_type: 'ADJUSTMENT',
-                reference_type: 'adjustment_reversal',
-                reference_id: adjustment_id,
                 quantity: -adjustment.quantity_adjusted,
                 unit_cost: 0,
                 notes: `REVERSAL of adjustment ${adjustment_id}`,
-                created_by: req.user.id
+                created_by: req.user.id,
+                adjustment_reason: adjustment.adjustment_type,
+                reference_type: 'adjustment',
+                reference_id: adjustment_id,
             }, trx);
 
             await trx('stock_adjustments')

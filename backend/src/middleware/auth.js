@@ -10,8 +10,13 @@ const authenticate = async (req, res, next) => {
             throw new AppError('Authentication required', 401);
         }
 
+        const jwtSecret = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? null : 'dev-jwt-secret');
+        if (!jwtSecret) {
+            throw new AppError('JWT_SECRET not configured on server', 500);
+        }
+
         const token = authHeader.split(' ')[1];
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, jwtSecret);
 
         // Verify user still exists and is active (scoped to tenant)
         const userQuery = db('users')

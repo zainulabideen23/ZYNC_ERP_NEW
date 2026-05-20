@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const backupService = require('../services/backup.service');
 const { authorize } = require('../middleware/auth');
-const path = require('path');
 const db = require('../config/database');
 const audit = require('../utils/audit');
+
+const isValidBackupFilename = (filename) => /^[a-zA-Z0-9._-]+\.sql$/.test(filename || '');
 
 // List backups
 router.get('/', authorize('admin'), async (req, res, next) => {
@@ -43,6 +44,10 @@ router.post('/', authorize('admin'), async (req, res, next) => {
 // Download backup
 router.get('/:filename/download', authorize('admin'), (req, res, next) => {
     try {
+        if (!isValidBackupFilename(req.params.filename)) {
+            return res.status(400).json({ success: false, error: 'Invalid backup filename' });
+        }
+
         const filePath = backupService.getBackupPath(req.params.filename);
         if (!filePath) {
             return res.status(404).json({ success: false, error: 'Backup not found' });
@@ -56,6 +61,10 @@ router.get('/:filename/download', authorize('admin'), (req, res, next) => {
 // Delete backup
 router.delete('/:filename', authorize('admin'), async (req, res, next) => {
     try {
+        if (!isValidBackupFilename(req.params.filename)) {
+            return res.status(400).json({ success: false, error: 'Invalid backup filename' });
+        }
+
         await backupService.deleteBackup(req.params.filename);
         res.json({ success: true, message: 'Backup deleted' });
     } catch (error) {

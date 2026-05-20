@@ -1,0 +1,213 @@
+.quote-ui-page {
+    background:
+        radial-gradient(760px 320px at 0% -4%, rgba(59, 130, 246, 0.12), transparent 60%),
+        radial-gradient(620px 280px at 100% -8%, rgba(139, 92, 246, 0.12), transparent 58%),
+        var(--color-bg);
+}
+
+.quote-ui-fade-up {
+    opacity: 0;
+    transform: translateY(8px);
+    animation: quoteFadeUp 0.38s ease forwards;
+}
+
+.quote-ui-page-header {
+    animation-delay: 20ms;
+}
+
+.quote-ui-toolbar {
+    animation-delay: 120ms;
+}
+
+.quote-ui-table-wrap {
+    animation-delay: 170ms;
+}
+
+.quote-ui-title-icon {
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.15);
+    animation: quotePulse 2.2s ease-in-out infinite;
+}
+
+.quote-ui-primary-btn {
+    transition: transform 0.18s ease, box-shadow 0.2s ease, filter 0.18s ease;
+}
+
+.quote-ui-primary-btn:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+    box-shadow: 0 8px 20px rgba(139, 92, 246, 0.26);
+}
+
+.quote-ui-primary-btn:active {
+    transform: scale(0.98);
+}
+
+.quote-ui-metrics-row {
+    overflow-x: auto;
+    padding-bottom: 2px;
+}
+
+.quote-ui-metric-card {
+    min-width: 220px;
+}
+
+.quote-ui-table-wrap {
+    box-shadow: 0 12px 28px rgba(2, 6, 23, 0.2);
+}
+
+.quote-ui-table-row {
+    transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.quote-ui-table-row:hover {
+    transform: translateX(1px);
+}
+
+.quote-ui-action-btn {
+    transition: transform 0.14s ease, filter 0.14s ease;
+}
+
+.quote-ui-action-btn:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+}
+
+.quote-ui-action-btn:active {
+    transform: scale(0.96);
+}
+
+.quote-ui-overlay {
+    animation: quoteOverlayIn 0.2s ease;
+}
+
+.quote-ui-modal-card {
+    animation: quoteModalIn 0.24s ease;
+}
+
+.quote-ui-email-modal {
+    position: relative;
+}
+
+.quote-ui-mail-sending-banner {
+    border-bottom: 1px solid rgba(59, 130, 246, 0.24);
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.14), rgba(37, 99, 235, 0.08));
+}
+
+.quote-ui-mail-progress {
+    height: 3px;
+    width: 100%;
+    background: linear-gradient(90deg, #1d4ed8 0%, #3b82f6 35%, #93c5fd 52%, #3b82f6 72%, #1d4ed8 100%);
+    background-size: 180% 100%;
+    animation: quoteProgressSlide 1s linear infinite;
+}
+
+.quote-ui-mail-sending-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #93c5fd;
+}
+
+.quote-ui-spin {
+    animation: quoteSpin 0.9s linear infinite;
+}
+
+.quote-ui-sending-btn {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+    animation: quoteBtnPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes quoteFadeUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes quotePulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.15);
+    }
+
+    50% {
+        box-shadow: 0 0 0 8px rgba(139, 92, 246, 0);
+    }
+}
+
+@keyframes quoteOverlayIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes quoteModalIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.985);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes quoteProgressSlide {
+    from {
+        background-position: 0% 50%;
+    }
+
+    to {
+        background-position: 180% 50%;
+    }
+}
+
+@keyframes quoteSpin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes quoteBtnPulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.45);
+    }
+
+    50% {
+        box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+    }
+}
+
+@media (max-width: 980px) {
+    .quote-ui-metrics-row {
+        gap: 12px;
+    }
+
+    .quote-ui-page-header {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .quote-ui-fade-up,
+    .quote-ui-title-icon,
+    .quote-ui-overlay,
+    .quote-ui-modal-card,
+    .quote-ui-mail-progress,
+    .quote-ui-spin,
+    .quote-ui-sending-btn {
+        animation: none !important;
+    }
+}

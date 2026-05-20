@@ -199,7 +199,7 @@ function Step5OpeningBalances({ onContinue, onSkip, saving, setSaving }) {
                         opacity: saving ? 0.6 : 1,
                     }}
                 >
-                    {saving ? 'Saving...' : 'Continue'}
+                    {saving ? 'Saving...' : 'Save and continue'}
                     <ChevronRight size={16} />
                 </button>
             </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'react-hot-toast'
-import { customersAPI, paymentsAPI } from '../services/api'
+import { customersAPI } from '../services/api'
 import { format } from 'date-fns'
 import { CreditCard, Plus, Search, X, User, Phone, DollarSign, Check, ArrowRight } from 'lucide-react'
 
@@ -78,8 +78,7 @@ function CustomerPayment() {
 
         setSubmitting(true)
         try {
-            await paymentsAPI.customer({
-                customer_id: formData.customer_id,
+            await customersAPI.recordPayment(formData.customer_id, {
                 amount: parseFloat(formData.amount),
                 payment_method: formData.payment_method,
                 notes: formData.notes,

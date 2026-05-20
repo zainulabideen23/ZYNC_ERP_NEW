@@ -1,4 +1,6 @@
 const { AppError } = require('../middleware/errorHandler');
+const { resolveSystemAccounts, SYSTEM_ACCOUNTS } = require('../utils/accountResolver');
+const { validateAccountTypes } = require('../utils/accountTypeValidation');
 
 class ExpenseService {
     constructor(db, ledgerService, tenantId) {
@@ -27,13 +29,36 @@ class ExpenseService {
             const expenseNumber = await this.generateExpenseNumber(trx);
 
             // 2. Validate Category and Accounts
-            const category = await trx('expense_categories').where('id', category_id).first();
+            const category = await trx('expense_categories')
+                .where({ id: category_id, tenant_id: this.tenantId, is_active: true })
+                .first();
             if (!category) throw new AppError('Invalid expense category', 400);
 
             const expenseAccount = category.account_id;
             if (!expenseAccount) throw new AppError('Expense category is not linked to a GL account', 500);
 
-            const totalAmount = parseFloat(amount) + parseFloat(tax_amount);
+            const numericAmount = Number(amount);
+            const numericTax = Number(tax_amount || 0);
+            if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+                throw new AppError('Expense amount must be a valid positive number', 400);
+            }
+            if (!Number.isFinite(numericTax) || numericTax < 0) {
+                throw new AppError('tax_amount must be a valid non-negative number', 400);
+            }
+
+            const accounts = await this.getRequiredAccounts(trx);
+            const resolvedPaymentAccountId = payment_account_id ||
+                (payment_method === 'cash' ? accounts.cash : accounts.bank);
+
+            const paymentAccount = await trx('accounts')
+                .where({ id: resolvedPaymentAccountId, tenant_id: this.tenantId, is_active: true })
+                .first();
+
+            if (!paymentAccount) {
+                throw new AppError('Invalid payment account', 400);
+            }
+
+            const totalAmount = numericAmount + numericTax;
 
             // 3. Create Expense Record
             const [expense] = await trx('expenses').insert({
@@ -41,9 +66,9 @@ class ExpenseService {
                 expense_date: expense_date || new Date(),
                 category_id,
                 account_id: expenseAccount,
-                payment_account_id: payment_account_id,
-                amount,
-                tax_amount,
+                payment_account_id: paymentAccount.id,
+                amount: numericAmount,
+                tax_amount: numericTax,
                 total_amount: totalAmount,
                 payment_method,
                 reference_number,
@@ -54,29 +79,61 @@ class ExpenseService {
             }).returning('*');
 
             // 4. ACCOUNTING: Journal & Ledger Entries
-            const accounts = await this.getRequiredAccounts(trx);
+
+            const accountTypeRules = [
+                { accountId: expenseAccount, allowedTypes: ['expense'], label: 'Expense account' },
+                { accountId: paymentAccount.id, allowedTypes: ['asset'], label: 'Payment account' },
+            ];
+
+            if (numericTax > 0) {
+                accountTypeRules.push({ accountId: accounts.input_tax, allowedTypes: ['asset'], label: 'Input tax account' });
+                accountTypeRules.push({ accountId: accounts.tax_payable, allowedTypes: ['liability'], label: 'Tax payable account' });
+            }
+
+            await validateAccountTypes(trx, this.tenantId, accountTypeRules);
 
             const journalEntries = [
                 // Debit Expense (Increase Expense)
-                { account_id: expenseAccount, entry_type: 'debit', amount, narration: `Expense: ${expenseNumber}` }
+                { account_id: expenseAccount, entry_type: 'debit', amount: numericAmount, narration: `Expense: ${expenseNumber}` }
             ];
 
-            // Handle Tax
-            if (tax_amount > 0) {
-                journalEntries.push({ account_id: accounts.tax_paid, entry_type: 'debit', amount: tax_amount, narration: `Tax on ${expenseNumber}` });
+            // Input tax receivable (1203) with matching tax payable credit.
+            if (numericTax > 0) {
+                journalEntries.push({
+                    account_id: accounts.input_tax,
+                    entry_type: 'debit',
+                    amount: numericTax,
+                    narration: `Input Tax on ${expenseNumber}`,
+                });
+                journalEntries.push({
+                    account_id: accounts.tax_payable,
+                    entry_type: 'credit',
+                    amount: numericTax,
+                    narration: `Tax Payable on ${expenseNumber}`,
+                });
+                // Update current_balance for tax accounts
+                await trx('accounts')
+                    .where({ id: accounts.input_tax })
+                    .increment('current_balance', numericTax);
+                await trx('accounts')
+                    .where({ id: accounts.tax_payable })
+                    .increment('current_balance', numericTax);
             }
 
             // Credit Cash/Bank/Payable (Decrease Asset or Increase Liability)
+            // Only credit for base amount (excluding tax), since tax is tracked separately via tax_payable
             journalEntries.push({
-                account_id: payment_account_id,
+                account_id: paymentAccount.id,
                 entry_type: 'credit',
-                amount: totalAmount,
+                amount: numericAmount,  // Original amount without tax
                 narration: `Payment for ${expenseNumber}`
             });
 
             await this.ledgerService.createJournalEntry({
                 journal_date: expense.expense_date,
                 transaction_type: 'expense',
+                reference_type: 'expense',
+                reference_id: expense.id,
                 narration: `Expense ${expenseNumber} - ${category.name}`,
                 entries: journalEntries,
                 created_by: userId
@@ -103,13 +160,19 @@ class ExpenseService {
      * Get system accounts
      */
     async getRequiredAccounts(trx) {
-        const accounts = await trx('accounts').whereIn('code', ['2300', '1001']).select('id', 'code');
-        const map = {};
-        accounts.forEach(a => {
-            if (a.code === '2300') map.tax_paid = a.id;
-            if (a.code === '1001') map.cash = a.id;
-        });
-        return map;
+        const accountIds = await resolveSystemAccounts(trx, this.tenantId, [
+            SYSTEM_ACCOUNTS.CASH_IN_HAND,
+            SYSTEM_ACCOUNTS.BANK_ACCOUNT,
+            SYSTEM_ACCOUNTS.INPUT_TAX_RECEIVABLE,
+            SYSTEM_ACCOUNTS.TAX_PAYABLE,
+        ]);
+
+        return {
+            cash: accountIds[SYSTEM_ACCOUNTS.CASH_IN_HAND],
+            bank: accountIds[SYSTEM_ACCOUNTS.BANK_ACCOUNT],
+            input_tax: accountIds[SYSTEM_ACCOUNTS.INPUT_TAX_RECEIVABLE],
+            tax_payable: accountIds[SYSTEM_ACCOUNTS.TAX_PAYABLE],
+        };
     }
 
     /**

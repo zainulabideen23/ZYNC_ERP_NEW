@@ -56,6 +56,12 @@ DB_USER=your_postgres_user
 DB_PASSWORD=your_postgres_password
 DB_NAME=zync_erp
 JWT_SECRET=your_super_secret_jwt_key
+PLATFORM_ADMIN_SECRET=your_platform_admin_secret
+PLATFORM_JWT_SECRET=your_platform_jwt_secret
+ALLOWED_ORIGINS=http://localhost:5173
+API_RATE_LIMIT_MAX=300
+LOGIN_RATE_LIMIT_MAX=10
+BCRYPT_ROUNDS=12
 ```
 
 Run database migrations and seeds:
@@ -115,3 +121,11 @@ Contributions are welcome! Please fork the repository and submit a pull request 
 
 ## 📄 License
 This project is licensed under the MIT License.
+
+## 🚢 Deployment
+- Student Pack deployment guide: see [DEPLOYMENT_STUDENT_PACK.md](DEPLOYMENT_STUDENT_PACK.md)
+- Post-deploy verification runbook: see [POST_DEPLOY_RUNBOOK.md](POST_DEPLOY_RUNBOOK.md)
+- Purchase engine migration guide: see [PURCHASE_ENGINE_MIGRATION_GUIDE.md](PURCHASE_ENGINE_MIGRATION_GUIDE.md)
+- Purchase engine API change guide: see [PURCHASE_ENGINE_API_CHANGE_GUIDE.md](PURCHASE_ENGINE_API_CHANGE_GUIDE.md)
+- Purchase engine release readiness checklist: see [PURCHASE_ENGINE_RELEASE_READINESS_CHECKLIST.md](PURCHASE_ENGINE_RELEASE_READINESS_CHECKLIST.md)
+- Change history: see [CHANGELOG.md](CHANGELOG.md)

@@ -13,10 +13,22 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const { body, validationResult } = require('express-validator');
 const db = require('../config/database');
 const { AppError } = require('../middleware/errorHandler');
 const { platformJwtAuth } = require('../middleware/platformAuth');
 const logger = require('../utils/logger');
+
+const BCRYPT_ROUNDS = Number.parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
+
+const validateRequest = (req, _res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        const firstError = errors.array()[0];
+        return next(new AppError(firstError.msg, 400));
+    }
+    next();
+};
 
 // ─── Simple in-memory rate limiter for login ───
 const loginAttempts = new Map();
@@ -44,7 +56,14 @@ function checkRateLimit(ip) {
 // POST /platform/auth/login
 // Only X-Platform-Secret required (no JWT yet — this is how you GET a JWT)
 // =====================================================
-router.post('/login', async (req, res, next) => {
+router.post(
+    '/login',
+    [
+        body('email').isString().trim().isEmail().withMessage('Email and password are required'),
+        body('password').isString().notEmpty().withMessage('Email and password are required')
+    ],
+    validateRequest,
+    async (req, res, next) => {
     try {
         const ip = req.ip || req.connection.remoteAddress;
         if (!checkRateLimit(ip)) {
@@ -144,7 +163,15 @@ router.get('/me', platformJwtAuth, async (req, res, next) => {
 // POST /platform/auth/change-password
 // Requires X-Platform-Secret + Platform JWT
 // =====================================================
-router.post('/change-password', platformJwtAuth, async (req, res, next) => {
+router.post(
+    '/change-password',
+    platformJwtAuth,
+    [
+        body('oldPassword').isString().notEmpty().withMessage('Old password and new password are required'),
+        body('newPassword').isString().isLength({ min: 8 }).withMessage('New password must be at least 8 characters')
+    ],
+    validateRequest,
+    async (req, res, next) => {
     try {
         const { oldPassword, newPassword } = req.body;
 
@@ -165,7 +192,7 @@ router.post('/change-password', platformJwtAuth, async (req, res, next) => {
             throw new AppError('Current password is incorrect', 401);
         }
 
-        const newHash = await bcrypt.hash(newPassword, 10);
+        const newHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
 
         await db('platform_admins')
             .where('id', req.platformAdmin.id)

@@ -1,8 +1,10 @@
 import axios from 'axios'
 import { usePlatformAuthStore } from '../store/platform.auth.store'
 
+const PLATFORM_API_BASE_URL = import.meta.env.VITE_PLATFORM_API_URL || '/platform'
+
 const platformApi = axios.create({
-    baseURL: '/platform',
+    baseURL: PLATFORM_API_BASE_URL,
     timeout: 30000,
     headers: {
         'Content-Type': 'application/json',

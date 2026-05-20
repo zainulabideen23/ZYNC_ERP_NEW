@@ -36,6 +36,21 @@ router.get('/', async (req, res, next) => {
     }
 });
 
+// Get product cost history
+router.get('/:id/cost-history', authorize('admin', 'manager'), async (req, res, next) => {
+    try {
+        const productService = new ProductService(db, req.tenantId);
+        const result = await productService.getCostHistory(req.params.id, req.query);
+
+        res.json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
 // Get single product
 router.get('/:id', async (req, res, next) => {
     try {

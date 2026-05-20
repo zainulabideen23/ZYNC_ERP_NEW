@@ -76,7 +76,7 @@ exports.up = async function(knex) {
             {
                 code: '4003',
                 name: 'Sales Returns',
-                account_type: 'income',
+                account_type: 'expense',
                 group_code: '4000',
             },
             {
@@ -111,6 +111,10 @@ exports.up = async function(knex) {
                     is_active: true,
                     created_at: knex.fn.now(),
                 });
+            } else if (acct.code === '4003' && exists.account_type !== 'expense') {
+                await knex('accounts')
+                    .where({ tenant_id: tid, code: '4003' })
+                    .update({ account_type: 'expense' });
             }
         }
     }

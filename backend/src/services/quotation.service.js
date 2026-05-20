@@ -62,7 +62,8 @@ class QuotationService {
                     const [quotation] = await trx('quotations').insert({
                         quotation_number: quotationNumber,
                         customer_id,
-                        quotation_date: quotation_date || new Date(),
+                        // Use DB time to avoid app/DB clock drift violating quotation_date checks
+                        quotation_date: quotation_date || trx.fn.now(),
                         valid_until: validUntilDate,
                         subtotal,
                         discount_amount,
@@ -137,7 +138,7 @@ class QuotationService {
 
         let query = this.db('quotations as q')
             .leftJoin('customers as c', 'q.customer_id', 'c.id')
-            .select('q.*', 'c.name as customer_name')
+            .select('q.*', 'c.name as customer_name', 'c.email as customer_email')
             .where('q.tenant_id', this.tenantId);
 
         if (customer_id) query = query.where('q.customer_id', customer_id);

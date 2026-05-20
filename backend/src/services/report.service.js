@@ -280,15 +280,22 @@ class ReportService {
      * Profit and Loss Report
      */
     async getProfitAndLoss(startDate, endDate) {
+        if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+            throw new AppError('from_date cannot be later than to_date', 400);
+        }
+
         const query = this.db('ledger_entries as le')
             .join('journals as j', 'le.journal_id', 'j.id')
             .join('accounts as a', 'le.account_id', 'a.id')
             .join('account_groups as g', 'a.group_id', 'g.id')
             .whereIn('a.account_type', ['income', 'expense'])
+            .where('le.tenant_id', this.tenantId)
+            .where('j.tenant_id', this.tenantId)
             .where('a.tenant_id', this.tenantId)
             .select(
                 'a.id', 'a.code', 'a.name', 'a.account_type', 'g.name as group_name',
-                this.db.raw('SUM(CASE WHEN le.entry_type = \'credit\' THEN le.amount ELSE 0 END) - SUM(CASE WHEN le.entry_type = \'debit\' THEN le.amount ELSE 0 END) as net_credit')
+                this.db.raw('COALESCE(SUM(CASE WHEN le.entry_type = \'debit\' THEN le.amount ELSE 0 END), 0) as debit_total'),
+                this.db.raw('COALESCE(SUM(CASE WHEN le.entry_type = \'credit\' THEN le.amount ELSE 0 END), 0) as credit_total')
             )
             .groupBy('a.id', 'a.code', 'a.name', 'a.account_type', 'g.name');
 
@@ -306,14 +313,18 @@ class ReportService {
         };
 
         results.forEach(row => {
-            const amount = parseFloat(row.net_credit);
+            const debitTotal = Number(row.debit_total || 0);
+            const creditTotal = Number(row.credit_total || 0);
+
+            let netAmount = 0;
             if (row.account_type === 'income') {
-                report.income.push({ ...row, amount });
-                report.total_income += amount;
-            } else {
-                const expenseAmount = Math.abs(amount);
-                report.expenses.push({ ...row, amount: expenseAmount });
-                report.total_expenses += expenseAmount;
+                netAmount = creditTotal - debitTotal;
+                report.income.push({ ...row, amount: netAmount });
+                report.total_income += netAmount;
+            } else if (row.account_type === 'expense') {
+                netAmount = debitTotal - creditTotal;
+                report.expenses.push({ ...row, amount: netAmount });
+                report.total_expenses += netAmount;
             }
         });
 

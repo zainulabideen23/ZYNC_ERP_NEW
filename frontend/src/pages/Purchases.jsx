@@ -1,12 +1,13 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { purchasesAPI } from '../services/api'
 import { format } from 'date-fns'
 import { useDataSync, DataSyncEvents } from '../utils/dataSync'
+import { toast } from 'react-hot-toast'
 import { 
     ShoppingBag, Plus, Search, X, Download, Printer, 
     RotateCcw, FileText, DollarSign, Banknote, AlertCircle,
-    ArrowUpRight, ArrowDownRight, Eye
+    ArrowUpRight, ArrowDownRight, Eye, Pencil, Ban
 } from 'lucide-react'
 
 function Purchases() {
@@ -17,80 +18,186 @@ function Purchases() {
     const [showModal, setShowModal] = useState(false)
     const [returnItems, setReturnItems] = useState([])
     const [filters, setFilters] = useState({ search: '', status: '', from_date: '', to_date: '' })
+    const [sortConfig, setSortConfig] = useState({ sort_by: 'purchase_date', sort_order: 'desc' })
+    const [pagination, setPagination] = useState({ page: 1, limit: 25, total: 0, pages: 1 })
+    const [summary, setSummary] = useState({ total_bills: 0, total_amount: 0, total_paid: 0, total_outstanding: 0 })
+    const [errorMessage, setErrorMessage] = useState('')
+    const [returnReason, setReturnReason] = useState('')
+    const [returnDate, setReturnDate] = useState(() => new Date().toISOString().split('T')[0])
+    const [isProcessingReturn, setIsProcessingReturn] = useState(false)
 
-    useEffect(() => { loadData() }, [])
-
-    useDataSync(DataSyncEvents.PURCHASE_CREATED, () => { loadData() })
-
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         try {
-            const response = await purchasesAPI.list({ limit: 500 })
+            setLoading(true)
+            setErrorMessage('')
+
+            const response = await purchasesAPI.list({
+                ...filters,
+                ...sortConfig,
+                page: pagination.page,
+                limit: pagination.limit,
+            })
+
             setPurchases(response.data || [])
+            setSummary(response.summary || {
+                total_bills: 0,
+                total_amount: 0,
+                total_paid: 0,
+                total_outstanding: 0,
+            })
+
+            if (response.pagination) {
+                setPagination((prev) => ({
+                    ...prev,
+                    page: Number(response.pagination.page || prev.page),
+                    limit: Number(response.pagination.limit || prev.limit),
+                    total: Number(response.pagination.total || 0),
+                    pages: Number(response.pagination.pages || 1),
+                }))
+            }
         } catch (error) {
             console.error('Failed to load purchases:', error)
+            setErrorMessage(error.message || 'Failed to load purchases')
+            setPurchases([])
         } finally {
             setLoading(false)
         }
-    }
+    }, [filters, sortConfig, pagination.page, pagination.limit])
 
-    const filteredPurchases = useMemo(() => {
-        return purchases.filter(p => {
-            if (filters.status && p.status !== filters.status) return false
-            if (filters.search) {
-                const searchLower = filters.search.toLowerCase()
-                const billMatches = p.bill_number?.toLowerCase().includes(searchLower)
-                const supplierMatches = p.supplier_name?.toLowerCase().includes(searchLower)
-                if (!billMatches && !supplierMatches) return false
-            }
-            if (filters.from_date && new Date(p.purchase_date) < new Date(filters.from_date)) return false
-            if (filters.to_date && new Date(p.purchase_date) > new Date(filters.to_date)) return false
-            return true
-        })
-    }, [purchases, filters])
+    useEffect(() => {
+        loadData()
+    }, [loadData])
+
+    useDataSync(DataSyncEvents.PURCHASE_CREATED, loadData)
+    useDataSync(DataSyncEvents.PURCHASE_UPDATED, loadData)
+
+    const filteredPurchases = purchases
 
     const aggregates = useMemo(() => {
-        return filteredPurchases.reduce((acc, p) => {
-            acc.total += Number(p.total_amount) || 0
-            acc.paid += Number(p.amount_paid) || 0
-            acc.outstanding += Math.max(0, (Number(p.total_amount) || 0) - (Number(p.amount_paid) || 0))
-            acc.bills += 1
-            return acc
-        }, { total: 0, paid: 0, outstanding: 0, bills: 0 })
-    }, [filteredPurchases])
+        return {
+            total: Number(summary.total_amount || 0),
+            paid: Number(summary.total_paid || 0),
+            outstanding: Number(summary.total_outstanding || 0),
+            bills: Number(summary.total_bills || 0),
+        }
+    }, [summary])
+
+    const updateFilters = (patch) => {
+        setPagination((prev) => ({ ...prev, page: 1 }))
+        setFilters((prev) => ({ ...prev, ...patch }))
+    }
+
+    const handleSort = (column) => {
+        setPagination((prev) => ({ ...prev, page: 1 }))
+        setSortConfig((prev) => {
+            if (prev.sort_by === column) {
+                return {
+                    sort_by: column,
+                    sort_order: prev.sort_order === 'asc' ? 'desc' : 'asc',
+                }
+            }
+
+            return {
+                sort_by: column,
+                sort_order: 'desc',
+            }
+        })
+    }
+
+    const renderSortIndicator = (column) => {
+        if (sortConfig.sort_by !== column) return null
+        return sortConfig.sort_order === 'asc' ? '↑' : '↓'
+    }
 
     const handleViewPurchase = async (purchase) => {
+        if (purchase.status === 'draft') {
+            navigate(`/purchases/new?draftId=${purchase.id}`)
+            return
+        }
+
         try {
             const res = await purchasesAPI.get(purchase.id)
             if (!res.data || !res.data.items) return
             setSelectedPurchase(res.data)
             setReturnItems((res.data.items || []).map(item => ({
+                purchase_item_id: item.id,
                 product_id: item.product_id,
                 name: item.product_name,
                 quantity: 0,
-                max_quantity: item.quantity,
-                unit_cost: item.unit_cost
+                max_quantity: Number(item.returnable_quantity ?? item.quantity ?? 0),
+                purchased_quantity: Number(item.quantity || 0),
+                returned_quantity: Number(item.returned_quantity || 0),
+                unit_cost: item.unit_cost,
+                alreadyReturned: Number(item.returned_quantity || 0)
             })))
+            setReturnReason('')
+            setReturnDate(new Date().toISOString().split('T')[0])
             setShowModal(true)
         } catch (error) {
             console.error('Failed to load purchase details:', error)
+            toast.error(error.message || 'Failed to load purchase details')
+        }
+    }
+
+    const handleEditDraft = (purchase) => {
+        navigate(`/purchases/new?draftId=${purchase.id}`)
+    }
+
+    const handleCancelDraft = async (purchase) => {
+        if (purchase.status !== 'draft') return
+
+        const shouldCancel = window.confirm(`Cancel draft ${purchase.bill_number}?`)
+        if (!shouldCancel) return
+
+        try {
+            await purchasesAPI.cancelDraft(purchase.id, {
+                reason: 'Cancelled from purchase list',
+            })
+            toast.success(`Draft ${purchase.bill_number} cancelled`)
+            loadData()
+        } catch (error) {
+            toast.error(error.message || 'Failed to cancel draft purchase')
         }
     }
 
     const handleReturn = async () => {
+        if (isProcessingReturn) return
+
         const itemsToReturn = returnItems.filter(item => item.quantity > 0)
         if (itemsToReturn.length === 0) return
 
+        const shouldReturn = window.confirm(
+            `Process return for ${itemsToReturn.length} items? This action cannot be undone.`
+        )
+        if (!shouldReturn) return
+
+        const normalizedReason = returnReason.trim()
+        if (normalizedReason.length < 3) {
+            toast.error('Please provide a return reason')
+            return
+        }
+
         try {
-            await purchasesAPI.createReturn({
-                original_purchase_id: selectedPurchase.id,
-                items: itemsToReturn,
-                return_date: new Date().toISOString().split('T')[0],
-                notes: `Return for ${selectedPurchase.bill_number}`
+            setIsProcessingReturn(true)
+            await purchasesAPI.createReturn(selectedPurchase.id, {
+                items: itemsToReturn.map(item => ({
+                    purchase_item_id: item.purchase_item_id,
+                    product_id: item.product_id,
+                    quantity: item.quantity,
+                    unit_cost: item.unit_cost,
+                })),
+                return_date: returnDate,
+                reason: normalizedReason,
+                notes: `Reason: ${normalizedReason}\nReturn for ${selectedPurchase.bill_number}`
             })
             setShowModal(false)
+            toast.success('Purchase return processed successfully')
             loadData()
         } catch (error) {
             console.error(error.message)
+            toast.error(error.message || 'Failed to process return')
+        } finally {
+            setIsProcessingReturn(false)
         }
     }
 
@@ -164,7 +271,9 @@ function Purchases() {
     const StatusBadge = ({ status }) => {
         const config = {
             paid: { bg: 'rgba(16, 185, 129, 0.15)', color: '#10b981', label: 'Paid' },
-            pending: { bg: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', label: 'Pending' },
+            billed: { bg: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', label: 'Billed' },
+            draft: { bg: 'rgba(100, 116, 139, 0.2)', color: '#94a3b8', label: 'Draft' },
+            cancelled: { bg: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', label: 'Cancelled' },
             returned: { bg: 'rgba(139, 92, 246, 0.15)', color: '#8b5cf6', label: 'Returned' }
         }
         const s = config[status] || { bg: 'rgba(100, 116, 139, 0.15)', color: '#64748b', label: status || 'N/A' }
@@ -306,7 +415,7 @@ function Purchases() {
                         type="text"
                         placeholder="Search bills or suppliers..."
                         value={filters.search}
-                        onChange={(e) => setFilters({...filters, search: e.target.value})}
+                        onChange={(e) => updateFilters({ search: e.target.value })}
                         style={{
                             width: '100%', height: '36px',
                             background: 'var(--color-panel-2)',
@@ -323,7 +432,7 @@ function Purchases() {
                 {/* Status Filter */}
                 <select
                     value={filters.status}
-                    onChange={(e) => setFilters({...filters, status: e.target.value})}
+                    onChange={(e) => updateFilters({ status: e.target.value })}
                     style={{
                         height: '36px', background: 'var(--color-panel-2)',
                         border: '1px solid var(--border-surface)',
@@ -333,8 +442,10 @@ function Purchases() {
                     }}
                 >
                     <option value="">All Statuses</option>
+                    <option value="draft">Draft</option>
+                    <option value="billed">Billed</option>
                     <option value="paid">Paid</option>
-                    <option value="pending">Pending</option>
+                    <option value="cancelled">Cancelled</option>
                     <option value="returned">Returned</option>
                 </select>
 
@@ -343,7 +454,7 @@ function Purchases() {
                     <input
                         type="date"
                         value={filters.from_date}
-                        onChange={(e) => setFilters({...filters, from_date: e.target.value})}
+                        onChange={(e) => updateFilters({ from_date: e.target.value })}
                         style={{
                             height: '36px', background: 'var(--color-panel-2)',
                             border: '1px solid var(--border-surface)',
@@ -356,7 +467,7 @@ function Purchases() {
                     <input
                         type="date"
                         value={filters.to_date}
-                        onChange={(e) => setFilters({...filters, to_date: e.target.value})}
+                        onChange={(e) => updateFilters({ to_date: e.target.value })}
                         style={{
                             height: '36px', background: 'var(--color-panel-2)',
                             border: '1px solid var(--border-surface)',
@@ -369,7 +480,10 @@ function Purchases() {
 
                 {(filters.search || filters.status || filters.from_date || filters.to_date) && (
                     <button
-                        onClick={() => setFilters({ search: '', status: '', from_date: '', to_date: '' })}
+                        onClick={() => {
+                            setPagination((prev) => ({ ...prev, page: 1 }))
+                            setFilters({ search: '', status: '', from_date: '', to_date: '' })
+                        }}
                         style={{
                             height: '36px', padding: '0 10px',
                             borderRadius: '8px', border: 'none',
@@ -397,6 +511,20 @@ function Purchases() {
                 </button>
             </div>
 
+            {errorMessage && (
+                <div style={{
+                    marginBottom: '12px',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(239, 68, 68, 0.4)',
+                    background: 'rgba(239, 68, 68, 0.08)',
+                    color: '#ef4444',
+                    fontSize: '13px',
+                }}>
+                    {errorMessage}
+                </div>
+            )}
+
             {/* Table */}
             <div style={{
                 background: 'var(--color-panel)',
@@ -406,12 +534,42 @@ function Purchases() {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                         <tr style={{ background: 'var(--color-panel-2)', borderBottom: '1px solid var(--border-surface)' }}>
-                            <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bill #</th>
-                            <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</th>
-                            <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Supplier</th>
-                            <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total</th>
-                            <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Paid</th>
-                            <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
+                            <th
+                                onClick={() => handleSort('bill_number')}
+                                style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer' }}
+                            >
+                                Bill # {renderSortIndicator('bill_number')}
+                            </th>
+                            <th
+                                onClick={() => handleSort('purchase_date')}
+                                style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer' }}
+                            >
+                                Date {renderSortIndicator('purchase_date')}
+                            </th>
+                            <th
+                                onClick={() => handleSort('supplier_name')}
+                                style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer' }}
+                            >
+                                Supplier {renderSortIndicator('supplier_name')}
+                            </th>
+                            <th
+                                onClick={() => handleSort('total_amount')}
+                                style={{ padding: '12px 16px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer' }}
+                            >
+                                Total {renderSortIndicator('total_amount')}
+                            </th>
+                            <th
+                                onClick={() => handleSort('amount_paid')}
+                                style={{ padding: '12px 16px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer' }}
+                            >
+                                Paid {renderSortIndicator('amount_paid')}
+                            </th>
+                            <th
+                                onClick={() => handleSort('status')}
+                                style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer' }}
+                            >
+                                Status {renderSortIndicator('status')}
+                            </th>
                             <th style={{ width: '100px', padding: '12px 16px' }}></th>
                         </tr>
                     </thead>
@@ -486,7 +644,13 @@ function Purchases() {
                                     transition: 'background 0.15s',
                                     cursor: 'pointer'
                                 }}
-                                onClick={() => handleViewPurchase(purchase)}
+                                onClick={() => {
+                                    if (purchase.status === 'draft') {
+                                        handleEditDraft(purchase)
+                                        return
+                                    }
+                                    handleViewPurchase(purchase)
+                                }}
                                 onMouseEnter={e => e.currentTarget.style.background = 'var(--color-panel-2)'}
                                 onMouseLeave={e => e.currentTarget.style.background = 'var(--color-panel)'}
                             >
@@ -526,30 +690,61 @@ function Purchases() {
                                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px', opacity: 0.5, transition: 'opacity 0.15s' }}
                                     onMouseEnter={e => e.currentTarget.style.opacity = 1}
                                     onMouseLeave={e => e.currentTarget.style.opacity = 0.5}>
-                                        <button
-                                            onClick={() => handlePrint(purchase)}
-                                            style={{
-                                                width: '30px', height: '30px', borderRadius: '6px',
-                                                border: '1px solid var(--border-surface)',
-                                                background: 'transparent', color: 'var(--color-muted)',
-                                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                            }}
-                                            title="Print Bill"
-                                        >
-                                            <Printer size={14} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleViewPurchase(purchase)}
-                                            style={{
-                                                width: '30px', height: '30px', borderRadius: '6px',
-                                                border: '1px solid var(--border-surface)',
-                                                background: 'transparent', color: 'var(--color-muted)',
-                                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                            }}
-                                            title="View & Return"
-                                        >
-                                            <Eye size={14} />
-                                        </button>
+                                        {purchase.status === 'draft' ? (
+                                            <>
+                                                <button
+                                                    onClick={() => handleEditDraft(purchase)}
+                                                    style={{
+                                                        width: '30px', height: '30px', borderRadius: '6px',
+                                                        border: '1px solid var(--border-surface)',
+                                                        background: 'transparent', color: 'var(--color-muted)',
+                                                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                    }}
+                                                    title="Edit Draft"
+                                                >
+                                                    <Pencil size={14} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleCancelDraft(purchase)}
+                                                    style={{
+                                                        width: '30px', height: '30px', borderRadius: '6px',
+                                                        border: '1px solid rgba(239, 68, 68, 0.35)',
+                                                        background: 'rgba(239, 68, 68, 0.08)', color: '#ef4444',
+                                                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                    }}
+                                                    title="Cancel Draft"
+                                                >
+                                                    <Ban size={14} />
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <button
+                                                    onClick={() => handlePrint(purchase)}
+                                                    style={{
+                                                        width: '30px', height: '30px', borderRadius: '6px',
+                                                        border: '1px solid var(--border-surface)',
+                                                        background: 'transparent', color: 'var(--color-muted)',
+                                                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                    }}
+                                                    title="Print Bill"
+                                                >
+                                                    <Printer size={14} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleViewPurchase(purchase)}
+                                                    style={{
+                                                        width: '30px', height: '30px', borderRadius: '6px',
+                                                        border: '1px solid var(--border-surface)',
+                                                        background: 'transparent', color: 'var(--color-muted)',
+                                                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                    }}
+                                                    title="View & Return"
+                                                >
+                                                    <Eye size={14} />
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 </td>
                             </tr>
@@ -564,8 +759,65 @@ function Purchases() {
                     background: 'var(--color-panel-2)'
                 }}>
                     <span style={{ fontSize: '12px', color: 'var(--color-hint)' }}>
-                        {filteredPurchases.length > 0 ? `Showing ${filteredPurchases.length} purchases` : 'No results'}
+                        {pagination.total > 0
+                            ? `Showing ${Math.max(1, ((pagination.page - 1) * pagination.limit) + 1)}-${Math.min(pagination.total, ((pagination.page - 1) * pagination.limit) + filteredPurchases.length)} of ${pagination.total}`
+                            : 'No results'}
                     </span>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <select
+                            value={pagination.limit}
+                            onChange={(e) => {
+                                const nextLimit = Number(e.target.value)
+                                setPagination((prev) => ({ ...prev, page: 1, limit: nextLimit }))
+                            }}
+                            style={{
+                                height: '30px',
+                                borderRadius: '6px',
+                                border: '1px solid var(--border-surface)',
+                                background: 'var(--color-panel)',
+                                color: 'var(--color-muted)',
+                                fontSize: '12px',
+                                padding: '0 8px',
+                            }}
+                        >
+                            <option value={25}>25</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                        </select>
+
+                        <button
+                            onClick={() => setPagination((prev) => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+                            disabled={pagination.page <= 1 || loading}
+                            style={{
+                                height: '30px', padding: '0 10px',
+                                borderRadius: '6px', border: '1px solid var(--border-surface)',
+                                background: 'transparent', color: 'var(--color-muted)',
+                                fontSize: '12px', cursor: pagination.page <= 1 || loading ? 'not-allowed' : 'pointer',
+                                opacity: pagination.page <= 1 || loading ? 0.5 : 1,
+                            }}
+                        >
+                            Prev
+                        </button>
+
+                        <span style={{ fontSize: '12px', color: 'var(--color-hint)', minWidth: '70px', textAlign: 'center' }}>
+                            Page {pagination.page} / {Math.max(1, pagination.pages)}
+                        </span>
+
+                        <button
+                            onClick={() => setPagination((prev) => ({ ...prev, page: Math.min(Math.max(1, prev.pages), prev.page + 1) }))}
+                            disabled={pagination.page >= Math.max(1, pagination.pages) || loading}
+                            style={{
+                                height: '30px', padding: '0 10px',
+                                borderRadius: '6px', border: '1px solid var(--border-surface)',
+                                background: 'transparent', color: 'var(--color-muted)',
+                                fontSize: '12px', cursor: pagination.page >= Math.max(1, pagination.pages) || loading ? 'not-allowed' : 'pointer',
+                                opacity: pagination.page >= Math.max(1, pagination.pages) || loading ? 0.5 : 1,
+                            }}
+                        >
+                            Next
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -651,36 +903,77 @@ function Purchases() {
                                     <thead>
                                         <tr style={{ borderBottom: '1px solid var(--border-surface)' }}>
                                             <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Product</th>
-                                            <th style={{ width: '100px', padding: '12px 16px', textAlign: 'center', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Purchased</th>
-                                            <th style={{ width: '140px', padding: '12px 16px', textAlign: 'center', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Return Qty</th>
+                                            <th style={{ width: '130px', padding: '12px 16px', textAlign: 'center', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Returned</th>
+                                            <th style={{ width: '100px', padding: '12px 16px', textAlign: 'center', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Returnable</th>
+                                            <th style={{ width: '190px', padding: '12px 16px', textAlign: 'center', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Return Qty</th>
                                             <th style={{ width: '120px', padding: '12px 16px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Unit Cost</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {returnItems.map((item, idx) => (
-                                            <tr key={item.product_id} style={{ borderBottom: idx < returnItems.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
-                                                <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: 500, color: 'var(--color-text)' }}>{item.name}</td>
+                                            <tr
+                                                key={item.purchase_item_id || `${item.product_id}-${idx}`}
+                                                title={item.alreadyReturned > 0 ? `Previously returned: ${item.alreadyReturned} units` : ''}
+                                                style={{ borderBottom: idx < returnItems.length - 1 ? '1px solid var(--border-light)' : 'none' }}
+                                            >
+                                                <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: 500, color: 'var(--color-text)' }}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                                        <span>{item.name}</span>
+                                                        {item.alreadyReturned > 0 && (
+                                                            <span style={{ fontSize: '11px', color: '#f59e0b' }}>Has prior returns</span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td style={{ padding: '14px 16px', textAlign: 'center', fontSize: '12px', color: 'var(--color-hint)' }}>
+                                                    {item.returned_quantity}/{item.max_quantity} returned
+                                                </td>
                                                 <td style={{ padding: '14px 16px', textAlign: 'center', fontSize: '13px', color: 'var(--color-text-dim)' }}>{item.max_quantity}</td>
                                                 <td style={{ padding: '10px 16px' }}>
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        max={item.max_quantity}
-                                                        value={item.quantity}
-                                                        onChange={(e) => {
-                                                            const newItems = [...returnItems]
-                                                            newItems[idx].quantity = Math.min(item.max_quantity, Math.max(0, parseInt(e.target.value) || 0))
-                                                            setReturnItems(newItems)
-                                                        }}
-                                                        style={{
-                                                            width: '80px', height: '32px',
-                                                            background: 'var(--color-panel)',
-                                                            border: '1px solid var(--border-surface)',
-                                                            borderRadius: '6px', paddingLeft: '10px', paddingRight: '10px',
-                                                            fontSize: '13px', color: 'var(--color-text)',
-                                                            outline: 'none', textAlign: 'center'
-                                                        }}
-                                                    />
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            max={item.max_quantity}
+                                                            value={item.quantity}
+                                                            onChange={(e) => {
+                                                                const newItems = [...returnItems]
+                                                                const parsed = parseInt(e.target.value) || 0
+                                                                newItems[idx].quantity = Math.min(item.max_quantity, Math.max(0, parsed))
+                                                                setReturnItems(newItems)
+                                                            }}
+                                                            style={{
+                                                                width: '80px', height: '32px',
+                                                                background: 'var(--color-panel)',
+                                                                border: item.quantity > item.max_quantity ? '1px solid #ef4444' : '1px solid var(--border-surface)',
+                                                                borderRadius: '6px', paddingLeft: '10px', paddingRight: '10px',
+                                                                fontSize: '13px', color: 'var(--color-text)',
+                                                                outline: 'none', textAlign: 'center'
+                                                            }}
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const newItems = [...returnItems]
+                                                                newItems[idx].quantity = item.max_quantity
+                                                                setReturnItems(newItems)
+                                                            }}
+                                                            disabled={item.max_quantity <= 0}
+                                                            style={{
+                                                                height: '32px',
+                                                                padding: '0 10px',
+                                                                borderRadius: '6px',
+                                                                border: '1px solid var(--border-surface)',
+                                                                background: 'var(--color-panel)',
+                                                                color: 'var(--color-muted)',
+                                                                fontSize: '12px',
+                                                                cursor: item.max_quantity <= 0 ? 'not-allowed' : 'pointer',
+                                                                opacity: item.max_quantity <= 0 ? 0.6 : 1,
+                                                            }}
+                                                            title="Set return quantity to maximum returnable"
+                                                        >
+                                                            Return All
+                                                        </button>
+                                                    </div>
                                                 </td>
                                                 <td style={{ padding: '14px 16px', textAlign: 'right', fontSize: '13px', fontWeight: 500, color: 'var(--green)' }}>{formatCurrency(item.unit_cost)}</td>
                                             </tr>
@@ -689,22 +982,69 @@ function Purchases() {
                                 </table>
                             </div>
 
+                            <div style={{ marginBottom: '18px' }}>
+                                <h4 style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Return Date</h4>
+                                <input
+                                    type="date"
+                                    value={returnDate}
+                                    onChange={(e) => setReturnDate(e.target.value)}
+                                    style={{
+                                        height: '38px',
+                                        minWidth: '220px',
+                                        background: 'var(--color-panel-2)',
+                                        border: '1px solid var(--border-surface)',
+                                        borderRadius: '8px',
+                                        paddingLeft: '10px',
+                                        paddingRight: '10px',
+                                        fontSize: '13px',
+                                        color: 'var(--color-text)',
+                                        outline: 'none',
+                                        colorScheme: 'dark',
+                                    }}
+                                />
+                            </div>
+
+                            <div style={{ marginBottom: '18px' }}>
+                                <h4 style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Return Reason</h4>
+                                <textarea
+                                    value={returnReason}
+                                    onChange={(e) => setReturnReason(e.target.value)}
+                                    placeholder="Why are these items being returned?"
+                                    maxLength={500}
+                                    rows={3}
+                                    style={{
+                                        width: '100%',
+                                        resize: 'vertical',
+                                        background: 'var(--color-panel-2)',
+                                        border: '1px solid var(--border-surface)',
+                                        borderRadius: '8px',
+                                        padding: '10px 12px',
+                                        color: 'var(--color-text)',
+                                        fontSize: '13px',
+                                        outline: 'none',
+                                    }}
+                                />
+                                <div style={{ marginTop: '6px', fontSize: '12px', color: 'var(--color-hint)', textAlign: 'right' }}>
+                                    {returnReason.length}/500
+                                </div>
+                            </div>
+
                             {/* Actions */}
                             <div style={{ display: 'flex', gap: '10px' }}>
                                 <button
                                     onClick={handleReturn}
-                                    disabled={!returnItems.some(i => i.quantity > 0)}
+                                    disabled={!returnItems.some(i => i.quantity > 0) || isProcessingReturn}
                                     style={{
                                         height: '40px', padding: '0 16px',
                                         borderRadius: '8px', border: 'none',
-                                        background: returnItems.some(i => i.quantity > 0) ? '#ef4444' : 'var(--color-panel-2)',
-                                        color: returnItems.some(i => i.quantity > 0) ? '#fff' : 'var(--color-muted)',
-                                        fontSize: '13px', fontWeight: 500, cursor: returnItems.some(i => i.quantity > 0) ? 'pointer' : 'not-allowed',
+                                        background: returnItems.some(i => i.quantity > 0) && !isProcessingReturn ? '#ef4444' : 'var(--color-panel-2)',
+                                        color: returnItems.some(i => i.quantity > 0) && !isProcessingReturn ? '#fff' : 'var(--color-muted)',
+                                        fontSize: '13px', fontWeight: 500, cursor: returnItems.some(i => i.quantity > 0) && !isProcessingReturn ? 'pointer' : 'not-allowed',
                                         display: 'flex', alignItems: 'center', gap: '6px'
                                     }}
                                 >
                                     <RotateCcw size={14} />
-                                    Process Return
+                                    {isProcessingReturn ? 'Processing Return...' : 'Process Return'}
                                 </button>
                                 <button
                                     onClick={() => handlePrint(selectedPurchase)}

@@ -85,6 +85,7 @@ function Customers() {
     }
 
     const formatCurrency = (value) => `Rs. ${Number(value).toLocaleString()}`
+    const getCustomerBalance = (customer) => Number(customer.ledger_balance ?? customer.current_balance ?? 0)
 
     const MetricCard = ({ label, value, icon: Icon, color, subtext }) => (
         <div style={{
@@ -115,8 +116,8 @@ function Customers() {
 
     const aggregates = {
         total: customers.length,
-        withBalance: customers.filter(c => Number(c.current_balance) > 0).length,
-        totalBalance: customers.reduce((sum, c) => sum + Number(c.current_balance || 0), 0)
+        withBalance: customers.filter(c => getCustomerBalance(c) > 0).length,
+        totalBalance: customers.reduce((sum, c) => sum + getCustomerBalance(c), 0)
     }
 
     return (
@@ -217,8 +218,8 @@ function Customers() {
                                         {c.city || '-'}
                                     </div>
                                 </td>
-                                <td style={{ padding: '14px 16px', textAlign: 'right', fontSize: '13px', fontWeight: 600, color: Number(c.current_balance) > 0 ? '#f59e0b' : 'var(--color-text)' }}>
-                                    {formatCurrency(c.current_balance)}
+                                <td style={{ padding: '14px 16px', textAlign: 'right', fontSize: '13px', fontWeight: 600, color: getCustomerBalance(c) > 0 ? '#f59e0b' : 'var(--color-text)' }}>
+                                    {formatCurrency(getCustomerBalance(c))}
                                 </td>
                                 <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                                     <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>

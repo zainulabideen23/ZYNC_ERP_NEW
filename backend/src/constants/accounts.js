@@ -15,14 +15,23 @@ const SYSTEM_ACCOUNTS = {
     BANK_ACCOUNT:          '1002',
     INVENTORY:             '1004',
     CUSTOMER_RECEIVABLES:  '1201',
+    SUPPLIER_ADVANCES:     '1202',
+    INPUT_TAX_RECEIVABLE:  '1203',
 
     // Liabilities
     SUPPLIER_PAYABLES:     '2001',
     TAX_PAYABLE:           '2002',
+    CUSTOMER_ADVANCES:     '2003',
+    BANK_LOANS:            '2100',
+    PAYABLES_SUMMARY:      '2200',
+
+    // Summary/Offset accounts
+    RECEIVABLES_SUMMARY:   '1200',
 
     // Equity
     OWNER_CAPITAL:         '3001',
     RETAINED_EARNINGS:     '3002',
+    OWNER_DRAWINGS:        '3003',
 
     // Income
     SALES_INCOME:          '4001',
@@ -32,9 +41,15 @@ const SYSTEM_ACCOUNTS = {
     // Cost of Goods Sold
     COGS:                  '5001',
     PURCHASE_RETURNS:      '5002',
+    PURCHASE_DISCOUNT:     '5003',
 
     // Operating Expenses
+    INTEREST_EXPENSE:      '6003',
     INVENTORY_LOSS:        '6004',
+    OFFICE_SUPPLIES:       '6005',
+
+    // Late Payment Penalty (SBP guideline - income for bank)
+    LATE_PENALTY_EXPENSE:  '6200',
 };
 
 module.exports = { SYSTEM_ACCOUNTS };

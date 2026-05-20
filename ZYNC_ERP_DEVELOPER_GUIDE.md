@@ -285,7 +285,7 @@ ZYNC_ERP_NEW/
         │   │       ├── Step2Categories.jsx
         │   │       ├── Step3Brands.jsx
         │   │       ├── Step4Units.jsx
-        │   │       └── Step6Complete.jsx
+        │   │       └── Step5OpeningBalances.jsx
         │   │
         │   ├── Dashboard.css
         │   ├── Login.css
@@ -659,7 +659,7 @@ Tabs:
 
 ### 5.10 Setup Wizard
 
-**`SetupWizard.jsx`** (231 lines) — Onboarding Flow
+**`SetupWizard.jsx`** — Onboarding Flow
 - 5-step wizard with step indicator
 - Blocked browser back button (prevents accidental exit)
 - Step progress saved to server
@@ -683,10 +683,10 @@ Tabs:
 4. `Step4Units.jsx` — Units of measure
    - Unit name + abbreviation
 
-5. `Step6Complete.jsx` (153 lines) — Completion
-   - Status review of all steps
-   - "Complete Setup" button
-   - Redirects to dashboard
+5. `Step5OpeningBalances.jsx` — Opening balances + completion
+  - Optional opening balances for key accounts
+  - "Save and finish" or "Skip and finish"
+  - Completes onboarding and redirects to dashboard
 
 ---
 

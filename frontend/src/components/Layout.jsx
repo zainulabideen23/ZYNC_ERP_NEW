@@ -6,7 +6,7 @@ import {
     LayoutDashboard, DollarSign, FileText, Package, Tags, Users, Factory,
     Book, FileSpreadsheet, Wrench, Receipt, BarChart3, Settings, UserCog,
     LogOut, User, ChevronDown, Shield, Ruler, ArrowLeftRight, CreditCard,
-    ChevronLeft, ChevronRight, Menu, X, Sun, Moon
+    ChevronLeft, ChevronRight, Menu, X, Sun, Moon, Banknote, TrendingUp
 } from 'lucide-react'
 import './Layout.css'
 
@@ -38,6 +38,8 @@ const menuSections = [
         label: 'Finance',
         items: [
             { path: '/accounts', label: 'Accounts', icon: Book, roles: ['admin', 'manager'] },
+            { path: '/loans', label: 'Loans', icon: Banknote, roles: ['admin', 'manager'] },
+            { path: '/equity', label: 'Equity', icon: TrendingUp, roles: ['admin', 'manager'] },
             { path: '/journals', label: 'Journals', icon: FileSpreadsheet, roles: ['admin', 'manager'] },
             { path: '/expenses', label: 'Expenses', icon: Receipt, roles: ['admin', 'manager'] },
             { path: '/payments/customer', label: 'Customer Payments', icon: CreditCard, roles: ['admin', 'manager'] },

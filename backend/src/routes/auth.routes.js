@@ -2,14 +2,49 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
+const { body, validationResult } = require('express-validator');
 const { v4: uuid } = require('uuid');
 const db = require('../config/database');
 const { AppError } = require('../middleware/errorHandler');
 const { authenticate } = require('../middleware/auth');
 const audit = require('../utils/audit');
 
+const BCRYPT_ROUNDS = Number.parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
+const LOGIN_RATE_LIMIT_MAX = Number.parseInt(process.env.LOGIN_RATE_LIMIT_MAX || '10', 10);
+const LOGIN_RATE_LIMIT_WINDOW_MS = Number.parseInt(process.env.LOGIN_RATE_LIMIT_WINDOW_MS || `${15 * 60 * 1000}`, 10);
+
+const tenantLoginLimiter = rateLimit({
+    windowMs: LOGIN_RATE_LIMIT_WINDOW_MS,
+    max: LOGIN_RATE_LIMIT_MAX,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        success: false,
+        error: 'Too many login attempts. Try again in 15 minutes.'
+    }
+});
+
+const validateRequest = (req, _res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        const firstError = errors.array()[0];
+        return next(new AppError(firstError.msg, 400));
+    }
+    next();
+};
+
 // Login — now requires tenant slug to identify which tenant's user DB to check
-router.post('/login', async (req, res, next) => {
+router.post(
+    '/login',
+    tenantLoginLimiter,
+    [
+        body('username').isString().trim().notEmpty().withMessage('Username and password are required'),
+        body('password').isString().notEmpty().withMessage('Username and password are required'),
+        body('tenant').optional({ nullable: true }).isString().trim().isLength({ max: 100 }).withMessage('Invalid tenant slug')
+    ],
+    validateRequest,
+    async (req, res, next) => {
     try {
         const { username, password, tenant } = req.body;
 
@@ -18,7 +53,7 @@ router.post('/login', async (req, res, next) => {
         }
 
         // Resolve tenant — use provided slug or fall back to default
-        const tenantSlug = tenant || process.env.DEFAULT_TENANT_SLUG || 'default';
+        const tenantSlug = String(tenant || process.env.DEFAULT_TENANT_SLUG || 'default').trim();
         const tenantRecord = await db('tenants')
             .where({ slug: tenantSlug, is_active: true })
             .first();
@@ -71,10 +106,15 @@ router.post('/login', async (req, res, next) => {
             .where({ id: user.id })
             .update({ last_login: new Date() });
 
+        const jwtSecret = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? null : 'dev-jwt-secret');
+        if (!jwtSecret) {
+            throw new AppError('JWT_SECRET not configured on server', 500);
+        }
+
         // Include tenant_id in JWT payload
         const token = jwt.sign(
             { userId: user.id, role: user.role, tenantId: tenantRecord.id },
-            process.env.JWT_SECRET,
+            jwtSecret,
             { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
         );
 
@@ -133,7 +173,15 @@ router.get('/me', authenticate, async (req, res, next) => {
 });
 
 // Change password
-router.post('/change-password', authenticate, async (req, res, next) => {
+router.post(
+    '/change-password',
+    authenticate,
+    [
+        body('currentPassword').isString().notEmpty().withMessage('Current and new password are required'),
+        body('newPassword').isString().isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
+    ],
+    validateRequest,
+    async (req, res, next) => {
     try {
         const { currentPassword, newPassword } = req.body;
 
@@ -152,7 +200,7 @@ router.post('/change-password', authenticate, async (req, res, next) => {
             throw new AppError('Current password is incorrect', 401);
         }
 
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
         await db('users')
             .where({ id: req.user.id })
             .update({ password_hash: hashedPassword, updated_at: new Date() });

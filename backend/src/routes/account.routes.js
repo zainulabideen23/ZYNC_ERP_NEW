@@ -4,6 +4,15 @@ const db = require('../config/database');
 const { authorize } = require('../middleware/auth');
 const { AppError } = require('../middleware/errorHandler');
 const AccountService = require('../services/account.service');
+const LedgerService = require('../services/ledger.service');
+const { resolveSystemAccounts, SYSTEM_ACCOUNTS } = require('../utils/accountResolver');
+const {
+    computeAccountOpeningBalanceForDate,
+    getLedgerEntriesWithRunningBalance,
+} = require('../utils/ledgerQuery');
+
+const RECONCILIATION_TOLERANCE = 0.01;
+const round2 = (value) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
 
 // Get Chart of Accounts (grouped)
 router.get('/', authorize('admin', 'manager'), async (req, res, next) => {
@@ -49,44 +58,124 @@ router.get('/report/trial-balance', authorize('admin', 'manager'), async (req, r
     }
 });
 
+// Get customer/supplier reconciliation against linked control accounts
+router.get('/report/party-reconciliation', authorize('admin', 'manager'), async (req, res, next) => {
+    try {
+        const customers = await db('customers as c')
+            .leftJoin('accounts as a', function joinAccounts() {
+                this.on('a.id', '=', 'c.account_id').andOn('a.tenant_id', '=', 'c.tenant_id');
+            })
+            .where('c.tenant_id', req.tenantId)
+            .where('c.is_deleted', false)
+            .select(
+                'c.id',
+                'c.code',
+                'c.name',
+                'c.account_id',
+                'c.current_balance as party_balance',
+                'a.current_balance as ledger_balance'
+            );
+
+        const suppliers = await db('suppliers as s')
+            .leftJoin('accounts as a', function joinAccounts() {
+                this.on('a.id', '=', 's.account_id').andOn('a.tenant_id', '=', 's.tenant_id');
+            })
+            .where('s.tenant_id', req.tenantId)
+            .where('s.is_deleted', false)
+            .select(
+                's.id',
+                's.code',
+                's.name',
+                's.account_id',
+                's.current_balance as party_balance',
+                'a.current_balance as ledger_balance'
+            );
+
+        const normalizeRows = (rows, type) => rows.map((row) => {
+            const partyBalance = round2(row.party_balance);
+            const ledgerBalance = round2(row.ledger_balance);
+            const difference = round2(ledgerBalance - partyBalance);
+            return {
+                party_type: type,
+                id: row.id,
+                code: row.code,
+                name: row.name,
+                account_id: row.account_id,
+                party_balance: partyBalance,
+                ledger_balance: ledgerBalance,
+                difference,
+                is_mismatch: Math.abs(difference) > RECONCILIATION_TOLERANCE,
+            };
+        });
+
+        const normalizedCustomers = normalizeRows(customers, 'customer');
+        const normalizedSuppliers = normalizeRows(suppliers, 'supplier');
+
+        const customerMismatches = normalizedCustomers.filter((row) => row.is_mismatch);
+        const supplierMismatches = normalizedSuppliers.filter((row) => row.is_mismatch);
+
+        res.json({
+            success: true,
+            data: {
+                summary: {
+                    customer_total: normalizedCustomers.length,
+                    supplier_total: normalizedSuppliers.length,
+                    customer_mismatches: customerMismatches.length,
+                    supplier_mismatches: supplierMismatches.length,
+                    mismatch_total: customerMismatches.length + supplierMismatches.length,
+                    tolerance: RECONCILIATION_TOLERANCE,
+                },
+                customers: normalizedCustomers,
+                suppliers: normalizedSuppliers,
+                mismatches: {
+                    customers: customerMismatches,
+                    suppliers: supplierMismatches,
+                },
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
 // Get account ledger
 router.get('/:id/ledger', authorize('admin', 'manager'), async (req, res, next) => {
     try {
-        const { from_date, to_date } = req.query;
+        const { from_date, to_date, page, limit } = req.query;
         const account = await db('accounts').where('id', req.params.id).where('tenant_id', req.tenantId).first();
 
         if (!account) throw new AppError('Account not found', 404);
 
-        let query = db('ledger_entries as le')
-            .join('journals as j', 'le.journal_id', 'j.id')
-            .select('le.*', 'j.journal_date', 'j.journal_number', 'j.description as journal_description')
-            .where('le.account_id', req.params.id)
-            .where('le.tenant_id', req.tenantId)
-            .orderBy('j.journal_date', 'asc')
-            .orderBy('le.created_at', 'asc');
+        const openingBalance = await computeAccountOpeningBalanceForDate({
+            trx: db,
+            tenantId: req.tenantId,
+            accountId: account.id,
+            accountType: account.account_type,
+            openingBalance: account.opening_balance,
+            fromDate: from_date,
+        });
 
-        if (from_date) query = query.where('j.journal_date', '>=', from_date);
-        if (to_date) query = query.where('j.journal_date', '<=', to_date);
-
-        const entries = await query;
-
-        let balance = parseFloat(account.opening_balance);
-        const ledger = entries.map(entry => {
-            if (['asset', 'expense'].includes(account.account_type)) {
-                balance = entry.entry_type === 'debit' ? balance + parseFloat(entry.amount) : balance - parseFloat(entry.amount);
-            } else {
-                balance = entry.entry_type === 'credit' ? balance + parseFloat(entry.amount) : balance - parseFloat(entry.amount);
-            }
-            return { ...entry, entry_date: entry.journal_date, running_balance: balance };
+        const ledger = await getLedgerEntriesWithRunningBalance({
+            db,
+            tenantId: req.tenantId,
+            accountId: account.id,
+            accountType: account.account_type,
+            fromDate: from_date || null,
+            toDate: to_date || null,
+            openingBalance,
+            page,
+            limit,
         });
 
         res.json({
             success: true,
             data: {
                 account,
-                opening_balance: account.opening_balance,
-                closing_balance: balance,
-                entries: ledger
+                opening_balance: openingBalance,
+                page_opening_balance: ledger.pageOpeningBalance,
+                closing_balance: ledger.closingBalance,
+                entries: ledger.entries,
+                pagination: ledger.pagination,
             }
         });
     } catch (error) {
@@ -103,6 +192,7 @@ router.post('/opening-balances', authorize('admin'), async (req, res, next) => {
         // Check if opening balance journal was already posted
         const existing = await db('journals')
             .where({ tenant_id: tenantId, reference_type: 'opening' })
+            .whereNull('reference_id')
             .first();
 
         if (existing) {
@@ -142,16 +232,32 @@ router.post('/opening-balances', authorize('admin'), async (req, res, next) => {
         for (const account of accounts) {
             if (account.code === '3001') continue; // Owner Capital handled separately
 
-            const amount = Math.abs(parseFloat(account.opening_balance));
+            const openingBalance = Number(account.opening_balance || 0);
+            if (!Number.isFinite(openingBalance)) {
+                return res.status(400).json({ error: `Invalid opening balance for account ${account.code}` });
+            }
+
+            const amount = Math.abs(openingBalance);
             if (amount === 0) continue;
 
-            if (['asset', 'expense'].includes(account.account_type)) {
-                entries.push({ account_id: account.id, entry_type: 'debit', amount });
+            const isDebitNormal = ['asset', 'expense'].includes(account.account_type);
+            const entryType = isDebitNormal
+                ? (openingBalance >= 0 ? 'debit' : 'credit')
+                : (openingBalance >= 0 ? 'credit' : 'debit');
+
+            entries.push({ account_id: account.id, entry_type: entryType, amount });
+
+            if (entryType === 'debit') {
                 totalDebits += amount;
             } else {
-                entries.push({ account_id: account.id, entry_type: 'credit', amount });
                 totalCredits += amount;
             }
+        }
+
+        if (entries.length === 0) {
+            return res.status(400).json({
+                error: 'No non-zero opening balances found to post (excluding owner capital).'
+            });
         }
 
         // Calculate balancing entry for Owner Capital
@@ -167,46 +273,17 @@ router.post('/opening-balances', authorize('admin'), async (req, res, next) => {
 
         // Post journal in a transaction
         await db.transaction(async (trx) => {
-            // Get next journal sequence
-            const seq = await trx('sequences')
-                .where({ tenant_id: tenantId, name: 'journal' })
-                .forUpdate()
-                .first();
+            const ledgerService = new LedgerService(db, tenantId);
 
-            const nextNum = seq.current_value + 1;
-            const journalNumber = `${seq.prefix}${String(nextNum).padStart(seq.pad_length, '0')}`;
-
-            await trx('sequences')
-                .where({ tenant_id: tenantId, name: 'journal' })
-                .update({ current_value: nextNum });
-
-            // Create the journal
-            const [journal] = await trx('journals').insert({
-                tenant_id: tenantId,
-                journal_number: journalNumber,
+            await ledgerService.createJournalEntry({
+                journal_date: new Date(),
+                transaction_type: 'opening',
                 reference_type: 'opening',
                 reference_id: null,
-                journal_date: new Date(),
-                description: 'Opening Balance Entry — Beginning balances brought forward',
-                total_debit: totalDebits,
-                total_credit: totalCredits,
-                is_balanced: totalDebits === totalCredits,
+                narration: 'Opening Balance Entry - Beginning balances brought forward',
+                entries,
                 created_by: req.user.id,
-                created_at: trx.fn.now(),
-            }).returning('*');
-
-            // Insert ledger entries (trigger will update current_balance on each)
-            for (const entry of entries) {
-                await trx('ledger_entries').insert({
-                    tenant_id: tenantId,
-                    journal_id: journal.id,
-                    account_id: entry.account_id,
-                    entry_type: entry.entry_type,
-                    amount: entry.amount,
-                    description: 'Opening balance',
-                    created_at: trx.fn.now(),
-                });
-            }
+            }, trx);
         });
 
         return res.json({
@@ -283,6 +360,9 @@ const updateAccount = async (req, res, next) => {
             .where({ id: req.params.id, tenant_id: req.tenantId })
             .update(updateData);
 
+        // Sync 1201 control account if this is a customer account (code 1204-1299)
+        await syncControlAccount(req.tenantId);
+
         return res.json({ success: true });
     } catch (error) {
         next(error);
@@ -309,6 +389,16 @@ router.delete('/:id', authorize('admin'), async (req, res, next) => {
             });
         }
 
+        const hasLedgerEntries = await db('ledger_entries')
+            .where({ tenant_id: req.tenantId, account_id: account.id })
+            .first('id');
+
+        if (hasLedgerEntries) {
+            return res.status(409).json({
+                error: 'Cannot delete account because ledger entries exist for it.'
+            });
+        }
+
         // The FK RESTRICT on ledger_entries.account_id will prevent
         // deletion if any journal entries reference this account.
         await db('accounts')
@@ -320,6 +410,73 @@ router.delete('/:id', authorize('admin'), async (req, res, next) => {
         next(error);
     }
 });
+
+// Reconcile Customer Receivables
+router.get('/reconcile-customer-receivables', authorize('admin'), async (req, res, next) => {
+    try {
+        const { reconcileCustomerReceivables } = require('../utils/reconcileCustomerReceivables');
+        const result = await reconcileCustomerReceivables(db, req.tenantId);
+        res.json({ success: true, data: result });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// Migrate Customer Receivables Balances
+router.post('/migrate-customer-receivables', authorize('admin'), async (req, res, next) => {
+    try {
+        const { migrateCustomerReceivables } = require('../utils/migrateCustomerReceivables');
+        const result = await migrateCustomerReceivables(db, req.tenantId);
+        res.json({ success: true, data: result });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// Helper to sync 1201 and 2001 control accounts
+async function syncControlAccount(tenantId) {
+    try {
+        // Sync customer receivables (1201)
+        const customerAccountIds = await resolveSystemAccounts(db, tenantId, [SYSTEM_ACCOUNTS.CUSTOMER_RECEIVABLES]);
+        const customerControlId = customerAccountIds[SYSTEM_ACCOUNTS.CUSTOMER_RECEIVABLES];
+        
+        const customerAccounts = await db('accounts')
+            .where('tenant_id', tenantId)
+            .whereRaw("code >= '1204' AND code <= '1299'")
+            .where('is_active', true)
+            .select('id', 'current_balance');
+        
+        let totalCustomer = 0;
+        for (const acc of customerAccounts) {
+            totalCustomer += parseFloat(acc.current_balance || 0);
+        }
+        
+        await db('accounts')
+            .where({ id: customerControlId })
+            .update({ current_balance: totalCustomer });
+        
+        // Sync supplier payables (2001)
+        const supplierAccountIds = await resolveSystemAccounts(db, tenantId, [SYSTEM_ACCOUNTS.SUPPLIER_PAYABLES]);
+        const supplierControlId = supplierAccountIds[SYSTEM_ACCOUNTS.SUPPLIER_PAYABLES];
+        
+        const supplierAccounts = await db('accounts')
+            .where('tenant_id', tenantId)
+            .whereRaw("code >= '2204' AND code <= '2299'")
+            .where('is_active', true)
+            .select('id', 'current_balance');
+        
+        let totalSupplier = 0;
+        for (const acc of supplierAccounts) {
+            totalSupplier += parseFloat(acc.current_balance || 0);
+        }
+        
+        await db('accounts')
+            .where({ id: supplierControlId })
+            .update({ current_balance: totalSupplier });
+    } catch (error) {
+        console.error('Error syncing control account:', error.message);
+    }
+}
 
 module.exports = router;
 

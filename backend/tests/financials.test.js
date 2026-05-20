@@ -17,23 +17,35 @@ jest.doMock('../src/middleware/auth', () => ({
     authorize: () => (_req, _res, next) => next()
 }));
 
-const makeQuery = (trialBalanceRows, balanceSheetRows) => {
-    let isBalanceSheetQuery = false;
-
+const makeLedgerSubquery = () => {
     const query = {
         join: jest.fn(() => query),
+        where: jest.fn(() => query),
+        modify: jest.fn((fn) => {
+            if (fn) fn(query);
+            return query;
+        }),
+        groupBy: jest.fn(() => query),
+        select: jest.fn(() => query),
+        as: jest.fn(() => query),
+    };
+
+    return query;
+};
+
+const makeAccountsQuery = (trialBalanceRows, balanceSheetRows) => {
+    let isBalanceSheet = false;
+
+    const query = {
         leftJoin: jest.fn(() => query),
         where: jest.fn(() => query),
-        whereIn: jest.fn((columnName) => {
-            if (columnName === 'a.account_type') {
-                isBalanceSheetQuery = true;
-            }
+        whereIn: jest.fn(() => {
+            isBalanceSheet = true;
             return query;
         }),
         select: jest.fn(() => query),
-        groupBy: jest.fn(() => query),
         orderBy: jest.fn().mockImplementation(async () => {
-            return isBalanceSheetQuery ? balanceSheetRows : trialBalanceRows;
+            return isBalanceSheet ? balanceSheetRows : trialBalanceRows;
         })
     };
 
@@ -41,24 +53,83 @@ const makeQuery = (trialBalanceRows, balanceSheetRows) => {
 };
 
 const mockDb = jest.fn((tableName) => {
+    if (tableName === 'company_info') {
+        const query = {
+            where: jest.fn(() => query),
+            select: jest.fn(() => query),
+            first: jest.fn().mockResolvedValue({ financial_year_start: 1 }),
+        };
+
+        return query;
+    }
+
     if (tableName === 'ledger_entries as le') {
+        return makeLedgerSubquery();
+    }
+
+    if (tableName === 'accounts as a') {
         const trialBalanceRows = [
-            { id: 1, code: '1001', name: 'Cash', group_name: 'Assets', debits: '1000', credits: '0' },
-            { id: 2, code: '4001', name: 'Sales', group_name: 'Income', debits: '0', credits: '1000' }
+            {
+                id: 1,
+                code: '1001',
+                name: 'Cash',
+                account_type: 'asset',
+                opening_balance: '0',
+                group_name: 'Assets',
+                debit_total: '1000',
+                credit_total: '0',
+            },
+            {
+                id: 2,
+                code: '4001',
+                name: 'Sales',
+                account_type: 'income',
+                opening_balance: '0',
+                group_name: 'Income',
+                debit_total: '0',
+                credit_total: '1000',
+            }
         ];
 
         const balanceSheetRows = [
-            { id: 1, code: '1001', name: 'Cash', account_type: 'asset', group_name: 'Assets', net_balance: '1000' },
-            { id: 2, code: '2001', name: 'Payable', account_type: 'liability', group_name: 'Liabilities', net_balance: '-400' },
-            { id: 3, code: '3001', name: 'Capital', account_type: 'equity', group_name: 'Equity', net_balance: '-600' }
+            {
+                id: 1,
+                code: '1001',
+                name: 'Cash',
+                account_type: 'asset',
+                opening_balance: '0',
+                group_name: 'Assets',
+                debit_total: '1000',
+                credit_total: '0',
+            },
+            {
+                id: 2,
+                code: '2001',
+                name: 'Payable',
+                account_type: 'liability',
+                opening_balance: '0',
+                group_name: 'Liabilities',
+                debit_total: '0',
+                credit_total: '400',
+            },
+            {
+                id: 3,
+                code: '3001',
+                name: 'Capital',
+                account_type: 'equity',
+                opening_balance: '0',
+                group_name: 'Equity',
+                debit_total: '0',
+                credit_total: '600',
+            }
         ];
 
-        return makeQuery(trialBalanceRows, balanceSheetRows);
+        return makeAccountsQuery(trialBalanceRows, balanceSheetRows);
     }
 
-    return makeQuery([], []);
+    return makeLedgerSubquery();
 });
-mockDb.raw = jest.fn((sql) => sql);
+mockDb.raw = jest.fn((sql, bindings) => ({ sql, bindings }));
 
 jest.doMock('../src/config/database', () => mockDb);
 

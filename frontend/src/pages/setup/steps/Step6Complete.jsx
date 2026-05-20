@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useAuthStore } from '../../../store/auth.store'
 import { onboardingAPI } from '../../../services/api'
 import toast from 'react-hot-toast'
 import {
@@ -8,9 +6,7 @@ import {
     Building2, Tag, Award, Ruler, Landmark
 } from 'lucide-react'
 
-function Step6Complete({ skippedSteps }) {
-    const navigate = useNavigate()
-    const { markOnboarded } = useAuthStore()
+function Step6Complete({ skippedSteps, onFinish }) {
     const [status, setStatus] = useState(null)
     const [loading, setLoading] = useState(true)
     const [finishing, setFinishing] = useState(false)
@@ -31,9 +27,7 @@ function Step6Complete({ skippedSteps }) {
     const handleFinish = async () => {
         try {
             setFinishing(true)
-            await onboardingAPI.complete()
-            markOnboarded()
-            navigate('/')
+            await onFinish()
         } catch (err) {
             toast.error('Failed to complete setup')
         } finally {

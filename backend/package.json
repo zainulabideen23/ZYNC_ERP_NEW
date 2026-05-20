@@ -7,7 +7,6 @@
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
     "migrate": "knex migrate:latest",
-    "vercel-build": "knex migrate:latest 2>&1 || echo 'Migration done or skipped'",
     "migrate:rollback": "knex migrate:rollback",
     "seed": "knex seed:run",
     "reconcile:journals": "node scripts/reconcile_unbalanced_journals.js",

@@ -5,9 +5,6 @@ const isTrue = (value, defaultValue = false) => {
   return String(value).toLowerCase() === 'true';
 };
 
-const poolMin = parseInt(process.env.DB_POOL_MIN || '0', 10);
-const poolMax = parseInt(process.env.DB_POOL_MAX || '1', 10);
-
 const buildProductionSsl = () => {
   if (!isTrue(process.env.DB_SSL, true)) {
     return undefined;
@@ -58,8 +55,8 @@ module.exports = {
       ssl: buildProductionSsl()
     },
     pool: {
-      min: poolMin,
-      max: poolMax
+      min: 2,
+      max: 20
     },
     migrations: {
       directory: './database/migrations',

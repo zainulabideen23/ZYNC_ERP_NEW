@@ -232,12 +232,9 @@ const startServer = async () => {
     }
 };
 
-// Only start server when run directly (not when imported by Vercel)
-if (require.main === module) {
-    startServer();
+startServer();
 
-    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-}
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 module.exports = app;

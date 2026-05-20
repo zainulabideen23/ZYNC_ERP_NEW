@@ -10,7 +10,11 @@
     "test:backend": "npm test --prefix backend -- --runInBand --silent",
     "test:frontend": "npm test --prefix frontend -- --run",
     "test": "npm run test:backend && npm run test:frontend",
-    "test:unit": "npm run test"
+    "test:unit": "npm run test",
+    "heroku-postbuild": "cd backend && npm install --production=false"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "keywords": [
     "erp",

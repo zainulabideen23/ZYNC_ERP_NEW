@@ -1,29 +1,46 @@
-const { execSync } = require('child_process');
+const { spawn } = require('child_process');
+const path = require('path');
 
-function run(cmd) {
-    execSync(cmd, { cwd: __dirname, stdio: 'inherit', env: process.env, timeout: 180000 });
+function runAsync(name, cmd) {
+    return new Promise((resolve) => {
+        console.log(`\n=== ${name} ===\n`);
+        const child = spawn('npm', ['run', cmd], {
+            cwd: __dirname,
+            stdio: 'inherit',
+            env: process.env,
+            shell: true,
+        });
+        child.on('close', (code) => {
+            console.log(`\n${name} completed (exit code: ${code})\n`);
+            resolve();
+        });
+        child.on('error', (err) => {
+            console.error(`\n${name} error: ${err.message}\n`);
+            resolve();
+        });
+    });
 }
 
-try {
-    console.log('\n=== PASS 1: Initial migrations (best effort) ===\n');
-    try { run('npm run migrate'); } catch (e) {
-        console.log('\nPass 1 done - some failures expected on fresh DB\n');
-    }
+async function main() {
+    console.log('\n=== Starting server immediately ===\n');
+    const app = require('./src/index.js');
 
-    console.log('\n=== PASS 2: Seed data ===\n');
-    try { run('npm run seed'); } catch (e) {
-        console.log('\nSeed done (may have partial data)\n');
-    }
+    // Give server a moment to bind to port
+    await new Promise(r => setTimeout(r, 2000));
 
-    console.log('\n=== PASS 3: Migrations again ===\n');
-    try { run('npm run migrate'); } catch (e) {
-        console.log('\nPass 3 done\n');
-    }
+    console.log('\n=== Running migrations + seed in background ===\n');
 
-    console.log('\n=== Starting server ===\n');
-} catch (e) {
+    // Run async in background — server handles requests during migration
+    runAsync('PASS 1: Initial migrations', 'migrate').then(async () => {
+        await runAsync('PASS 2: Seed data', 'seed');
+        await runAsync('PASS 3: Migrations again', 'migrate');
+        console.log('\n=== Setup complete ===\n');
+    }).catch(e => {
+        console.error('Setup background error:', e.message);
+    });
+}
+
+main().catch(e => {
     console.error('Fatal:', e.message);
     process.exit(1);
-}
-
-require('./src/index.js');
+});

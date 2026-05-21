@@ -189,7 +189,7 @@ async function provisionTenant({
             password_hash: passwordHash,
             full_name: adminFullName,
             email: adminEmail,
-            phone_number: '0000-0000000',
+            phone_number: '+923001234567',
             role: 'admin',
             is_active: true,
             tenant_id: tenantId

@@ -9,7 +9,8 @@ exports.up = async function(knex) {
     // Step 1: Update any existing viewer users to cashier
     await knex.raw(`UPDATE users SET role = 'cashier' WHERE role = 'viewer'`);
 
-    // Step 2: Create new ENUM without viewer
+    // Step 2: Drop default, create new ENUM without viewer
+    await knex.raw(`ALTER TABLE users ALTER COLUMN role DROP DEFAULT`);
     await knex.raw(`ALTER TYPE user_role RENAME TO user_role_old`);
     await knex.raw(`CREATE TYPE user_role AS ENUM ('admin', 'manager', 'cashier')`);
     await knex.raw(`

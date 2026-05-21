@@ -60,13 +60,17 @@ exports.seed = async function (knex) {
             'Sales Revenue': '4000',
             'Cost of Goods Sold': '5000',
             'Operating Expenses': '6000',
-            'Owner Capital': '3000',
+            'Owner Capital': '3010',
         };
         for (const [name, code] of Object.entries(codeUpdates)) {
-            await knex('account_groups')
-                .where({ name, tenant_id: tid })
-                .whereNull('code')
-                .update({ code });
+            try {
+                await knex('account_groups')
+                    .where({ name, tenant_id: tid })
+                    .whereNull('code')
+                    .update({ code });
+            } catch (updateErr) {
+                console.log(`  - Could not set code ${code} for "${name}": ${updateErr.message}`);
+            }
         }
         console.log('✓ Seed data already exists, updated missing codes');
         return;
@@ -125,7 +129,7 @@ exports.seed = async function (knex) {
         { name: 'Sales Revenue', account_type: 'income', code: '4000', sequence_order: 20, is_system: true, tenant_id: tid },
         { name: 'Cost of Goods Sold', account_type: 'expense', code: '5000', sequence_order: 30, is_system: true, tenant_id: tid },
         { name: 'Operating Expenses', account_type: 'expense', code: '6000', sequence_order: 31, is_system: true, tenant_id: tid },
-        { name: 'Owner Capital', account_type: 'equity', code: '3000', sequence_order: 40, is_system: true, tenant_id: tid }
+        { name: 'Owner Capital', account_type: 'equity', code: '3010', sequence_order: 40, is_system: true, tenant_id: tid }
     ]).returning('id');
     const accountGroups = accountGroupResults.map(row => row.id || row);
 

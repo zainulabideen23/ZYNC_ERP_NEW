@@ -72,6 +72,16 @@ const validateProductionSecurityConfig = () => {
         throw new Error(`Missing required production secrets: ${missing.join(', ')}`);
     }
 
+    if (!process.env.DATABASE_URL) {
+        const requiredDatabaseConfig = ['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'];
+        const missingDatabaseConfig = requiredDatabaseConfig.filter((name) => !process.env[name]);
+        if (missingDatabaseConfig.length > 0) {
+            throw new Error(
+                `Missing production database config: set DATABASE_URL or ${missingDatabaseConfig.join(', ')}`
+            );
+        }
+    }
+
     const insecurePatterns = [/change-this/i, /your-super-secret/i, /zync-platform-secret-2025/i];
     for (const name of requiredSecrets) {
         const value = process.env[name] || '';

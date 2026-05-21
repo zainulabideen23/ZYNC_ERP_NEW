@@ -21,16 +21,36 @@ const buildProductionSsl = () => {
   return ssl;
 };
 
+const buildConnection = ({ sslDefault = false } = {}) => {
+  const ssl = sslDefault ? buildProductionSsl() : undefined;
+
+  if (process.env.DATABASE_URL) {
+    if (ssl) {
+      return {
+        connectionString: process.env.DATABASE_URL,
+        ssl
+      };
+    }
+
+    return process.env.DATABASE_URL;
+  }
+
+  const connection = {
+    host: process.env.DB_HOST || 'localhost',
+    port: process.env.DB_PORT || 5432,
+    database: process.env.DB_NAME || 'zync_erp',
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || ''
+  };
+
+  if (ssl) connection.ssl = ssl;
+  return connection;
+};
+
 module.exports = {
   development: {
     client: 'pg',
-    connection: {
-      host: process.env.DB_HOST || 'localhost',
-      port: process.env.DB_PORT || 5432,
-      database: process.env.DB_NAME || 'zync_erp',
-      user: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD || ''
-    },
+    connection: buildConnection(),
     pool: {
       min: 2,
       max: 10
@@ -46,14 +66,7 @@ module.exports = {
 
   production: {
     client: 'pg',
-    connection: {
-      host: process.env.DB_HOST,
-      port: process.env.DB_PORT,
-      database: process.env.DB_NAME,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      ssl: buildProductionSsl()
-    },
+    connection: buildConnection({ sslDefault: true }),
     pool: {
       min: 2,
       max: 20

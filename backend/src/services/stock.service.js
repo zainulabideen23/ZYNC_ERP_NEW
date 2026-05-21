@@ -26,17 +26,6 @@ class StockService {
             created_by
         } = data;
 
-        // Validate created_by is a valid UUID
-        const isValidUUID = (val) => {
-            if (!val || typeof val !== 'string') return false;
-            const regex = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$', 'i');
-            return regex.test(val);
-        };
-        
-        if (!isValidUUID(created_by)) {
-            throw new AppError(`Invalid user ID format for stock movement: ${created_by}. Must be a valid UUID.`, 400);
-        }
-
         const validMovementTypes = ['IN', 'OUT', 'ADJUSTMENT', 'DAMAGE', 'RETURN'];
         const validReferenceTypes = ['purchase', 'sale', 'adjustment', 'opening', 'damage', 'return'];
 
@@ -46,6 +35,17 @@ class StockService {
 
         if (!validReferenceTypes.includes(reference_type)) {
             throw new AppError(`Invalid stock reference_type: ${reference_type}`, 400);
+        }
+
+        // Validate created_by is a valid UUID
+        const isValidUUID = (val) => {
+            if (!val || typeof val !== 'string') return false;
+            const regex = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$', 'i');
+            return regex.test(val);
+        };
+
+        if (!isValidUUID(created_by)) {
+            throw new AppError(`Invalid user ID format for stock movement: ${created_by}. Must be a valid UUID.`, 400);
         }
 
         const numericQuantity = Number(quantity);

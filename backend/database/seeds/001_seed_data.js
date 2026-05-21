@@ -46,10 +46,29 @@ exports.seed = async function (knex) {
     }
     const tid = defaultTenant.id || defaultTenant;
 
-    // Skip seed if data already exists
+    // Skip full seed if users already exist
     const existingAdmin = await knex('users').where('username', 'admin').first();
     if (existingAdmin) {
-        console.log('✓ Data already seeded, skipping...');
+        // Still assign codes to existing groups if missing
+        const codeUpdates = {
+            'Bank Accounts': '1100',
+            'Cash': '1000',
+            'Inventory': '1400',
+            'Receivables': '1200',
+            'Payables': '2000',
+            'Bank Loans': '2100',
+            'Sales Revenue': '4000',
+            'Cost of Goods Sold': '5000',
+            'Operating Expenses': '6000',
+            'Owner Capital': '3000',
+        };
+        for (const [name, code] of Object.entries(codeUpdates)) {
+            await knex('account_groups')
+                .where({ name, tenant_id: tid })
+                .whereNull('code')
+                .update({ code });
+        }
+        console.log('✓ Seed data already exists, updated missing codes');
         return;
     }
 

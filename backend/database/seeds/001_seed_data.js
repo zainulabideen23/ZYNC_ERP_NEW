@@ -59,7 +59,7 @@ exports.seed = async function (knex) {
             password_hash: adminHash,
             full_name: 'Administrator',
             email: 'admin@zync-erp.local',
-            phone_number: '0300-1000000',
+            phone_number: '+923001000000',
             role: 'admin',
             is_active: true,
             tenant_id: tid
@@ -69,7 +69,7 @@ exports.seed = async function (knex) {
             password_hash: cashierHash,
             full_name: 'Cashier User',
             email: 'cashier@zync-erp.local',
-            phone_number: '0300-2000000',
+            phone_number: '+923002000000',
             role: 'cashier',
             is_active: true,
             tenant_id: tid
@@ -79,7 +79,7 @@ exports.seed = async function (knex) {
             password_hash: managerHash,
             full_name: 'Manager User',
             email: 'manager@zync-erp.local',
-            phone_number: '0300-3000000',
+            phone_number: '+923003000000',
             role: 'manager',
             is_active: true,
             tenant_id: tid
@@ -317,8 +317,8 @@ exports.seed = async function (knex) {
         {
             code: 'CUST001',
             name: 'Ahmed Khan',
-            phone_number: '0300-1111111',
-            phone_number_alt: '0321-1111111',
+            phone_number: '+923001111111',
+            phone_number_alt: '+923211111111',
             email: 'ahmed@example.com',
             address_line1: '123 Main Street',
             city: 'Karachi',
@@ -332,7 +332,7 @@ exports.seed = async function (knex) {
         {
             code: 'CUST002',
             name: 'Fatima Ali',
-            phone_number: '0300-2222222',
+            phone_number: '+923002222222',
             email: 'fatima@example.com',
             address_line1: '456 Market Road',
             city: 'Lahore',
@@ -346,7 +346,7 @@ exports.seed = async function (knex) {
         {
             code: 'CUST003',
             name: 'Muhammad Hassan',
-            phone_number: '0300-3333333',
+            phone_number: '+923003333333',
             email: 'hassan@example.com',
             address_line1: '789 Business Park',
             city: 'Islamabad',
@@ -367,7 +367,7 @@ exports.seed = async function (knex) {
         {
             code: 'SUPP001',
             name: 'Tech Imports Ltd',
-            phone_number: '021-111-2222',
+            phone_number: '+923001112222',
             email: 'contact@techimports.com',
             address_line1: '100 Industrial Area',
             city: 'Karachi',
@@ -381,7 +381,7 @@ exports.seed = async function (knex) {
         {
             code: 'SUPP002',
             name: 'Fashion Wholesale Co',
-            phone_number: '042-333-4444',
+            phone_number: '+923003334444',
             email: 'sales@fashionco.com',
             address_line1: '200 Trade Center',
             city: 'Lahore',
@@ -395,7 +395,7 @@ exports.seed = async function (knex) {
         {
             code: 'SUPP003',
             name: 'Agricultural Exports',
-            phone_number: '051-555-6666',
+            phone_number: '+923005556666',
             email: 'info@agexports.com',
             address_line1: '300 Export Zone',
             city: 'Islamabad',

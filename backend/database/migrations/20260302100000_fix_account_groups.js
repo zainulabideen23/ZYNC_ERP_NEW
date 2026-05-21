@@ -10,12 +10,17 @@
  */
 
 exports.up = async function (knex) {
-    // FIX 1: Rename "Owner Capital" group to "Equity"
-    // The group should be named "Equity" — "Owner Capital" is the account name,
-    // not the group name. Having both causes confusion in reports.
-    await knex('account_groups')
-        .where('name', 'Owner Capital')
-        .update({ name: 'Equity' });
+    // FIX 1: Ensure "Equity" group exists (rename from "Owner Capital" or create)
+    const equityGroup = await knex('account_groups').where('name', 'Equity').first();
+    if (!equityGroup) {
+        const ownerCapitalGroup = await knex('account_groups').where('name', 'Owner Capital').first();
+        if (ownerCapitalGroup) {
+            await knex('account_groups').where('name', 'Owner Capital').update({ name: 'Equity' });
+        } else {
+            // Create the equity group if neither exists (e.g., fresh DB before seed)
+            await knex('account_groups').insert({ name: 'Equity', account_type: 'equity', sequence_order: 70, is_system: true });
+        }
+    }
 
     // FIX 2: Set codes for all account groups
     // Column 'code' already exists (added by migration 20260127111659)

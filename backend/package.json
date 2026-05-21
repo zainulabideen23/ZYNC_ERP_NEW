@@ -8,6 +8,7 @@
     "start": "node src/index.js",
     "migrate": "knex migrate:latest",
     "migrate:rollback": "knex migrate:rollback",
+    "run-migrations": "node run-migrations.js",
     "seed": "knex seed:run",
     "reconcile:journals": "node scripts/reconcile_unbalanced_journals.js",
     "backfill:dry-run:party-gl": "node scripts/dry_run_backfill_party_gl_links.js",

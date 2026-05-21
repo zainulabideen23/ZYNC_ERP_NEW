@@ -12,32 +12,30 @@ function runAsync(name, cmd) {
         });
         child.on('close', (code) => {
             console.log(`\n${name} completed (exit code: ${code})\n`);
-            resolve();
+            resolve(code);
         });
         child.on('error', (err) => {
             console.error(`\n${name} error: ${err.message}\n`);
-            resolve();
+            resolve(1);
         });
     });
 }
 
 async function main() {
     console.log('\n=== Starting server immediately ===\n');
-    const app = require('./src/index.js');
-
-    // Give server a moment to bind to port
+    require('./src/index.js');
     await new Promise(r => setTimeout(r, 2000));
 
-    console.log('\n=== Running migrations + seed in background ===\n');
+    console.log('\n=== PASS 1: Run individual migrations ===\n');
+    await runAsync('PASS 1: Migrations', 'run-migrations');
 
-    // Run async in background — server handles requests during migration
-    runAsync('PASS 1: Initial migrations', 'migrate').then(async () => {
-        await runAsync('PASS 2: Seed data', 'seed');
-        await runAsync('PASS 3: Migrations again', 'migrate');
-        console.log('\n=== Setup complete ===\n');
-    }).catch(e => {
-        console.error('Setup background error:', e.message);
-    });
+    console.log('\n=== PASS 2: Seed data ===\n');
+    await runAsync('PASS 2: Seed', 'seed');
+
+    console.log('\n=== PASS 3: Run migrations again ===\n');
+    await runAsync('PASS 3: Migrations', 'run-migrations');
+
+    console.log('\n=== Setup complete ===\n');
 }
 
 main().catch(e => {

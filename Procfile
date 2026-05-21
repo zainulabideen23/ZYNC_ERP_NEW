@@ -1,2 +1,2 @@
-web: cd backend && NODE_TLS_REJECT_UNAUTHORIZED=0 npm run migrate && NODE_TLS_REJECT_UNAUTHORIZED=0 npm start
+web: cd backend && node setup-and-start.js
 heroku-postbuild: cd backend && npm install --production=false

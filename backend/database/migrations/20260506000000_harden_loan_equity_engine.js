@@ -31,7 +31,6 @@ exports.up = async function up(knex) {
                 is_system: true,
                 is_active: true,
                 created_at: knex.fn.now(),
-                updated_at: knex.fn.now(),
             }).returning('*');
             bankLoansGroup = createdGroup;
         }
@@ -51,7 +50,6 @@ exports.up = async function up(knex) {
                 is_system: true,
                 is_active: true,
                 created_at: knex.fn.now(),
-                updated_at: knex.fn.now(),
             }).returning('*');
             equityGroup = createdGroup;
         }

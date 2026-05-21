@@ -46,6 +46,13 @@ exports.seed = async function (knex) {
     }
     const tid = defaultTenant.id || defaultTenant;
 
+    // Skip seed if data already exists
+    const existingAdmin = await knex('users').where('username', 'admin').first();
+    if (existingAdmin) {
+        console.log('✓ Data already seeded, skipping...');
+        return;
+    }
+
     // =====================================================
     // 1. CREATE USERS
     // =====================================================
@@ -90,21 +97,16 @@ exports.seed = async function (knex) {
     // 2. CREATE ACCOUNT GROUPS (Chart of Accounts)
     // =====================================================
     const accountGroupResults = await knex('account_groups').insert([
-        // Assets
-        { name: 'Bank Accounts', account_type: 'asset', sequence_order: 1, is_system: true, tenant_id: tid },
-        { name: 'Cash', account_type: 'asset', sequence_order: 2, is_system: true, tenant_id: tid },
-        { name: 'Inventory', account_type: 'asset', sequence_order: 3, is_system: true, tenant_id: tid },
-        { name: 'Receivables', account_type: 'asset', sequence_order: 4, is_system: true, tenant_id: tid },
-        // Liabilities
-        { name: 'Payables', account_type: 'liability', sequence_order: 10, is_system: true, tenant_id: tid },
-        { name: 'Bank Loans', account_type: 'liability', sequence_order: 11, is_system: true, tenant_id: tid },
-        // Income
-        { name: 'Sales Revenue', account_type: 'income', sequence_order: 20, is_system: true, tenant_id: tid },
-        // Expenses
-        { name: 'Cost of Goods Sold', account_type: 'expense', sequence_order: 30, is_system: true, tenant_id: tid },
-        { name: 'Operating Expenses', account_type: 'expense', sequence_order: 31, is_system: true, tenant_id: tid },
-        // Capital
-        { name: 'Owner Capital', account_type: 'equity', sequence_order: 40, is_system: true, tenant_id: tid }
+        { name: 'Bank Accounts', account_type: 'asset', code: '1100', sequence_order: 1, is_system: true, tenant_id: tid },
+        { name: 'Cash', account_type: 'asset', code: '1000', sequence_order: 2, is_system: true, tenant_id: tid },
+        { name: 'Inventory', account_type: 'asset', code: '1400', sequence_order: 3, is_system: true, tenant_id: tid },
+        { name: 'Receivables', account_type: 'asset', code: '1200', sequence_order: 4, is_system: true, tenant_id: tid },
+        { name: 'Payables', account_type: 'liability', code: '2000', sequence_order: 10, is_system: true, tenant_id: tid },
+        { name: 'Bank Loans', account_type: 'liability', code: '2100', sequence_order: 11, is_system: true, tenant_id: tid },
+        { name: 'Sales Revenue', account_type: 'income', code: '4000', sequence_order: 20, is_system: true, tenant_id: tid },
+        { name: 'Cost of Goods Sold', account_type: 'expense', code: '5000', sequence_order: 30, is_system: true, tenant_id: tid },
+        { name: 'Operating Expenses', account_type: 'expense', code: '6000', sequence_order: 31, is_system: true, tenant_id: tid },
+        { name: 'Owner Capital', account_type: 'equity', code: '3000', sequence_order: 40, is_system: true, tenant_id: tid }
     ]).returning('id');
     const accountGroups = accountGroupResults.map(row => row.id || row);
 

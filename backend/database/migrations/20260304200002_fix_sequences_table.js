@@ -9,6 +9,19 @@
 exports.up = async function(knex) {
     const DEFAULT_TENANT = 'c972d614-3fbb-426e-a8b2-ce8fd816197d';
 
+    // Create default tenant if it doesn't exist yet (fresh DB before seed)
+    const tenant = await knex('tenants').where('id', DEFAULT_TENANT).first();
+    if (!tenant) {
+        await knex('tenants').insert({
+            id: DEFAULT_TENANT,
+            name: 'Default',
+            slug: 'default',
+            is_active: true,
+            created_at: knex.fn.now(),
+            updated_at: knex.fn.now(),
+        });
+    }
+
     // Delete challan sequence
     await knex('sequences')
         .where({ name: 'challan', tenant_id: DEFAULT_TENANT })

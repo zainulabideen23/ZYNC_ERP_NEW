@@ -96,7 +96,10 @@ const resolveTenant = async (req, res, next) => {
                 plan: tenant.plan
             };
 
-            await runWithRequestContext({ trx, tenantId }, async () => {
+            // IMPORTANT: Do NOT pass trx to request context — route handlers should use
+            // the pool directly so their changes are visible immediately (not gated
+            // behind transaction commit timing, which can race with subsequent requests).
+            await runWithRequestContext({ tenantId }, async () => {
                 await waitForResponseCompletion(res, next);
             });
         });

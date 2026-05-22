@@ -98,7 +98,7 @@ export const suppliersAPI = {
 // Categories
 export const categoriesAPI = {
     list: () => api.get('/categories'),
-    listFlat: () => api.get('/categories', { params: { flat: 'true' } }),
+    listFlat: (params) => api.get('/categories', { params: { flat: 'true', ...params } }),
     create: (data) => api.post('/categories', data),
     update: (id, data) => api.put(`/categories/${id}`, data),
     delete: (id) => api.delete(`/categories/${id}`)
@@ -106,7 +106,7 @@ export const categoriesAPI = {
 
 // Brands
 export const brandsAPI = {
-    list: () => api.get('/brands'),
+    list: (params) => api.get('/brands', { params }),
     create: (data) => api.post('/brands', data),
     update: (id, data) => api.put(`/brands/${id}`, data),
     delete: (id) => api.delete(`/brands/${id}`)

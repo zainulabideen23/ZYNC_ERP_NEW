@@ -5,13 +5,13 @@ const { authorize } = require('../middleware/auth');
 const { AppError } = require('../middleware/errorHandler');
 const audit = require('../utils/audit');
 
-// GET /api/brands — all active brands for current tenant
+// GET /api/brands — all brands for current tenant
 router.get('/', async (req, res, next) => {
     try {
-        const brands = await db('brands')
-            .where('is_active', true)
-            .where('tenant_id', req.tenantId)
-            .orderBy('name');
+        const includeInactive = req.query.all === 'true';
+        let query = db('brands').where('tenant_id', req.tenantId).orderBy('name');
+        if (!includeInactive) query = query.where('is_active', true);
+        const brands = await query;
         res.json({ success: true, data: brands });
     } catch (error) {
         next(error);

@@ -31,7 +31,7 @@ const menuSections = [
         label: 'Master Data',
         items: [
             { path: '/products', label: 'Products', icon: Tags },
-            { path: '/units', label: 'Units', icon: Ruler, roles: ['admin', 'manager'] },
+            { path: '/units', label: 'Reference Data', icon: Ruler, roles: ['admin', 'manager'] },
             { path: '/customers', label: 'Customers', icon: Users },
             { path: '/suppliers', label: 'Suppliers', icon: Factory, roles: ['admin', 'manager'] },
         ]

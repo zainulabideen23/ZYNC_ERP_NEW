@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
 import { accountsAPI } from '../services/api'
 import { Wallet, ChevronDown, ChevronRight, BookOpen, ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown } from 'lucide-react'
+import PageLoader from '../components/PageLoader'
 
 function Accounts() {
     const [accounts, setAccounts] = useState([])
@@ -75,7 +76,7 @@ function Accounts() {
         )
     }
 
-    if (loading) return <div style={{ padding: '24px', background: 'var(--color-bg)', minHeight: '100vh' }}>Loading...</div>
+    if (loading) return <PageLoader />
 
     const totalGroups = groups.length
     const totalAccounts = accounts.length

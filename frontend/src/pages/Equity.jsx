@@ -6,6 +6,7 @@ import {
     Plus, TrendingUp, TrendingDown, DollarSign, Calendar, 
     History, X, AlertTriangle, Lock
 } from 'lucide-react'
+import PageLoader from '../components/PageLoader'
 
 const formatCurrency = (value) => `Rs. ${Number(value || 0).toLocaleString()}`
 const formatDate = (date) => date ? new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'
@@ -95,6 +96,8 @@ function Equity() {
         periodIncome: summary.current_period_income || 0,
         total: summary.total_equity || 0
     } : { capital: 0, drawings: 0, retained: 0, periodIncome: 0, total: 0 }
+
+    if (loading) return <PageLoader />
 
     return (
         <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto', background: 'var(--color-bg)', minHeight: '100vh' }}>

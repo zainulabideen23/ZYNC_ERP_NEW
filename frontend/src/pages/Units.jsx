@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { toast } from 'react-hot-toast'
 import { unitsAPI } from '../services/api'
 import { Scale, Plus, Edit, Trash2, ToggleLeft, ToggleRight, X, Check } from 'lucide-react'
+import PageLoader from '../components/PageLoader'
 
 function Units() {
     const [units, setUnits] = useState([])
@@ -119,6 +120,8 @@ function Units() {
         </span>
     )
 
+    if (loading && units.length === 0) return <PageLoader />
+
     return (
         <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto', background: 'var(--color-bg)', minHeight: '100vh' }}>
             {/* Page Header */}
@@ -195,9 +198,7 @@ function Units() {
                         </tr>
                     </thead>
                     <tbody>
-                        {loading ? (
-                            <tr><td colSpan={5} style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--color-hint)' }}>Loading...</td></tr>
-                        ) : units.length === 0 ? (
+                        {units.length === 0 ? (
                             <tr><td colSpan={5} style={{ padding: '60px 16px', textAlign: 'center' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
                                     <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--color-panel-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

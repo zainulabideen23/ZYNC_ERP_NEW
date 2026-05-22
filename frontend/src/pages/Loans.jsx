@@ -7,6 +7,7 @@ import {
     Clock, Percent, AlertCircle, CheckCircle, ChevronRight,
     Calculator, TrendingUp, Car, Home, Briefcase, Users
 } from 'lucide-react'
+import PageLoader from '../components/PageLoader'
 
 const formatCurrency = (value) => `Rs. ${Number(value || 0).toLocaleString()}`
 const formatDate = (date) => date ? new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'
@@ -351,6 +352,8 @@ function Loans() {
         )
     }
 
+    if (loading) return <PageLoader />
+
     return (
         <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto', background: 'var(--color-bg)', minHeight: '100vh' }}>
             {/* Header */}
@@ -453,12 +456,7 @@ function Loans() {
             </div>
 
             {/* Loan Cards */}
-            {loading ? (
-                <div style={{ padding: '60px', textAlign: 'center', color: 'var(--color-hint)' }}>
-                    <div style={{ width: '40px', height: '40px', border: '3px solid var(--border-surface)', borderTopColor: 'var(--blue)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
-                    Loading loans...
-                </div>
-            ) : filteredLoans.length === 0 ? (
+            {filteredLoans.length === 0 ? (
                 <div style={{ padding: '80px', textAlign: 'center', background: 'var(--color-panel)', borderRadius: '16px', border: '1px solid var(--border-surface)' }}>
                     <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
                         <Banknote size={40} color="#3b82f6" />

@@ -7,6 +7,7 @@ import { can } from '../utils/permissions'
 import UnitSelector from '../components/UnitSelector'
 import CategorySelector from '../components/CategorySelector'
 import { Package, Plus, Search, X, Edit, FileText, TrendingUp, TrendingDown, AlertTriangle, ArrowUpRight, ArrowDownRight } from 'lucide-react'
+import PageLoader from '../components/PageLoader'
 
 function Products() {
     const { user } = useAuthStore()
@@ -252,7 +253,7 @@ function Products() {
         }, { totalProducts: 0, lowStock: 0, totalValue: 0 })
     }, [products])
 
-    if (loading && view === 'list') return <div style={{ padding: '24px', background: 'var(--color-bg)', minHeight: '100vh' }}>Loading...</div>
+    if (loading && view === 'list') return <PageLoader />
 
     if (view === 'form') {
         return (

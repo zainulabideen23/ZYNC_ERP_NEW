@@ -560,6 +560,16 @@ function Products() {
                     .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
                     @keyframes spin { to { transform: rotate(360deg); } }
                     @media (max-width: 768px) { .form-grid { grid-template-columns: 1fr; } .profit-summary-card { flex-direction: column; gap: 1rem; } .border-l { border-left: none; padding-left: 0; border-top: 1px solid var(--border-surface); padding-top: 1rem; } }
+                    @media (max-width: 640px) {
+                        .page-header { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
+                        .page-header .add-btn { width: 100% !important; justify-content: center !important; }
+                        .metrics-row { flex-direction: column !important; }
+                        .search-row { flex-wrap: wrap !important; }
+                        .search-row .search-wrap { max-width: none !important; flex: 1 1 100% !important; }
+                        .filter-popover { min-width: 0 !important; width: calc(100vw - 48px) !important; right: -16px !important; }
+                        .table-wrap { overflow-x: auto !important; }
+                        .table-wrap table { min-width: 640px; }
+                    }
                 `}</style>
             </div>
         )
@@ -568,7 +578,7 @@ function Products() {
     return (
         <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto', background: 'var(--color-bg)', minHeight: '100vh' }}>
             {/* Page Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
+            <div className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                     <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.12)', border: '1px solid rgba(59, 130, 246, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Package size={20} color="var(--blue)" />
@@ -578,22 +588,22 @@ function Products() {
                         <p style={{ fontSize: '13px', color: 'var(--color-hint)', marginTop: '2px' }}>Manage your product catalog and inventory</p>
                     </div>
                 </div>
-                <button onClick={openCreateView} style={{ height: '38px', padding: '0 16px', borderRadius: '8px', border: 'none', background: 'var(--blue)', color: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)' }}>
+                <button className="add-btn" onClick={openCreateView} style={{ height: '38px', padding: '0 16px', borderRadius: '8px', border: 'none', background: 'var(--blue)', color: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)' }}>
                     <Plus size={16} />
                     Add Product
                 </button>
             </div>
 
             {/* Metrics Row */}
-            <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
+            <div className="metrics-row" style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
                 <MetricCard label="Total Products" value={aggregates.totalProducts} icon={Package} color="#3b82f6" subtext="In catalog" />
                 <MetricCard label="Inventory Value" value={formatCurrency(aggregates.totalValue)} icon={TrendingUp} color="#10b981" subtext="At retail" />
                 <MetricCard label="Low Stock" value={aggregates.lowStock} icon={AlertTriangle} color="#f59e0b" subtext="Need reorder" />
             </div>
 
             {/* Search */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--color-panel)', borderRadius: '12px', padding: '14px 16px', marginBottom: '16px', border: '1px solid var(--border-surface)' }}>
-                <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
+            <div className="search-row" style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--color-panel)', borderRadius: '12px', padding: '14px 16px', marginBottom: '16px', border: '1px solid var(--border-surface)' }}>
+                <div className="search-wrap" style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
                     <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-hint)' }} />
                     <input type="text" placeholder="Search by name, SKU, or barcode..." value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { const match = products.find(p => p.barcode && p.barcode === search.trim()); if (match) openEditView(match) } }} style={{ width: '100%', height: '36px', background: 'var(--color-panel-2)', border: '1px solid var(--border-surface)', borderRadius: '8px', paddingLeft: '36px', paddingRight: '12px', fontSize: '13px', color: 'var(--color-text)', outline: 'none' }} onFocus={e => e.target.style.borderColor = 'var(--blue)'} onBlur={e => e.target.style.borderColor = 'var(--border-surface)'} />
                 </div>
@@ -608,7 +618,7 @@ function Products() {
                         <ChevronDown size={12} style={{ transform: filtersOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
                     </button>
                     {filtersOpen && (
-                        <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, background: 'var(--color-panel)', border: '1px solid var(--border-surface)', borderRadius: '12px', padding: '16px', boxShadow: '0 12px 40px rgba(0,0,0,0.3)', zIndex: 100, minWidth: '520px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div className="filter-popover" style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, background: 'var(--color-panel)', border: '1px solid var(--border-surface)', borderRadius: '12px', padding: '16px', boxShadow: '0 12px 40px rgba(0,0,0,0.3)', zIndex: 100, minWidth: '520px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                                 <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} style={{ height: '36px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-surface)', background: 'var(--color-panel-2)', color: 'var(--color-text)', fontSize: '13px', outline: 'none', minWidth: '140px', cursor: 'pointer' }}>
                                     <option value="">All Categories</option>
@@ -645,7 +655,7 @@ function Products() {
             </div>
 
             {/* Table */}
-            <div style={{ background: 'var(--color-panel)', borderRadius: '12px', border: '1px solid var(--border-surface)', overflow: 'hidden' }}>
+            <div className="table-wrap" style={{ background: 'var(--color-panel)', borderRadius: '12px', border: '1px solid var(--border-surface)', overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                         <tr style={{ background: 'var(--color-panel-2)', borderBottom: '1px solid var(--border-surface)' }}>

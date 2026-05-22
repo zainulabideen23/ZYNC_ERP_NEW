@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
 import { useAuthStore } from '../store/auth.store'
 import { authAPI } from '../services/api'
-import { Building2, Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { Eye, EyeOff, AlertCircle } from 'lucide-react'
 import './Login.css'
 
 function Login() {
@@ -42,9 +42,6 @@ function Login() {
         <div className="login-page">
             <div className="login-card">
                 <div className="login-brand">
-                    <div className="login-icon">
-                        <Building2 size={28} color="#fff" />
-                    </div>
                     <h1 className="login-title">ZYNC ERP</h1>
                     <p className="login-subtitle">Sign in to your company account</p>
                 </div>
@@ -111,11 +108,7 @@ function Login() {
                     </button>
                 </form>
 
-                <div className="login-footer">
-                    <p className="login-credentials">
-                        Demo: <strong>admin</strong> / <strong>admin123</strong>
-                    </p>
-                </div>
+
             </div>
         </div>
     )

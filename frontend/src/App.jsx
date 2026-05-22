@@ -1,8 +1,10 @@
-import { Routes, Route, Navigate, useSearchParams, useNavigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, lazy, Suspense } from 'react'
+import { AnimatePresence } from 'framer-motion'
 import { useAuthStore } from './store/auth.store'
 import { usePlatformAuthStore } from './store/platform.auth.store'
 import ImpersonationBanner from './components/ImpersonationBanner'
+import PageTransition from './components/PageTransition'
 import { authAPI } from './services/api'
 
 const Layout = lazy(() => import('./components/Layout'))
@@ -53,11 +55,16 @@ function RouteFallback() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 background: 'var(--color-bg)',
-                color: 'var(--color-text-muted)',
+                color: 'var(--color-muted)',
                 fontSize: 14,
             }}
         >
-            Loading...
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" style={{ animation: 'spin 0.8s linear infinite', color: 'var(--color-accent)' }}>
+                    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" strokeLinecap="round" />
+                </svg>
+                <span>Loading...</span>
+            </div>
         </div>
     )
 }
@@ -158,10 +165,12 @@ function OnboardingGuard({ children }) {
 }
 
 function App() {
+    const location = useLocation()
     return (
         <Suspense fallback={<RouteFallback />}>
             <ImpersonationBanner />
-            <Routes>
+            <AnimatePresence mode="wait">
+            <Routes location={location} key={location.pathname}>
                 <Route path="/quote/accept/:token" element={<QuoteAccept />} />
                 <Route path="/quote/reject/:token" element={<QuoteReject />} />
                 <Route path="/quote/confirm/:token" element={<QuoteConfirm />} />
@@ -240,6 +249,7 @@ function App() {
 
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            </AnimatePresence>
         </Suspense>
     )
 }

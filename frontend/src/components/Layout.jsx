@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import PageTransition from './PageTransition'
 import { useAuthStore } from '../store/auth.store'
 import { useThemeStore } from '../store/theme.store'
 import {
@@ -337,7 +338,9 @@ function Layout() {
             </button>
 
             <main className="main-content" tabIndex={-1}>
-                <Outlet />
+                <PageTransition>
+                    <Outlet />
+                </PageTransition>
             </main>
         </div>
     )

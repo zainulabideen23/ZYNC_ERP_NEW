@@ -882,6 +882,10 @@ a:hover {
 .summary-stat-value.danger { color: var(--color-danger); }
 .summary-stat-value.accent { color: var(--color-accent); }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ─── Color utility classes ─── */
 .bg-accent { background: var(--color-accent); }
 .bg-success { background: var(--color-success); }

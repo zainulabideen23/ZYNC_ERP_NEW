@@ -1,4 +1,5 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import PageTransition from '../PageTransition'
 import { usePlatformAuthStore } from '../../store/platform.auth.store'
 import { LayoutDashboard, Building2, Settings, LogOut, Shield } from 'lucide-react'
 
@@ -145,7 +146,9 @@ export default function PlatformLayout() {
                     padding: 24,
                     overflowY: 'auto',
                 }}>
-                    <Outlet />
+                    <PageTransition>
+                        <Outlet />
+                    </PageTransition>
                 </main>
             </div>
         </div>

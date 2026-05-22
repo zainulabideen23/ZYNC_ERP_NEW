@@ -8,6 +8,8 @@ export default function PurchaseControls({
 	onSelectSupplier,
 	purchaseDate,
 	onPurchaseDateChange,
+	expectedDeliveryDate,
+	onExpectedDeliveryDateChange,
 	referenceNumber,
 	onReferenceNumberChange,
 	barcodeInputOpen,
@@ -39,6 +41,14 @@ export default function PurchaseControls({
 						value={purchaseDate}
 						onChange={(event) => onPurchaseDateChange(event.target.value)}
 						aria-label="Purchase date"
+					/>
+
+					<input
+						type="date"
+						className="purchase-inline-input"
+						value={expectedDeliveryDate}
+						onChange={(event) => onExpectedDeliveryDateChange(event.target.value)}
+						aria-label="Expected delivery date"
 					/>
 
 					<input

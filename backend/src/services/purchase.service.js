@@ -203,6 +203,7 @@ class PurchaseService {
         const {
             supplier_id,
             purchase_date,
+            expected_delivery_date,
             reference_number,
             items,
             discount_amount = 0,
@@ -260,6 +261,7 @@ class PurchaseService {
                 bill_number: draftNumber,
                 supplier_id: supplier_id || null,
                 purchase_date: purchase_date || new Date(),
+                expected_delivery_date: expected_delivery_date || null,
                 reference_number,
                 subtotal,
                 discount_amount: numericDiscountAmount,
@@ -390,6 +392,9 @@ class PurchaseService {
                 .update({
                     supplier_id: supplierId || null,
                     purchase_date: data.purchase_date || draft.purchase_date,
+                    expected_delivery_date: Object.prototype.hasOwnProperty.call(data, 'expected_delivery_date')
+                        ? (data.expected_delivery_date || null)
+                        : draft.expected_delivery_date,
                     reference_number: Object.prototype.hasOwnProperty.call(data, 'reference_number')
                         ? data.reference_number
                         : draft.reference_number,
@@ -470,6 +475,7 @@ class PurchaseService {
         const {
             supplier_id,
             purchase_date,
+            expected_delivery_date,
             reference_number,
             items,
             discount_amount = 0,
@@ -631,6 +637,7 @@ class PurchaseService {
                         bill_number: billNumber,
                         supplier_id,
                         purchase_date: purchase_date || new Date(),
+                        expected_delivery_date: expected_delivery_date || null,
                         reference_number,
                         subtotal,
                         discount_amount: numericDiscountAmount,

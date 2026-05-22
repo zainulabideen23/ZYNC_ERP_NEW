@@ -45,6 +45,7 @@ function NewPurchase() {
 	const [cart, setCart] = useState([])
 	const [supplierId, setSupplierId] = useState('')
 	const [purchaseDate, setPurchaseDate] = useState(todayInputDate())
+	const [expectedDeliveryDate, setExpectedDeliveryDate] = useState('')
 	const [referenceNumber, setReferenceNumber] = useState('')
 	const [globalDiscount, setGlobalDiscount] = useState(0)
 	const [globalDiscountType, setGlobalDiscountType] = useState('amount')
@@ -188,8 +189,13 @@ function NewPurchase() {
 				: todayInputDate()
 
 			setSupplierId(draft.supplier_id || '')
-			setPurchaseDate(draftDate)
-			setReferenceNumber(draft.reference_number || '')
+		setPurchaseDate(draftDate)
+		setExpectedDeliveryDate(
+			draft.expected_delivery_date
+				? new Date(draft.expected_delivery_date).toISOString().split('T')[0]
+				: ''
+		)
+		setReferenceNumber(draft.reference_number || '')
 			setGlobalDiscount(discount)
 			setGlobalDiscountType('amount')
 			setTaxRate(taxRateValue)
@@ -344,6 +350,7 @@ function NewPurchase() {
 	const buildPurchasePayload = useCallback((items, notesText) => ({
 		supplier_id: supplierId || null,
 		purchase_date: purchaseDate,
+		expected_delivery_date: expectedDeliveryDate || null,
 		reference_number: referenceNumber,
 		items: buildLineItems(items),
 		discount_amount: 0,
@@ -354,6 +361,7 @@ function NewPurchase() {
 	}), [
 		supplierId,
 		purchaseDate,
+		expectedDeliveryDate,
 		referenceNumber,
 		buildLineItems,
 		taxAmount,
@@ -398,6 +406,7 @@ function NewPurchase() {
 		setCart([])
 		setSupplierId('')
 		setPurchaseDate(todayInputDate())
+		setExpectedDeliveryDate('')
 		setReferenceNumber('')
 		setGlobalDiscount(0)
 		setGlobalDiscountType('amount')
@@ -561,6 +570,8 @@ function NewPurchase() {
 					onSelectSupplier={setSupplierId}
 					purchaseDate={purchaseDate}
 					onPurchaseDateChange={setPurchaseDate}
+					expectedDeliveryDate={expectedDeliveryDate}
+					onExpectedDeliveryDateChange={setExpectedDeliveryDate}
 					referenceNumber={referenceNumber}
 					onReferenceNumberChange={setReferenceNumber}
 					barcodeInputOpen={barcodeInputOpen}

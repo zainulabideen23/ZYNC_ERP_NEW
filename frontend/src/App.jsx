@@ -55,15 +55,27 @@ function RouteFallback() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 background: 'var(--color-bg)',
-                color: 'var(--color-muted)',
-                fontSize: 14,
             }}
         >
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" style={{ animation: 'spin 0.8s linear infinite', color: 'var(--color-accent)' }}>
-                    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" strokeLinecap="round" />
-                </svg>
-                <span>Loading...</span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                <div style={{
+                    fontSize: '2rem',
+                    fontWeight: 800,
+                    letterSpacing: '-0.03em',
+                    background: 'linear-gradient(135deg, var(--color-accent), #7c3aed)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    animation: 'pulse 2s ease-in-out infinite',
+                }}>
+                    ZYNC
+                </div>
+                <div style={{
+                    width: 24, height: 24,
+                    border: '2px solid var(--border-surface)',
+                    borderTopColor: 'var(--color-accent)',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                }} />
             </div>
         </div>
     )

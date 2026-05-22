@@ -5,7 +5,7 @@ import { customersAPI } from '../services/api'
 import { useAuthStore } from '../store/auth.store'
 import { can } from '../utils/permissions'
 import { formatPakistaniPhone } from '../utils/phoneFormat'
-import { Users, Plus, Search, X, Edit, FileText, UserCheck, Phone, MapPin, ArrowUpRight } from 'lucide-react'
+import { Users, Plus, Search, X, Edit, FileText, Trash2, UserCheck, Phone, MapPin, ArrowUpRight, ToggleLeft, ToggleRight } from 'lucide-react'
 
 function Customers() {
     const { user } = useAuthStore()
@@ -15,10 +15,13 @@ function Customers() {
     const [search, setSearch] = useState('')
     const [showModal, setShowModal] = useState(false)
     const [editingCustomer, setEditingCustomer] = useState(null)
+    const [deleteConfirm, setDeleteConfirm] = useState(null)
     const [formData, setFormData] = useState({
         code: '', name: '', phone_number: '', phone_number_alt: '', email: '',
-        address_line1: '', city: '', province_state: '', country: 'Pakistan',
-        credit_limit: '0', opening_balance: '0'
+        address_line1: '', address_line2: '', city: '', province_state: '',
+        postal_code: '', country: 'Pakistan',
+        credit_limit: '0', opening_balance: '0',
+        company_name: '', cnic_number: '', is_active: true
     })
 
     useEffect(() => { loadData() }, [search])
@@ -57,11 +60,24 @@ function Customers() {
         }
     }
 
+    const handleDelete = async (customer) => {
+        try {
+            await customersAPI.delete(customer.id)
+            toast.success(`${customer.name} deleted`)
+            setDeleteConfirm(null)
+            loadData()
+        } catch (error) {
+            toast.error(error.message || 'Failed to delete customer')
+        }
+    }
+
     const resetForm = () => {
         setFormData({
             code: '', name: '', phone_number: '', phone_number_alt: '', email: '',
-            address_line1: '', city: '', province_state: '', country: 'Pakistan',
-            credit_limit: '0', opening_balance: '0'
+            address_line1: '', address_line2: '', city: '', province_state: '',
+            postal_code: '', country: 'Pakistan',
+            credit_limit: '0', opening_balance: '0',
+            company_name: '', cnic_number: '', is_active: true
         })
         setEditingCustomer(null)
     }
@@ -75,11 +91,16 @@ function Customers() {
             phone_number_alt: customer.phone_number_alt || '',
             email: customer.email || '',
             address_line1: customer.address_line1 || '',
+            address_line2: customer.address_line2 || '',
             city: customer.city || '',
             province_state: customer.province_state || '',
+            postal_code: customer.postal_code || '',
             country: customer.country || 'Pakistan',
             credit_limit: customer.credit_limit || '0',
-            opening_balance: customer.opening_balance || '0'
+            opening_balance: customer.opening_balance || '0',
+            company_name: customer.company_name || '',
+            cnic_number: customer.cnic_number || '',
+            is_active: customer.is_active !== false
         })
         setShowModal(true)
     }
@@ -163,8 +184,11 @@ function Customers() {
                             <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Name</th>
                             <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Phone</th>
                             <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>City</th>
+                            {can(userRole, 'customers.change_credit') && (
+                                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Credit Limit</th>
+                            )}
                             <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Balance</th>
-                            <th style={{ width: '160px', padding: '12px 16px' }}></th>
+                            <th style={{ width: '200px', padding: '12px 16px' }}></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -182,7 +206,7 @@ function Customers() {
                                 ))}
                             </>
                         ) : customers.length === 0 ? (
-                            <tr><td colSpan={6} style={{ padding: '80px 16px', textAlign: 'center' }}>
+                            <tr><td colSpan={7} style={{ padding: '80px 16px', textAlign: 'center' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
                                     <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'var(--color-panel-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <Users size={24} color="var(--color-hint)" />
@@ -218,6 +242,11 @@ function Customers() {
                                         {c.city || '-'}
                                     </div>
                                 </td>
+                                {can(userRole, 'customers.change_credit') && (
+                                    <td style={{ padding: '14px 16px', textAlign: 'right', fontSize: '13px', fontWeight: 500, color: 'var(--color-muted)' }}>
+                                        {formatCurrency(c.credit_limit || 0)}
+                                    </td>
+                                )}
                                 <td style={{ padding: '14px 16px', textAlign: 'right', fontSize: '13px', fontWeight: 600, color: getCustomerBalance(c) > 0 ? '#f59e0b' : 'var(--color-text)' }}>
                                     {formatCurrency(getCustomerBalance(c))}
                                 </td>
@@ -232,6 +261,11 @@ function Customers() {
                                             <Link to={`/customers/${c.id}/ledger`} style={{ minWidth: '44px', height: '32px', padding: '0 12px', borderRadius: '6px', border: 'none', background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', fontSize: '12px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }} aria-label={`View ledger for ${c.name}`}>
                                                 <FileText size={14} /> Ledger
                                             </Link>
+                                        )}
+                                        {can(userRole, 'customers.delete') && (
+                                            <button onClick={() => setDeleteConfirm(c)} style={{ minWidth: '44px', height: '32px', padding: '0 12px', borderRadius: '6px', border: '1px solid var(--border-surface)', background: 'transparent', color: '#ef4444', fontSize: '12px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }} aria-label={`Delete ${c.name}`}>
+                                                <Trash2 size={14} />
+                                            </button>
                                         )}
                                     </div>
                                 </td>
@@ -273,6 +307,16 @@ function Customers() {
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                     <div>
+                                        <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-muted)', display: 'block', marginBottom: '6px' }}>Company Name</label>
+                                        <input type="text" value={formData.company_name} onChange={e => setFormData({ ...formData, company_name: e.target.value })} style={{ height: '40px', background: 'var(--color-panel-2)', border: '1px solid var(--border-surface)', borderRadius: '8px', padding: '0 12px', fontSize: '13px', color: 'var(--color-text)', outline: 'none', width: '100%' }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-muted)', display: 'block', marginBottom: '6px' }}>CNIC</label>
+                                        <input type="text" value={formData.cnic_number} onChange={e => setFormData({ ...formData, cnic_number: e.target.value })} placeholder="XXXXX-XXXXXXX-X" style={{ height: '40px', background: 'var(--color-panel-2)', border: '1px solid var(--border-surface)', borderRadius: '8px', padding: '0 12px', fontSize: '13px', color: 'var(--color-text)', outline: 'none', width: '100%' }} />
+                                    </div>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                    <div>
                                         <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-muted)', display: 'block', marginBottom: '6px' }}>Phone</label>
                                         <input type="text" value={formData.phone_number} onChange={e => setFormData({ ...formData, phone_number: formatPakistaniPhone(e.target.value) })} placeholder="+923001234567" maxLength={13} style={{ height: '40px', background: 'var(--color-panel-2)', border: '1px solid var(--border-surface)', borderRadius: '8px', padding: '0 12px', fontSize: '13px', color: 'var(--color-text)', outline: 'none', width: '100%' }} />
                                     </div>
@@ -288,6 +332,16 @@ function Customers() {
                                 <div>
                                     <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-muted)', display: 'block', marginBottom: '6px' }}>Address</label>
                                     <textarea value={formData.address_line1} onChange={e => setFormData({ ...formData, address_line1: e.target.value })} rows="2" style={{ background: 'var(--color-panel-2)', border: '1px solid var(--border-surface)', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', color: 'var(--color-text)', outline: 'none', width: '100%', resize: 'vertical' }} />
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                    <div>
+                                        <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-muted)', display: 'block', marginBottom: '6px' }}>Address Line 2</label>
+                                        <input type="text" value={formData.address_line2} onChange={e => setFormData({ ...formData, address_line2: e.target.value })} style={{ height: '40px', background: 'var(--color-panel-2)', border: '1px solid var(--border-surface)', borderRadius: '8px', padding: '0 12px', fontSize: '13px', color: 'var(--color-text)', outline: 'none', width: '100%' }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-muted)', display: 'block', marginBottom: '6px' }}>Postal Code</label>
+                                        <input type="text" value={formData.postal_code} onChange={e => setFormData({ ...formData, postal_code: e.target.value })} style={{ height: '40px', background: 'var(--color-panel-2)', border: '1px solid var(--border-surface)', borderRadius: '8px', padding: '0 12px', fontSize: '13px', color: 'var(--color-text)', outline: 'none', width: '100%' }} />
+                                    </div>
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                     <div>
@@ -313,6 +367,16 @@ function Customers() {
                                         </div>
                                     )}
                                 </div>
+                                {editingCustomer && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0' }}>
+                                        <button type="button" onClick={() => setFormData({ ...formData, is_active: !formData.is_active })} style={{ width: '44px', height: '24px', borderRadius: '12px', border: 'none', background: formData.is_active ? '#10b981' : '#6b7280', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', padding: 0 }} aria-label="Toggle active status">
+                                            <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#fff', position: 'absolute', top: '3px', left: formData.is_active ? '23px' : '3px', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                                        </button>
+                                        <span style={{ fontSize: '13px', fontWeight: 500, color: formData.is_active ? 'var(--color-text)' : 'var(--color-muted)' }}>
+                                            {formData.is_active ? 'Active' : 'Inactive'}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                             <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-surface)', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                                 <button type="button" onClick={() => setShowModal(false)} style={{ height: '40px', padding: '0 16px', borderRadius: '8px', border: '1px solid var(--border-surface)', background: 'transparent', color: 'var(--color-muted)', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
@@ -323,6 +387,29 @@ function Customers() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {deleteConfirm && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(4px)' }} onClick={() => setDeleteConfirm(null)}>
+                    <div style={{ background: 'var(--color-panel)', borderRadius: '16px', width: '90%', maxWidth: '400px', border: '1px solid var(--border-surface)' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ padding: '24px', textAlign: 'center' }}>
+                            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                                <Trash2 size={22} color="#ef4444" />
+                            </div>
+                            <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text)', margin: '0 0 8px 0' }}>Delete Customer?</h3>
+                            <p style={{ fontSize: '13px', color: 'var(--color-hint)', margin: '0 0 4px 0' }}>This will permanently deactivate <strong>{deleteConfirm.name}</strong>.</p>
+                            <p style={{ fontSize: '12px', color: 'var(--color-muted)', margin: 0 }}>Their transaction history will be preserved.</p>
+                        </div>
+                        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-surface)', display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                            <button type="button" onClick={() => setDeleteConfirm(null)} style={{ height: '40px', padding: '0 20px', borderRadius: '8px', border: '1px solid var(--border-surface)', background: 'transparent', color: 'var(--color-muted)', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
+                                Cancel
+                            </button>
+                            <button type="button" onClick={() => handleDelete(deleteConfirm)} style={{ height: '40px', padding: '0 20px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer', boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)' }}>
+                                Delete
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

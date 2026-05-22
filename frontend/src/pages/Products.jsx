@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { toast } from 'react-hot-toast'
 import { productsAPI, categoriesAPI, suppliersAPI, unitsAPI, brandsAPI } from '../services/api'
 import { useDataSync, DataSyncEvents } from '../utils/dataSync'
@@ -6,8 +6,10 @@ import { useAuthStore } from '../store/auth.store'
 import { can } from '../utils/permissions'
 import UnitSelector from '../components/UnitSelector'
 import CategorySelector from '../components/CategorySelector'
-import { Package, Plus, Search, X, Edit, FileText, TrendingUp, TrendingDown, AlertTriangle, ArrowUpRight, ArrowDownRight } from 'lucide-react'
+import BrandSelector from '../components/BrandSelector'
+import { Package, Plus, Search, X, Edit, FileText, TrendingUp, TrendingDown, AlertTriangle, ArrowUpRight, ArrowDownRight, ScanLine, Filter, ChevronDown } from 'lucide-react'
 import PageLoader from '../components/PageLoader'
+import { useBarcodeScanner } from '../hooks/useBarcodeScanner'
 
 function Products() {
     const { user } = useAuthStore()
@@ -22,6 +24,17 @@ function Products() {
     const [editingProduct, setEditingProduct] = useState(null)
     const [submitting, setSubmitting] = useState(false)
     const [isDirty, setIsDirty] = useState(false)
+    const [barcodeInputOpen, setBarcodeInputOpen] = useState(false)
+    const [manualBarcode, setManualBarcode] = useState('')
+    const scanGuardRef = useRef(false)
+
+    const [filterCategory, setFilterCategory] = useState('')
+    const [filterBrand, setFilterBrand] = useState('')
+    const [filterStatus, setFilterStatus] = useState('all')
+    const [filterLowStock, setFilterLowStock] = useState(false)
+    const [filterTrackStock, setFilterTrackStock] = useState('all')
+    const [filtersOpen, setFiltersOpen] = useState(false)
+    const filterRef = useRef(null)
 
     const [formData, setFormData] = useState({
         name: '', code: '', barcode: '', description: '',
@@ -33,20 +46,40 @@ function Products() {
 
     const [formErrors, setFormErrors] = useState({})
 
-    useEffect(() => { loadData() }, [search])
+    useEffect(() => { loadData() }, [search, filterCategory, filterBrand, filterStatus, filterLowStock, filterTrackStock])
     useDataSync(DataSyncEvents.SALE_CREATED, () => { loadData() })
     useDataSync(DataSyncEvents.SALE_UPDATED, () => { loadData() })
     useDataSync(DataSyncEvents.PURCHASE_CREATED, () => { loadData() })
 
+    useEffect(() => {
+        if (!filtersOpen) return
+        const handler = (e) => {
+            if (filterRef.current && !filterRef.current.contains(e.target)) setFiltersOpen(false)
+        }
+        const keyHandler = (e) => { if (e.key === 'Escape') setFiltersOpen(false) }
+        document.addEventListener('mousedown', handler)
+        document.addEventListener('keydown', keyHandler)
+        return () => { document.removeEventListener('mousedown', handler); document.removeEventListener('keydown', keyHandler) }
+    }, [filtersOpen])
+
     const loadData = async () => {
         try {
+            const params = { search, limit: 100 }
+            if (filterCategory) params.category_id = filterCategory
+            if (filterBrand) params.brand_id = filterBrand
+            if (filterStatus === 'active') params.is_active = true
+            if (filterStatus === 'inactive') params.is_active = false
+            if (filterLowStock) params.low_stock = true
+            if (filterTrackStock === 'yes') params.track_stock = true
+            if (filterTrackStock === 'no') params.track_stock = false
             const [productsRes, categoriesRes, unitsRes, brandsRes] = await Promise.all([
-                productsAPI.list({ search, limit: 100 }),
+                productsAPI.list(params),
                 categoriesAPI.list(),
                 unitsAPI.list(),
                 brandsAPI.list()
             ])
             setProducts(productsRes.data || [])
+            console.log('[Products] categories from API:', categoriesRes.data?.length, 'items')
             setCategories(categoriesRes.data || [])
             setUnits(unitsRes.data || [])
             setBrands(brandsRes.data || [])
@@ -77,6 +110,10 @@ function Products() {
 
     const handleSubmit = async (e) => {
         e.preventDefault()
+        if (scanGuardRef.current) {
+            scanGuardRef.current = false
+            return
+        }
         setSubmitting(true)
         try {
             const isValid = await validateForm()
@@ -114,7 +151,7 @@ function Products() {
         }
     }
 
-    const resetForm = () => {
+    const resetForm = useCallback(() => {
         setFormData({
             name: '', code: '', barcode: '', description: '',
             category_id: '', unit_id: '', brand_id: '', cost_price: '', retail_price: '',
@@ -125,7 +162,8 @@ function Products() {
         setEditingProduct(null)
         setFormErrors({})
         setIsDirty(false)
-    }
+        scanGuardRef.current = false
+    }, [])
 
     const openCreateView = () => {
         resetForm()
@@ -133,7 +171,7 @@ function Products() {
         window.scrollTo(0, 0)
     }
 
-    const openEditView = (product) => {
+    const openEditView = useCallback((product) => {
         setEditingProduct(product)
         setFormData({
             ...product,
@@ -153,7 +191,7 @@ function Products() {
         })
         setView('form')
         window.scrollTo(0, 0)
-    }
+    }, [])
 
     const handleCancel = () => {
         if (isDirty) {
@@ -166,6 +204,50 @@ function Products() {
             resetForm()
         }
     }
+
+    const handleBarcodeScan = useCallback((code) => {
+        const cleanCode = String(code || '').trim()
+        if (!cleanCode) return
+
+        const found = products.find((p) =>
+            String(p.barcode || '') === cleanCode ||
+            String(p.code || '').toLowerCase() === cleanCode.toLowerCase()
+        )
+
+        if (view === 'form') {
+            setFormData(prev => ({ ...prev, barcode: cleanCode }))
+            if (found) {
+                toast(`${found.name} — barcode exists`, { icon: '⚠️' })
+            } else {
+                toast.info('Barcode filled')
+            }
+            return
+        }
+
+    if (found) {
+        scanGuardRef.current = true
+        openEditView(found)
+        toast.success(`Opened: ${found.name}`)
+        return
+    }
+
+    resetForm()
+    setFormData(prev => ({ ...prev, barcode: cleanCode }))
+    setView('form')
+    toast.info('Product not found — creating new with barcode')
+}, [products, view, openEditView, resetForm])
+
+    const handleManualBarcode = () => {
+        if (manualBarcode.trim()) {
+            handleBarcodeScan(manualBarcode)
+            setManualBarcode('')
+            setBarcodeInputOpen(false)
+        }
+    }
+
+    useBarcodeScanner(useCallback((code) => {
+        handleBarcodeScan(code)
+    }, [handleBarcodeScan]))
 
     const handleFormChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }))
@@ -290,7 +372,12 @@ function Products() {
                                 </div>
                                 <div className="form-group">
                                     <label>Barcode</label>
-                                    <input type="text" value={formData.barcode} onChange={(e) => handleFormChange('barcode', e.target.value)} placeholder="Scan or enter barcode" />
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                        <input type="text" value={formData.barcode} onChange={(e) => handleFormChange('barcode', e.target.value)} placeholder="Scan or enter barcode" style={{ flex: 1 }} />
+                                        <button type="button" onClick={() => setBarcodeInputOpen(true)} title="Scan barcode" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', background: 'var(--color-panel-2)', border: '1px solid var(--border-surface)', borderRadius: '8px', color: 'var(--color-text)', cursor: 'pointer', flexShrink: 0 }}>
+                                            <ScanLine size={16} />
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="form-group">
                                     <label>Category <span className="required">*</span></label>
@@ -298,10 +385,7 @@ function Products() {
                                 </div>
                                 <div className="form-group">
                                     <label>Brand</label>
-                                    <select value={formData.brand_id} onChange={(e) => handleFormChange('brand_id', e.target.value)}>
-                                        <option value="">No Brand</option>
-                                        {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                                    </select>
+                                    <BrandSelector value={formData.brand_id} onChange={(val) => handleFormChange('brand_id', val)} brands={brands} onBrandsChange={setBrands} />
                                 </div>
                                 <div className="form-group">
                                     <label>Base Unit <span className="required">*</span></label>
@@ -350,22 +434,22 @@ function Products() {
                             <div className="form-grid">
                                 <div className="form-group">
                                     <label>Cost Price (PKR) <span className="required">*</span></label>
-                                    <input type="number" className={formErrors.cost_price ? 'error' : ''} value={formData.cost_price} onChange={(e) => handleFormChange('cost_price', e.target.value)} step="0.01" placeholder="0.00" />
+                                    <input type="number" className={formErrors.cost_price ? 'error' : ''} value={formData.cost_price} onChange={(e) => handleFormChange('cost_price', e.target.value)} step="0.01" placeholder="0.00" onWheel={e => e.target.blur()} />
                                     {formErrors.cost_price && <span className="error-text">{formErrors.cost_price}</span>}
                                 </div>
                                 <div className="form-group">
                                     <label>Retail Price (PKR) <span className="required">*</span></label>
-                                    <input type="number" className={(formErrors.retail_price || profitData.isInvalid) ? 'error' : ''} value={formData.retail_price} onChange={(e) => handleFormChange('retail_price', e.target.value)} step="0.01" placeholder="0.00" />
+                                    <input type="number" className={(formErrors.retail_price || profitData.isInvalid) ? 'error' : ''} value={formData.retail_price} onChange={(e) => handleFormChange('retail_price', e.target.value)} step="0.01" placeholder="0.00" onWheel={e => e.target.blur()} />
                                     {profitData.isInvalid && <span className="warning-text">Retail price must be higher than cost price</span>}
                                     {formErrors.retail_price && <span className="error-text">{formErrors.retail_price}</span>}
                                 </div>
                                 <div className="form-group">
                                     <label>Wholesale Price (PKR)</label>
-                                    <input type="number" value={formData.wholesale_price} onChange={(e) => handleFormChange('wholesale_price', e.target.value)} step="0.01" placeholder="0.00" />
+                                    <input type="number" value={formData.wholesale_price} onChange={(e) => handleFormChange('wholesale_price', e.target.value)} step="0.01" placeholder="0.00" onWheel={e => e.target.blur()} />
                                 </div>
                                 <div className="form-group">
                                     <label>Tax Rate (%)</label>
-                                    <input type="number" value={formData.tax_rate} onChange={(e) => handleFormChange('tax_rate', e.target.value)} step="0.1" placeholder="0" />
+                                    <input type="number" value={formData.tax_rate} onChange={(e) => handleFormChange('tax_rate', e.target.value)} step="0.1" placeholder="0" onWheel={e => e.target.blur()} />
                                 </div>
                             </div>
 
@@ -397,7 +481,7 @@ function Products() {
                                 </div>
                                 <div className="form-group">
                                     <label>Weight (kg)</label>
-                                    <input type="number" value={formData.weight} onChange={(e) => handleFormChange('weight', e.target.value)} step="0.001" placeholder="0.0" />
+                                    <input type="number" value={formData.weight} onChange={(e) => handleFormChange('weight', e.target.value)} step="0.001" placeholder="0.0" onWheel={e => e.target.blur()} />
                                 </div>
                             </div>
                         </div>
@@ -413,29 +497,26 @@ function Products() {
                                 {!editingProduct && (
                                     <div className="form-group">
                                         <label>Opening Stock Quantity</label>
-                                        <input type="number" value={formData.opening_stock} onChange={(e) => handleFormChange('opening_stock', e.target.value)} placeholder="0" />
+                                        <input type="number" value={formData.opening_stock} onChange={(e) => handleFormChange('opening_stock', e.target.value)} placeholder="0" onWheel={e => e.target.blur()} />
                                     </div>
                                 )}
                                 <div className="form-group">
                                     <label>Minimum Stock Alert Level</label>
-                                    <input type="number" value={formData.min_stock_level} onChange={(e) => handleFormChange('min_stock_level', e.target.value)} placeholder="5" />
+                                    <input type="number" value={formData.min_stock_level} onChange={(e) => handleFormChange('min_stock_level', e.target.value)} placeholder="5" onWheel={e => e.target.blur()} />
                                 </div>
                                 <div className="form-group">
                                     <label>Reorder Quantity</label>
-                                    <input type="number" value={formData.reorder_quantity} onChange={(e) => handleFormChange('reorder_quantity', e.target.value)} placeholder="10" />
+                                    <input type="number" value={formData.reorder_quantity} onChange={(e) => handleFormChange('reorder_quantity', e.target.value)} placeholder="10" onWheel={e => e.target.blur()} />
                                 </div>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
+                                <button type="button" className="btn btn-ghost" onClick={handleCancel} disabled={submitting}>Cancel</button>
+                                <button type="submit" className="btn btn-primary" onClick={handleSubmit} disabled={submitting || profitData.isInvalid} title={profitData.isInvalid ? "Fix pricing to create product" : ""}>
+                                    {submitting ? <><span className="spinner"></span> {editingProduct ? 'Updating...' : 'Creating...'}</> : editingProduct ? 'Update Product' : 'Create Product'}
+                                </button>
                             </div>
                         </div>
                     </form>
-                </div>
-
-                <div className="form-footer-sticky">
-                    <div className="footer-content">
-                        <button type="button" className="btn btn-ghost" onClick={handleCancel} disabled={submitting}>Cancel</button>
-                        <button type="submit" className="btn btn-primary" onClick={handleSubmit} disabled={submitting || profitData.isInvalid} title={profitData.isInvalid ? "Fix pricing to create product" : ""}>
-                            {submitting ? <><span className="spinner"></span> {editingProduct ? 'Updating...' : 'Creating...'}</> : editingProduct ? 'Update Product' : 'Create Product'}
-                        </button>
-                    </div>
                 </div>
 
                 <style>{`
@@ -445,7 +526,7 @@ function Products() {
                     .btn-back { background: none; border: none; color: var(--color-muted); cursor: pointer; font-size: 0.9rem; font-weight: 500; display: flex; align-items: center; gap: 6px; }
                     .btn-back:hover { color: var(--color-text); }
                     .form-header h1 { font-size: 1.25rem; margin: 0; font-weight: 700; color: var(--color-text); }
-                    .form-container { max-width: 900px; margin: 2rem auto; width: 100%; padding: 0 1.5rem 10rem 1.5rem; }
+                    .form-container { max-width: 900px; margin: 2rem auto; width: 100%; padding: 0 1.5rem; }
                     .form-section { background: var(--color-panel); border: 1px solid var(--border-surface); border-radius: 12px; padding: 2.5rem; margin-bottom: 2rem; }
                     .last-section { margin-bottom: 2rem; }
                     .section-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid var(--border-surface); padding-bottom: 1rem; }
@@ -470,8 +551,6 @@ function Products() {
                     .stat-value.success { color: #10b981; }
                     .stat-value.danger { color: #ef4444; }
                     .border-l { border-left: 1px solid var(--border-surface); padding-left: 2rem; }
-                    .form-footer-sticky { position: fixed; bottom: 0; left: 0; right: 0; background: var(--color-panel); border-top: 1px solid var(--border-surface); padding: 1rem 2.5rem; z-index: 100; }
-                    .footer-content { max-width: 900px; margin: 0 auto; display: flex; justify-content: flex-end; gap: 1rem; }
                     .btn { padding: 0.75rem 2rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
                     .btn-primary { background: var(--blue); color: #fff; }
                     .btn-primary:hover:not(:disabled) { background: #2563eb; }
@@ -516,7 +595,52 @@ function Products() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--color-panel)', borderRadius: '12px', padding: '14px 16px', marginBottom: '16px', border: '1px solid var(--border-surface)' }}>
                 <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
                     <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-hint)' }} />
-                    <input type="text" placeholder="Search by name, SKU, or barcode..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', height: '36px', background: 'var(--color-panel-2)', border: '1px solid var(--border-surface)', borderRadius: '8px', paddingLeft: '36px', paddingRight: '12px', fontSize: '13px', color: 'var(--color-text)', outline: 'none' }} onFocus={e => e.target.style.borderColor = 'var(--blue)'} onBlur={e => e.target.style.borderColor = 'var(--border-surface)'} />
+                    <input type="text" placeholder="Search by name, SKU, or barcode..." value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { const match = products.find(p => p.barcode && p.barcode === search.trim()); if (match) openEditView(match) } }} style={{ width: '100%', height: '36px', background: 'var(--color-panel-2)', border: '1px solid var(--border-surface)', borderRadius: '8px', paddingLeft: '36px', paddingRight: '12px', fontSize: '13px', color: 'var(--color-text)', outline: 'none' }} onFocus={e => e.target.style.borderColor = 'var(--blue)'} onBlur={e => e.target.style.borderColor = 'var(--border-surface)'} />
+                </div>
+                <button type="button" onClick={() => setBarcodeInputOpen(p => !p)} title="Scan barcode" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', background: barcodeInputOpen ? 'var(--blue)' : 'var(--color-panel-2)', border: `1px solid ${barcodeInputOpen ? 'var(--blue)' : 'var(--border-surface)'}`, borderRadius: '8px', color: barcodeInputOpen ? '#fff' : 'var(--color-text)', cursor: 'pointer', transition: 'all 0.15s' }}>
+                    <ScanLine size={16} />
+                </button>
+                <div ref={filterRef} style={{ position: 'relative' }}>
+                    <button type="button" onClick={() => setFiltersOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', gap: '5px', height: '36px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-surface)', background: filtersOpen ? 'var(--blue)' : 'var(--color-panel-2)', color: filtersOpen ? '#fff' : 'var(--color-text)', fontSize: '12px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s' }}>
+                        <Filter size={14} />
+                        Filters
+                        {(() => { const n = (filterCategory ? 1 : 0) + (filterBrand ? 1 : 0) + (filterStatus !== 'all' ? 1 : 0) + (filterLowStock ? 1 : 0) + (filterTrackStock !== 'all' ? 1 : 0); return n > 0 ? <span style={{ marginLeft: '4px', background: filtersOpen ? 'rgba(255,255,255,0.25)' : 'var(--blue)', color: '#fff', fontSize: '10px', fontWeight: 700, borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{n}</span> : null })()}
+                        <ChevronDown size={12} style={{ transform: filtersOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                    </button>
+                    {filtersOpen && (
+                        <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, background: 'var(--color-panel)', border: '1px solid var(--border-surface)', borderRadius: '12px', padding: '16px', boxShadow: '0 12px 40px rgba(0,0,0,0.3)', zIndex: 100, minWidth: '520px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} style={{ height: '36px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-surface)', background: 'var(--color-panel-2)', color: 'var(--color-text)', fontSize: '13px', outline: 'none', minWidth: '140px', cursor: 'pointer' }}>
+                                    <option value="">All Categories</option>
+                                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                                <select value={filterBrand} onChange={e => setFilterBrand(e.target.value)} style={{ height: '36px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--border-surface)', background: 'var(--color-panel-2)', color: 'var(--color-text)', fontSize: '13px', outline: 'none', minWidth: '140px', cursor: 'pointer' }}>
+                                    <option value="">All Brands</option>
+                                    {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                </select>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                <div style={{ display: 'flex', borderRadius: '8px', border: '1px solid var(--border-surface)', overflow: 'hidden' }}>
+                                    {['all', 'active', 'inactive'].map(s => (
+                                        <button key={s} onClick={() => setFilterStatus(s)} style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 500, border: 'none', background: filterStatus === s ? 'var(--blue)' : 'transparent', color: filterStatus === s ? '#fff' : 'var(--color-text-dim)', cursor: 'pointer', transition: 'all 0.15s' }}>
+                                            {s === 'all' ? 'All' : s === 'active' ? 'Active' : 'Inactive'}
+                                        </button>
+                                    ))}
+                                </div>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 500, color: 'var(--color-text-dim)', cursor: 'pointer', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--border-surface)', background: filterLowStock ? 'rgba(239, 68, 68, 0.1)' : 'transparent', borderColor: filterLowStock ? '#ef4444' : 'var(--border-surface)', userSelect: 'none', transition: 'all 0.15s' }}>
+                                    <input type="checkbox" checked={filterLowStock} onChange={e => setFilterLowStock(e.target.checked)} style={{ accentColor: '#ef4444' }} />
+                                    Low stock
+                                </label>
+                                <div style={{ display: 'flex', borderRadius: '8px', border: '1px solid var(--border-surface)', overflow: 'hidden' }}>
+                                    {['all', 'yes', 'no'].map(t => (
+                                        <button key={t} onClick={() => setFilterTrackStock(t)} style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 500, border: 'none', background: filterTrackStock === t ? 'var(--blue)' : 'transparent', color: filterTrackStock === t ? '#fff' : 'var(--color-text-dim)', cursor: 'pointer', transition: 'all 0.15s' }}>
+                                            {t === 'all' ? 'All stock' : t === 'yes' ? 'Tracked' : 'Untracked'}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 

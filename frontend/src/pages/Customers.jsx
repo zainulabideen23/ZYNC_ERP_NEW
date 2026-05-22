@@ -303,13 +303,13 @@ function Customers() {
                                     {can(userRole, 'customers.change_credit') && (
                                         <div>
                                             <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-muted)', display: 'block', marginBottom: '6px' }}>Credit Limit</label>
-                                            <input type="number" value={formData.credit_limit} onChange={e => setFormData({ ...formData, credit_limit: e.target.value })} style={{ height: '40px', background: 'var(--color-panel-2)', border: '1px solid var(--border-surface)', borderRadius: '8px', padding: '0 12px', fontSize: '13px', color: 'var(--color-text)', outline: 'none', width: '100%' }} />
+                                            <input type="number" value={formData.credit_limit} onChange={e => setFormData({ ...formData, credit_limit: e.target.value })} onWheel={e => e.target.blur()} style={{ height: '40px', background: 'var(--color-panel-2)', border: '1px solid var(--border-surface)', borderRadius: '8px', padding: '0 12px', fontSize: '13px', color: 'var(--color-text)', outline: 'none', width: '100%' }} />
                                         </div>
                                     )}
                                     {!editingCustomer && (
                                         <div>
                                             <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-muted)', display: 'block', marginBottom: '6px' }}>Opening Balance</label>
-                                            <input type="number" value={formData.opening_balance} onChange={e => setFormData({ ...formData, opening_balance: e.target.value })} style={{ height: '40px', background: 'var(--color-panel-2)', border: '1px solid var(--border-surface)', borderRadius: '8px', padding: '0 12px', fontSize: '13px', color: 'var(--color-text)', outline: 'none', width: '100%' }} />
+                                            <input type="number" value={formData.opening_balance} onChange={e => setFormData({ ...formData, opening_balance: e.target.value })} onWheel={e => e.target.blur()} style={{ height: '40px', background: 'var(--color-panel-2)', border: '1px solid var(--border-surface)', borderRadius: '8px', padding: '0 12px', fontSize: '13px', color: 'var(--color-text)', outline: 'none', width: '100%' }} />
                                         </div>
                                     )}
                                 </div>

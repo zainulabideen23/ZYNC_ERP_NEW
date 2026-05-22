@@ -196,7 +196,7 @@ export default function NewClient() {
                     <div style={{ display: 'flex', gap: 12 }}>
                         <FormField label="Max Users *" error={errors.max_users} style={{ flex: 1 }}>
                             <input type="number" min={1} value={form.max_users}
-                                onChange={e => updateField('max_users', e.target.value)} style={inputS} />
+                                onChange={e => updateField('max_users', e.target.value)} onWheel={e => e.target.blur()} style={inputS} />
                         </FormField>
                         <FormField label="Expiry Date" style={{ flex: 1 }}>
                             <input type="date" value={form.expires_at}

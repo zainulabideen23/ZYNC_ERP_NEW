@@ -624,7 +624,7 @@ function Loans() {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px', color: 'var(--color-text-dim)' }}>Interest Rate (%)</label>
-                                    <input type="number" step="0.01" value={formData.interest_rate} onChange={e => setFormData({...formData, interest_rate: e.target.value})} 
+                                    <input type="number" step="0.01" value={formData.interest_rate} onChange={e => setFormData({...formData, interest_rate: e.target.value})} onWheel={e => e.target.blur()}
                                         style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-surface)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: '14px' }} 
                                         placeholder="12.5" />
                                 </div>
@@ -640,7 +640,7 @@ function Loans() {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px', color: 'var(--color-text-dim)' }}>Monthly EMI</label>
-                                    <input type="number" value={formData.emi_amount} onChange={e => setFormData({...formData, emi_amount: e.target.value})} 
+                                    <input type="number" value={formData.emi_amount} onChange={e => setFormData({...formData, emi_amount: e.target.value})} onWheel={e => e.target.blur()}
                                         style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-surface)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: '14px' }} 
                                         placeholder="Monthly payment" />
                                 </div>
@@ -656,13 +656,13 @@ function Loans() {
                                     <>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px', color: 'var(--color-text-dim)' }}>KIBOR Rate (%)</label>
-                                            <input type="number" step="0.01" value={formData.base_rate} onChange={e => setFormData({...formData, base_rate: e.target.value})} 
+                                            <input type="number" step="0.01" value={formData.base_rate} onChange={e => setFormData({...formData, base_rate: e.target.value})} onWheel={e => e.target.blur()}
                                                 style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-surface)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: '14px' }} 
                                                 placeholder="e.g. 12.5" />
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px', color: 'var(--color-text-dim)' }}>Bank Margin (%)</label>
-                                            <input type="number" step="0.01" value={formData.margin} onChange={e => setFormData({...formData, margin: e.target.value})} 
+                                            <input type="number" step="0.01" value={formData.margin} onChange={e => setFormData({...formData, margin: e.target.value})} onWheel={e => e.target.blur()}
                                                 style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-surface)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: '14px' }} 
                                                 placeholder="e.g. 2.5" />
                                         </div>
@@ -680,7 +680,7 @@ function Loans() {
                                 {formData.grace_period_type !== 'none' && (
                                     <div>
                                         <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px', color: 'var(--color-text-dim)' }}>Grace Period (Months)</label>
-                                        <input type="number" value={formData.grace_period_months} onChange={e => setFormData({...formData, grace_period_months: e.target.value})} 
+                                        <input type="number" value={formData.grace_period_months} onChange={e => setFormData({...formData, grace_period_months: e.target.value})} onWheel={e => e.target.blur()}
                                             style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-surface)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: '14px' }} 
                                             placeholder="3" />
                                     </div>
@@ -931,14 +931,14 @@ function Loans() {
                             <div style={{ display: 'grid', gap: '16px' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px', color: 'var(--color-text-dim)' }}>Loan Amount (PKR) *</label>
-                                    <input type="number" value={emiCalc.principal} onChange={e => setEmiCalc({...emiCalc, principal: e.target.value})} 
+                                    <input type="number" value={emiCalc.principal} onChange={e => setEmiCalc({...emiCalc, principal: e.target.value})} onWheel={e => e.target.blur()}
                                         style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-surface)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: '14px' }} 
                                         placeholder="500000" />
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px', color: 'var(--color-text-dim)' }}>Interest Rate (% p.a.) *</label>
-                                        <input type="number" step="0.1" value={emiCalc.rate} onChange={e => setEmiCalc({...emiCalc, rate: e.target.value})} 
+                                        <input type="number" step="0.1" value={emiCalc.rate} onChange={e => setEmiCalc({...emiCalc, rate: e.target.value})} onWheel={e => e.target.blur()}
                                             style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-surface)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: '14px' }} 
                                             placeholder="15" />
                                     </div>

@@ -298,7 +298,7 @@ function Journals() {
                                                             </select>
                                                         </td>
                                                         <td style={{ padding: '8px 12px' }}>
-                                                            <input type="number" value={entry.amount} onChange={e => handleEntryChange(index, 'amount', e.target.value)} required style={{ height: '36px', background: 'var(--color-panel)', border: '1px solid var(--border-surface)', borderRadius: '6px', padding: '0 10px', fontSize: '13px', color: 'var(--color-text)', outline: 'none', width: '100%', textAlign: 'right' }} />
+                                                            <input type="number" value={entry.amount} onChange={e => handleEntryChange(index, 'amount', e.target.value)} onWheel={e => e.target.blur()} required style={{ height: '36px', background: 'var(--color-panel)', border: '1px solid var(--border-surface)', borderRadius: '6px', padding: '0 10px', fontSize: '13px', color: 'var(--color-text)', outline: 'none', width: '100%', textAlign: 'right' }} />
                                                         </td>
                                                         <td style={{ padding: '8px 12px' }}>
                                                             <input type="text" value={entry.narration} onChange={e => handleEntryChange(index, 'narration', e.target.value)} placeholder="Entry notes..." style={{ height: '36px', background: 'var(--color-panel)', border: '1px solid var(--border-surface)', borderRadius: '6px', padding: '0 10px', fontSize: '13px', color: 'var(--color-text)', outline: 'none', width: '100%' }} />

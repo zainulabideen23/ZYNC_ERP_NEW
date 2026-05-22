@@ -9,13 +9,17 @@ const audit = require('../utils/audit');
 router.get('/', async (req, res, next) => {
     try {
         const productService = new ProductService(db, req.tenantId);
-        const { page = 1, limit = 50, search, category_id, active_only = true } = req.query;
+        const { page = 1, limit = 50, search, category_id, brand_id, is_active, track_stock, low_stock, active_only = true } = req.query;
 
         const result = await productService.getAll({
             page,
             limit,
             search,
             category_id,
+            brand_id,
+            is_active: is_active === undefined ? undefined : is_active === 'true',
+            track_stock: track_stock === undefined ? undefined : track_stock === 'true',
+            low_stock: low_stock === 'true',
             active_only: active_only === 'true'
         });
 

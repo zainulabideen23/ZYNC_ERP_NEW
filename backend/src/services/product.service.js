@@ -17,6 +17,10 @@ class ProductService {
             limit = 50,
             search = '',
             category_id = null,
+            brand_id = null,
+            is_active,
+            track_stock,
+            low_stock = false,
             active_only = true,
             is_deleted = false
         } = options;
@@ -37,7 +41,9 @@ class ProductService {
             .where('p.is_deleted', is_deleted)
             .where('p.tenant_id', this.tenantId);
 
-        if (active_only) {
+        if (is_active !== undefined) {
+            query = query.where('p.is_active', is_active);
+        } else if (active_only) {
             query = query.where('p.is_active', true);
         }
 
@@ -54,8 +60,28 @@ class ProductService {
             query = query.where('p.category_id', category_id);
         }
 
+        if (brand_id) {
+            query = query.where('p.brand_id', brand_id);
+        }
+
+        if (track_stock !== undefined) {
+            query = query.where('p.track_stock', track_stock);
+        }
+
+        if (low_stock) {
+            query = query.whereRaw('COALESCE(p.current_stock, 0) < COALESCE(p.min_stock_level, 0)');
+        }
+
         const totalQuery = this.db('products').where('is_deleted', is_deleted).where('tenant_id', this.tenantId);
-        if (active_only) totalQuery.where('is_active', true);
+        if (is_active !== undefined) {
+            totalQuery.where('is_active', is_active);
+        } else if (active_only) {
+            totalQuery.where('is_active', true);
+        }
+        if (category_id) totalQuery.where('category_id', category_id);
+        if (brand_id) totalQuery.where('brand_id', brand_id);
+        if (track_stock !== undefined) totalQuery.where('track_stock', track_stock);
+        if (low_stock) totalQuery.whereRaw('COALESCE(current_stock, 0) < COALESCE(min_stock_level, 0)');
         const [{ count }] = await totalQuery.count();
 
         const products = await query

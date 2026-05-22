@@ -47,25 +47,26 @@ function UnitSelector({ value, onChange, units = [], onUnitsChange, error }) {
 
     return (
         <div className="unit-selector">
-            <div className="unit-selector-row">
-                <select
-                    className={error ? 'error' : ''}
-                    value={value}
-                    onChange={(e) => onChange(e.target.value)}
-                >
-                    <option value="">Select a Unit</option>
-                    {units.map(u => (
-                        <option key={u.id} value={u.id}>{u.name} ({u.abbreviation})</option>
-                    ))}
-                </select>
-                <button
-                    type="button"
-                    className="quick-add-btn"
-                    onClick={() => setShowModal(true)}
-                    title="Add custom unit"
-                >＋</button>
-            </div>
+            <select
+                className={error ? 'error' : ''}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+            >
+                <option value="">Select a Unit</option>
+                {units.map(u => (
+                    <option key={u.id} value={u.id}>{u.name} ({u.abbreviation})</option>
+                ))}
+            </select>
             {error && <span className="error-text">{error}</span>}
+
+            <button
+                type="button"
+                className="cat-add-toggle"
+                style={{ background: 'none', border: 'none', color: 'var(--color-accent)', cursor: 'pointer', fontSize: '0.8rem', textAlign: 'left', padding: 0, fontWeight: 500 }}
+                onClick={() => setShowModal(true)}
+            >
+                ＋ Add new unit
+            </button>
 
             {showModal && (
                 <div className="unit-modal-overlay" onClick={() => setShowModal(false)}>
@@ -108,15 +109,6 @@ function UnitSelector({ value, onChange, units = [], onUnitsChange, error }) {
             )}
 
             <style>{`
-                .unit-selector-row { display: flex; gap: 6px; align-items: stretch; }
-                .unit-selector-row select { flex: 1; }
-                .quick-add-btn {
-                    background: var(--color-panel-2); border: 1px solid var(--border-surface); color: var(--color-accent);
-                    border-radius: 8px; width: 40px; cursor: pointer;
-                    font-size: 1.1rem; display: flex; align-items: center; justify-content: center;
-                    transition: all 0.15s;
-                }
-                .quick-add-btn:hover { background: var(--color-accent); color: #fff; }
                 .unit-modal-overlay {
                     position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
                     display: flex; align-items: center; justify-content: center; z-index: 1000;

@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast'
 import { useAuthStore } from '../store/auth.store'
 import { authAPI } from '../services/api'
 import { Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { preloadPage } from '../utils/preloader'
 import './Login.css'
 
 function Login() {
@@ -29,6 +30,9 @@ function Login() {
         try {
             const response = await authAPI.login({ username, password, tenant: tenant || undefined })
             login(response.data.user, response.data.token, response.data.tenant)
+            preloadPage('/')
+            preloadPage('/sales')
+            preloadPage('/products')
             toast.success('Welcome back!')
             navigate('/')
         } catch (err) {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import PageTransition from './PageTransition'
+import { preloadPage, preloadPages } from '../utils/preloader'
 import { useAuthStore } from '../store/auth.store'
 import { useThemeStore } from '../store/theme.store'
 import {
@@ -93,6 +94,16 @@ function Layout() {
     }, [mobileMenuOpen])
 
     useEffect(() => {
+        const controller = typeof requestIdleCallback === 'function'
+            ? requestIdleCallback(() => preloadPages(['/customers', '/sales', '/products']))
+            : setTimeout(() => preloadPages(['/customers', '/sales', '/products']), 1000)
+        return () => {
+            if (typeof controller === 'number') cancelIdleCallback(controller)
+            else clearTimeout(controller)
+        }
+    }, [])
+
+    useEffect(() => {
         const handleClickOutside = (event) => {
             if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
                 setUserMenuOpen(false)
@@ -161,6 +172,7 @@ function Layout() {
                 data-tooltip={tooltip}
                 title={tooltip}
                 onClick={closeMobileMenu}
+                onMouseEnter={() => preloadPage(item.path)}
             >
                 <span className="nav-icon"><Icon size={18} strokeWidth={1.5} /></span>
                 <span className="nav-label">{item.label}</span>

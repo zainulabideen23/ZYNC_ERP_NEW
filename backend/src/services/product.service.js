@@ -362,6 +362,291 @@ class ProductService {
             },
         };
     }
+
+    async importProducts(fileBuffer, userId) {
+        const XLSX = require('xlsx');
+
+        const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+
+        if (rows.length > 2000) {
+            throw new AppError('Import file exceeds the maximum of 2000 rows', 400);
+        }
+
+        const COLUMN_MAP = {
+            'product name': 'product_name',
+            'sku': 'sku',
+            'code': 'sku',
+            'product code': 'sku',
+            'item code': 'sku',
+            'barcode': 'barcode',
+            'category': 'category',
+            'brand': 'brand',
+            'unit': 'unit',
+            'cost price': 'cost_price',
+            'cost': 'cost_price',
+            'unit cost': 'cost_price',
+            'purchase price': 'cost_price',
+            'retail price': 'retail_price',
+            'price': 'retail_price',
+            'selling price': 'retail_price',
+            'mrp': 'retail_price',
+            'wholesale price': 'wholesale_price',
+            'tax rate': 'tax_rate',
+            'tax rate %': 'tax_rate',
+            'opening stock': 'opening_stock',
+            'opening qty': 'opening_stock',
+            'initial stock': 'opening_stock',
+            'min stock level': 'min_stock_level',
+            'reorder qty': 'reorder_qty',
+            'track stock': 'track_stock',
+            'description': 'description'
+        };
+
+        const normalizeRow = (raw) => {
+            const row = {};
+            for (const [key, value] of Object.entries(raw)) {
+                const normalizedKey = COLUMN_MAP[key.trim().toLowerCase()];
+                if (normalizedKey) {
+                    row[normalizedKey] = value != null ? String(value).trim() : '';
+                }
+            }
+            return row;
+        };
+
+        const isEmptyRow = (row) => Object.values(row).every(v => v === '' || v === null || v === undefined);
+
+        const parseBoolean = (val) => {
+            if (!val || val === '') return true;
+            const s = val.toLowerCase().trim();
+            if (['yes', 'true', '1', 'y'].includes(s)) return true;
+            if (['no', 'false', '0', 'n'].includes(s)) return false;
+            return null;
+        };
+
+        const parseNumeric = (val) => {
+            if (val === null || val === undefined || val === '') return null;
+            if (typeof val === 'number' && !isNaN(val)) return val;
+            let s = String(val).trim();
+            s = s.replace(/[₹$€£¥]/g, '').trim();
+            if (!s) return null;
+            if (s.includes(',') && s.includes('.')) {
+                const lastComma = s.lastIndexOf(',');
+                const lastDot = s.lastIndexOf('.');
+                if (lastComma > lastDot) {
+                    s = s.replace(/\./g, '').replace(',', '.');
+                } else {
+                    s = s.replace(/,/g, '');
+                }
+            } else if (s.includes(',')) {
+                s = s.replace(',', '.');
+            }
+            const num = parseFloat(s);
+            return isNaN(num) ? null : num;
+        };
+
+        const [existingProducts, categories, brands, units] = await Promise.all([
+            this.db('products')
+                .where('tenant_id', this.tenantId)
+                .where('is_deleted', false)
+                .select('code'),
+            this.db('categories')
+                .where('tenant_id', this.tenantId)
+                .select('id', 'name'),
+            this.db('brands')
+                .where('tenant_id', this.tenantId)
+                .select('id', 'name'),
+            this.db('units')
+                .where('tenant_id', this.tenantId)
+                .select('id', 'name', 'abbreviation')
+        ]);
+
+        const existingSKUs = new Set(existingProducts.map(p => p.code.toUpperCase()));
+        const categoryMap = new Map(categories.map(c => [c.name.toLowerCase(), { id: c.id, originalName: c.name, needsCreate: false }]));
+        const brandMap = new Map(brands.map(b => [b.name.toLowerCase(), { id: b.id, originalName: b.name, needsCreate: false }]));
+        const unitByNameMap = new Map(units.map(u => [u.name.toLowerCase(), u.id]));
+        const unitByAbbrMap = new Map(units.filter(u => u.abbreviation).map(u => [u.abbreviation.toLowerCase(), u.id]));
+
+        const skusInFile = new Set();
+        const errors = [];
+        const parsedRows = [];
+
+        for (let i = 0; i < rows.length; i++) {
+            const rowNum = i + 2;
+            const row = normalizeRow(rows[i]);
+            const rowErrors = [];
+
+            if (isEmptyRow(row)) continue;
+
+            if (!row.product_name) rowErrors.push('Product Name is required');
+
+            if (!row.sku) {
+                rowErrors.push('SKU is required');
+            } else {
+                const skuUpper = row.sku.toUpperCase();
+                if (existingSKUs.has(skuUpper)) {
+                    rowErrors.push(`SKU "${row.sku}" already exists in the system`);
+                } else if (skusInFile.has(skuUpper)) {
+                    rowErrors.push(`Duplicate SKU "${row.sku}" within the file`);
+                } else {
+                    skusInFile.add(skuUpper);
+                }
+            }
+
+            if (!row.category) rowErrors.push('Category is required');
+            if (!row.unit) rowErrors.push('Unit is required');
+
+            if (row.category && !categoryMap.has(row.category.toLowerCase())) {
+                categoryMap.set(row.category.toLowerCase(), { id: null, originalName: row.category, needsCreate: true });
+            }
+
+            if (row.brand && !brandMap.has(row.brand.toLowerCase())) {
+                brandMap.set(row.brand.toLowerCase(), { id: null, originalName: row.brand, needsCreate: true });
+            }
+
+            let unitId = null;
+            if (row.unit) {
+                const unitKey = row.unit.toLowerCase();
+                unitId = unitByNameMap.get(unitKey) || unitByAbbrMap.get(unitKey);
+                if (!unitId) rowErrors.push(`Unit "${row.unit}" not found`);
+            }
+
+            const costPrice = parseNumeric(row.cost_price);
+            const retailPrice = parseNumeric(row.retail_price);
+            const wholesalePrice = parseNumeric(row.wholesale_price);
+            const taxRate = parseNumeric(row.tax_rate);
+            const openingStock = parseNumeric(row.opening_stock);
+            const minStockLevel = parseNumeric(row.min_stock_level);
+            const reorderQty = parseNumeric(row.reorder_qty);
+
+            if (costPrice === null) rowErrors.push('Cost Price is required or invalid number');
+            if (retailPrice === null) rowErrors.push('Retail Price is required or invalid number');
+            if (costPrice !== null && costPrice < 0) rowErrors.push('Cost Price cannot be negative');
+            if (retailPrice !== null && retailPrice < 0) rowErrors.push('Retail Price cannot be negative');
+            if (costPrice !== null && retailPrice !== null && retailPrice <= costPrice) {
+                rowErrors.push('Retail Price must be greater than Cost Price');
+            }
+            if (wholesalePrice !== null && wholesalePrice < 0) rowErrors.push('Wholesale Price cannot be negative');
+            if (openingStock !== null && openingStock < 0) rowErrors.push('Opening Stock cannot be negative');
+            if (minStockLevel !== null && minStockLevel < 0) rowErrors.push('Min Stock Level cannot be negative');
+            if (reorderQty !== null && reorderQty < 0) rowErrors.push('Reorder Qty cannot be negative');
+            if (taxRate !== null && (taxRate < 0 || taxRate > 100)) rowErrors.push('Tax Rate must be between 0 and 100');
+
+            const trackStock = parseBoolean(row.track_stock);
+            if (trackStock === null) rowErrors.push(`Invalid Track Stock value "${row.track_stock}". Accepted: yes/no, true/false, 1/0, y/n`);
+
+            if (rowErrors.length > 0) {
+                errors.push({
+                    row: rowNum,
+                    product: row.product_name || row.sku || '(unknown)',
+                    errors: rowErrors
+                });
+            } else {
+                parsedRows.push({
+                    code: row.sku.toUpperCase(),
+                    barcode: row.barcode || null,
+                    name: row.product_name,
+                    description: row.description || null,
+                    category_id: null,
+                    brand_id: null,
+                    unit_id: unitId,
+                    cost_price: costPrice,
+                    retail_price: retailPrice,
+                    wholesale_price: wholesalePrice,
+                    tax_rate: taxRate || 0,
+                    opening_stock: openingStock || 0,
+                    min_stock_level: minStockLevel || 0,
+                    reorder_qty: reorderQty || null,
+                    track_stock: trackStock,
+                    _category_name: row.category,
+                    _brand_name: row.brand || null
+                });
+            }
+        }
+
+        if (parsedRows.length === 0) {
+            return { imported: 0, total: rows.length, skipped: errors.length, errors };
+        }
+
+        const createdProducts = [];
+        await this.db.transaction(async (trx) => {
+            for (const [, cat] of categoryMap) {
+                if (cat.needsCreate && cat.id === null) {
+                    const maxSeq = await trx('categories')
+                        .where('tenant_id', this.tenantId)
+                        .max('sequence_order as max')
+                        .first();
+                    const sequence_order = (maxSeq?.max || 0) + 10;
+                    const [newCat] = await trx('categories').insert({
+                        name: cat.originalName,
+                        parent_id: null,
+                        sequence_order,
+                        created_by: userId,
+                        tenant_id: this.tenantId
+                    }).returning('*');
+                    cat.id = newCat.id;
+                }
+            }
+
+            for (const [, brand] of brandMap) {
+                if (brand.needsCreate && brand.id === null) {
+                    const [newBrand] = await trx('brands').insert({
+                        name: brand.originalName,
+                        created_by: userId,
+                        tenant_id: this.tenantId
+                    }).returning('*');
+                    brand.id = newBrand.id;
+                }
+            }
+
+            for (const row of parsedRows) {
+                row.category_id = categoryMap.get(row._category_name.toLowerCase())?.id;
+                if (row._brand_name) {
+                    const be = brandMap.get(row._brand_name.toLowerCase());
+                    if (be) row.brand_id = be.id;
+                }
+            }
+
+            for (const row of parsedRows) {
+                const [product] = await trx('products').insert({
+                    code: row.code,
+                    barcode: row.barcode,
+                    name: row.name,
+                    description: row.description,
+                    category_id: row.category_id,
+                    unit_id: row.unit_id,
+                    brand_id: row.brand_id,
+                    cost_price: row.cost_price,
+                    retail_price: row.retail_price,
+                    wholesale_price: row.wholesale_price,
+                    tax_rate: row.tax_rate,
+                    min_stock_level: row.min_stock_level,
+                    reorder_qty: row.reorder_qty,
+                    track_stock: row.track_stock,
+                    current_stock: 0,
+                    created_by: userId,
+                    tenant_id: this.tenantId
+                }).returning('*');
+
+                if (row.opening_stock > 0) {
+                    await this.stockService.createMovement({
+                        product_id: product.id,
+                        movement_type: 'IN',
+                        reference_type: 'opening',
+                        quantity: row.opening_stock,
+                        unit_cost: row.cost_price,
+                        notes: 'Opening Stock (Import)',
+                        created_by: userId,
+                    }, trx);
+                }
+
+                createdProducts.push(product);
+            }
+        });
+
+        return { imported: createdProducts.length, total: rows.length, skipped: errors.length, errors };
+    }
 }
 
 module.exports = ProductService;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { toast } from 'react-hot-toast'
 import { expensesAPI, accountsAPI } from '../services/api'
 import { format } from 'date-fns'
@@ -22,6 +22,10 @@ function Expenses() {
         description: ''
     })
     const [categoryName, setCategoryName] = useState('')
+    const [submitting, setSubmitting] = useState(false)
+    const submittingRef = useRef(false)
+    const [submittingCat, setSubmittingCat] = useState(false)
+    const submittingCatRef = useRef(false)
 
     useEffect(() => { loadData() }, [dateRange])
 
@@ -43,6 +47,9 @@ function Expenses() {
 
     const handleSubmit = async (e) => {
         e.preventDefault()
+        if (submittingRef.current) return
+        submittingRef.current = true
+        setSubmitting(true)
         try {
             await expensesAPI.create(formData)
             toast.success('Expense recorded')
@@ -51,12 +58,17 @@ function Expenses() {
             loadData()
         } catch (error) {
             toast.error(error.message)
+        } finally {
+            submittingRef.current = false
+            setSubmitting(false)
         }
     }
 
     const handleCreateCategory = async (e) => {
         e.preventDefault()
-        if (!categoryName) return
+        if (!categoryName || submittingCatRef.current) return
+        submittingCatRef.current = true
+        setSubmittingCat(true)
         try {
             await expensesAPI.createCategory({ name: categoryName })
             toast.success('Category created')
@@ -66,6 +78,9 @@ function Expenses() {
             setCategoryName('')
         } catch (error) {
             toast.error(error.message)
+        } finally {
+            submittingCatRef.current = false
+            setSubmittingCat(false)
         }
     }
 
@@ -270,8 +285,8 @@ function Expenses() {
                                 <button type="button" onClick={() => setShowModal(false)} style={{ height: '40px', padding: '0 16px', borderRadius: '8px', border: '1px solid var(--border-surface)', background: 'transparent', color: 'var(--color-muted)', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
                                     Cancel
                                 </button>
-                                <button type="submit" style={{ height: '40px', padding: '0 20px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer', boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)' }}>
-                                    Save Expense
+                                <button type="submit" disabled={submitting} style={{ height: '40px', padding: '0 20px', borderRadius: '8px', border: 'none', background: submitting ? 'var(--color-panel-2)' : '#ef4444', color: submitting ? 'var(--color-muted)' : '#fff', fontSize: '13px', fontWeight: 500, cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: submitting ? 'none' : '0 2px 8px rgba(239, 68, 68, 0.3)' }}>
+                                    {submitting ? 'Saving...' : 'Save Expense'}
                                 </button>
                             </div>
                         </form>
@@ -298,8 +313,8 @@ function Expenses() {
                                 <button type="button" onClick={() => setShowCategoryModal(false)} style={{ height: '38px', padding: '0 14px', borderRadius: '8px', border: '1px solid var(--border-surface)', background: 'transparent', color: 'var(--color-muted)', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
                                     Cancel
                                 </button>
-                                <button type="submit" style={{ height: '38px', padding: '0 14px', borderRadius: '8px', border: 'none', background: 'var(--blue)', color: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
-                                    Create
+                                <button type="submit" disabled={submittingCat} style={{ height: '38px', padding: '0 14px', borderRadius: '8px', border: 'none', background: submittingCat ? 'var(--color-panel-2)' : 'var(--blue)', color: submittingCat ? 'var(--color-muted)' : '#fff', fontSize: '13px', fontWeight: 500, cursor: submittingCat ? 'not-allowed' : 'pointer' }}>
+                                    {submittingCat ? 'Creating...' : 'Create'}
                                 </button>
                             </div>
                         </form>

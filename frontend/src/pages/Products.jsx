@@ -7,7 +7,7 @@ import { can } from '../utils/permissions'
 import UnitSelector from '../components/UnitSelector'
 import CategorySelector from '../components/CategorySelector'
 import BrandSelector from '../components/BrandSelector'
-import { Package, Plus, Search, X, Edit, FileText, TrendingUp, TrendingDown, AlertTriangle, ArrowUpRight, ArrowDownRight, ScanLine, Filter, ChevronDown } from 'lucide-react'
+import { Package, Plus, Search, X, Edit, FileText, TrendingUp, TrendingDown, AlertTriangle, ArrowUpRight, ArrowDownRight, ScanLine, Filter, ChevronDown, Upload, Download, CheckCircle, AlertCircle, FileSpreadsheet } from 'lucide-react'
 import PageLoader from '../components/PageLoader'
 import { useBarcodeScanner } from '../hooks/useBarcodeScanner'
 
@@ -23,6 +23,10 @@ function Products() {
     const [search, setSearch] = useState('')
     const [editingProduct, setEditingProduct] = useState(null)
     const [submitting, setSubmitting] = useState(false)
+    const [showImportModal, setShowImportModal] = useState(false)
+    const [importFile, setImportFile] = useState(null)
+    const [importState, setImportState] = useState('idle')
+    const [importResult, setImportResult] = useState(null)
     const [isDirty, setIsDirty] = useState(false)
     const [barcodeInputOpen, setBarcodeInputOpen] = useState(false)
     const [manualBarcode, setManualBarcode] = useState('')
@@ -588,6 +592,12 @@ function Products() {
                         <p style={{ fontSize: '13px', color: 'var(--color-hint)', marginTop: '2px' }}>Manage your product catalog and inventory</p>
                     </div>
                 </div>
+                {can(userRole, 'products.create') && (
+                    <button onClick={() => { setShowImportModal(true); setImportState('idle'); setImportFile(null); setImportResult(null) }} style={{ height: '38px', padding: '0 14px', borderRadius: '8px', border: '1px solid var(--border-surface)', background: 'transparent', color: 'var(--color-text)', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Upload size={15} />
+                        Import
+                    </button>
+                )}
                 <button className="add-btn" onClick={openCreateView} style={{ height: '38px', padding: '0 16px', borderRadius: '8px', border: 'none', background: 'var(--blue)', color: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)' }}>
                     <Plus size={16} />
                     Add Product
@@ -753,6 +763,168 @@ function Products() {
                     <span style={{ fontSize: '12px', color: 'var(--color-hint)' }}>{products.length > 0 ? `Showing ${products.length} products` : 'No results'}</span>
                 </div>
             </div>
+
+            {/* Import Modal */}
+            {showImportModal && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={() => { if (importState !== 'importing') { setShowImportModal(false) } }}>
+                    <div style={{ background: 'var(--color-panel)', borderRadius: '16px', border: '1px solid var(--border-surface)', width: '560px', maxWidth: '90vw', maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 80px rgba(0,0,0,0.4)' }} onClick={e => e.stopPropagation()}>
+                        {/* Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid var(--border-surface)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <FileSpreadsheet size={18} color="var(--blue)" />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: 'var(--color-text)' }}>Import Products</h3>
+                                    <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--color-hint)' }}>Upload Excel or CSV file</p>
+                                </div>
+                            </div>
+                            <button onClick={() => { if (importState !== 'importing') setShowImportModal(false) }} style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: 'transparent', color: 'var(--color-text-dim)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <X size={16} />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+                            {importState === 'done' && importResult ? (
+                                /* Result View */
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    <div style={{ display: 'flex', gap: '12px' }}>
+                                        <div style={{ flex: 1, background: 'rgba(16, 185, 129, 0.1)', borderRadius: '10px', padding: '16px', textAlign: 'center', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                                            <CheckCircle size={22} color="#10b981" style={{ marginBottom: '6px' }} />
+                                            <div style={{ fontSize: '22px', fontWeight: 700, color: '#10b981' }}>{importResult.imported}</div>
+                                            <div style={{ fontSize: '11px', color: '#10b981', opacity: 0.8 }}>Imported</div>
+                                        </div>
+                                        <div style={{ flex: 1, background: 'rgba(239, 68, 68, 0.1)', borderRadius: '10px', padding: '16px', textAlign: 'center', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                                            <X size={22} color="#ef4444" style={{ marginBottom: '6px' }} />
+                                            <div style={{ fontSize: '22px', fontWeight: 700, color: '#ef4444' }}>{importResult.skipped}</div>
+                                            <div style={{ fontSize: '11px', color: '#ef4444', opacity: 0.8 }}>Skipped</div>
+                                        </div>
+                                    </div>
+
+                                    {importResult.errors && importResult.errors.length > 0 && (
+                                        <div>
+                                            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text)', marginBottom: '8px' }}>Row Errors</div>
+                                            <div style={{ maxHeight: '240px', overflowY: 'auto', border: '1px solid var(--border-surface)', borderRadius: '8px' }}>
+                                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                                                    <thead>
+                                                        <tr style={{ background: 'var(--color-panel-2)', borderBottom: '1px solid var(--border-surface)' }}>
+                                                            <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: 'var(--color-muted)', width: '50px' }}>Row</th>
+                                                            <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: 'var(--color-muted)' }}>Product</th>
+                                                            <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: 'var(--color-muted)' }}>Error</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {importResult.errors.map((e, i) => (
+                                                            <tr key={i} style={{ borderBottom: i < importResult.errors.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                                                                <td style={{ padding: '8px 10px', color: 'var(--color-text-dim)', fontFamily: 'var(--font-mono)', fontSize: '11px' }}>{e.row}</td>
+                                                                <td style={{ padding: '8px 10px', color: 'var(--color-text)', fontWeight: 500 }}>{e.product}</td>
+                                                                <td style={{ padding: '8px 10px', color: '#ef4444' }}>{e.errors.join('; ')}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <button onClick={() => {
+                                                const csvContent = 'Row,Product,Error\n' + importResult.errors.map(e => `"${e.row}","${e.product}","${e.errors.join('; ')}"`).join('\n');
+                                                const blob = new Blob([csvContent], { type: 'text/csv' });
+                                                const url = URL.createObjectURL(blob);
+                                                const a = document.createElement('a'); a.href = url; a.download = 'import-errors.csv'; a.click();
+                                                URL.revokeObjectURL(url);
+                                            }} style={{ marginTop: '10px', padding: '8px 14px', borderRadius: '8px', border: '1px solid var(--border-surface)', background: 'transparent', color: 'var(--color-text)', fontSize: '12px', fontWeight: 500, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                                <Download size={13} />
+                                                Download Errors CSV
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    <button onClick={() => { setShowImportModal(false); loadData() }} style={{ padding: '10px 0', borderRadius: '8px', border: 'none', background: 'var(--blue)', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                                        Done
+                                    </button>
+                                </div>
+                            ) : importState === 'importing' ? (
+                                /* Importing View */
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '40px 0' }}>
+                                    <div className="spinner" style={{ width: '40px', height: '40px', border: '3px solid var(--border-surface)', borderTopColor: 'var(--blue)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                                    <div style={{ textAlign: 'center' }}>
+                                        <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text)' }}>Processing Import...</div>
+                                        <div style={{ fontSize: '12px', color: 'var(--color-hint)', marginTop: '4px' }}>Validating and importing products</div>
+                                    </div>
+                                </div>
+                            ) : (
+                                /* Upload View */
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    {!importFile ? (
+                                        <div onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--blue)'; e.currentTarget.style.background = 'rgba(59,130,246,0.05)' }} onDragLeave={e => { e.currentTarget.style.borderColor = 'var(--border-surface)'; e.currentTarget.style.background = 'transparent' }} onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f && ['.xlsx','.xls','.csv'].some(ext => f.name.toLowerCase().endsWith(ext))) { setImportFile(f) } else { toast.error('Invalid file format') } }} onClick={() => document.getElementById('import-file-input').click()} style={{ border: '2px dashed var(--border-surface)', borderRadius: '12px', padding: '40px 24px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}>
+                                            <Upload size={32} color="var(--color-hint)" style={{ marginBottom: '12px' }} />
+                                            <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--color-text)' }}>Drop your file here or click to browse</div>
+                                            <div style={{ fontSize: '12px', color: 'var(--color-hint)', marginTop: '6px' }}>Supports .xlsx, .xls, .csv (max 5MB)</div>
+                                            <input id="import-file-input" type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={e => { const f = e.target.files[0]; if (f) setImportFile(f) }} />
+                                        </div>
+                                    ) : (
+                                        <div style={{ background: 'var(--color-panel-2)', borderRadius: '10px', padding: '16px', border: '1px solid var(--border-surface)' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                    <FileSpreadsheet size={20} color="var(--blue)" />
+                                                </div>
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{importFile.name}</div>
+                                                    <div style={{ fontSize: '11px', color: 'var(--color-hint)', marginTop: '2px' }}>{(importFile.size / 1024).toFixed(1)} KB</div>
+                                                </div>
+                                                <button onClick={() => setImportFile(null)} style={{ width: '28px', height: '28px', borderRadius: '6px', border: 'none', background: 'transparent', color: 'var(--color-text-dim)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                                        <button onClick={() => { setShowImportModal(false); setImportFile(null) }} style={{ padding: '9px 16px', borderRadius: '8px', border: '1px solid var(--border-surface)', background: 'transparent', color: 'var(--color-text)', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
+                                            Cancel
+                                        </button>
+                                        <button onClick={() => {
+                                            if (!importFile) { toast.error('Please select a file'); return }
+                                            setImportState('importing');
+                                            const formData = new FormData();
+                                            formData.append('file', importFile);
+                                            productsAPI.importFile(formData).then(res => {
+                                                setImportResult(res.data);
+                                                setImportState('done');
+                                            }).catch(err => {
+                                                setImportState('idle');
+                                                toast.error(err.response?.data?.message || 'Import failed');
+                                            });
+                                        }} disabled={!importFile} style={{ padding: '9px 20px', borderRadius: '8px', border: 'none', background: importFile ? 'var(--blue)' : 'var(--color-panel-2)', color: importFile ? '#fff' : 'var(--color-text-dim)', fontSize: '13px', fontWeight: 600, cursor: importFile ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <Upload size={15} />
+                                            Import
+                                        </button>
+                                    </div>
+
+                                    <div style={{ borderTop: '1px solid var(--border-surface)', paddingTop: '14px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <span style={{ fontSize: '12px', color: 'var(--color-hint)' }}>Need a template?</span>
+                                            <button onClick={() => {
+                                                productsAPI.downloadTemplate().then(blob => {
+                                                    const url = URL.createObjectURL(blob);
+                                                    const a = document.createElement('a'); a.href = url; a.download = 'product-import-template.xlsx'; a.click();
+                                                    URL.revokeObjectURL(url);
+                                                }).catch(() => toast.error('Failed to download template'));
+                                            }} style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', background: 'transparent', color: 'var(--blue)', fontSize: '12px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                <Download size={12} />
+                                                Download Template
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <style>{`
+                @keyframes spin { to { transform: rotate(360deg); } }
+            `}</style>
         </div>
     )
 }

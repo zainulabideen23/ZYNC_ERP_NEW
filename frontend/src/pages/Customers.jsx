@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
 import { customersAPI } from '../services/api'
@@ -16,6 +16,8 @@ function Customers() {
     const [showModal, setShowModal] = useState(false)
     const [editingCustomer, setEditingCustomer] = useState(null)
     const [deleteConfirm, setDeleteConfirm] = useState(null)
+    const [submitting, setSubmitting] = useState(false)
+    const submittingRef = useRef(false)
     const [formData, setFormData] = useState({
         code: '', name: '', phone_number: '', phone_number_alt: '', email: '',
         address_line1: '', address_line2: '', city: '', province_state: '',
@@ -39,6 +41,9 @@ function Customers() {
 
     const handleSubmit = async (e) => {
         e.preventDefault()
+        if (submittingRef.current) return
+        submittingRef.current = true
+        setSubmitting(true)
         try {
             const data = {
                 ...formData,
@@ -57,6 +62,9 @@ function Customers() {
             loadData()
         } catch (error) {
             toast.error(error.message)
+        } finally {
+            submittingRef.current = false
+            setSubmitting(false)
         }
     }
 
@@ -382,8 +390,8 @@ function Customers() {
                                 <button type="button" onClick={() => setShowModal(false)} style={{ height: '40px', padding: '0 16px', borderRadius: '8px', border: '1px solid var(--border-surface)', background: 'transparent', color: 'var(--color-muted)', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
                                     Cancel
                                 </button>
-                                <button type="submit" style={{ height: '40px', padding: '0 20px', borderRadius: '8px', border: 'none', background: '#10b981', color: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer', boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)' }}>
-                                    {editingCustomer ? 'Update' : 'Create'}
+                                <button type="submit" disabled={submitting} style={{ height: '40px', padding: '0 20px', borderRadius: '8px', border: 'none', background: submitting ? 'var(--color-panel-2)' : '#10b981', color: submitting ? 'var(--color-muted)' : '#fff', fontSize: '13px', fontWeight: 500, cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: submitting ? 'none' : '0 2px 8px rgba(16, 185, 129, 0.3)' }}>
+                                    {submitting ? 'Saving...' : editingCustomer ? 'Update' : 'Create'}
                                 </button>
                             </div>
                         </form>

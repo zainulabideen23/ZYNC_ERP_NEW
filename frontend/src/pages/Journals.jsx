@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { toast } from 'react-hot-toast'
 import { format } from 'date-fns'
 import { journalsAPI, accountsAPI } from '../services/api'
@@ -13,6 +13,8 @@ function Journals() {
     const [showTransferModal, setShowTransferModal] = useState(false)
     const [viewingJournal, setViewingJournal] = useState(null)
 
+    const [submitting, setSubmitting] = useState(false)
+    const submittingRef = useRef(false)
     const [formData, setFormData] = useState({
         journal_date: format(new Date(), 'yyyy-MM-dd'),
         narration: '',
@@ -59,10 +61,13 @@ function Journals() {
 
     const handleSubmit = async (e) => {
         e.preventDefault()
+        if (submittingRef.current) return
         if (!isBalanced) {
             toast.error(`Journal is not balanced! Difference: Rs. ${Math.abs(totalDebits - totalCredits).toLocaleString()}`)
             return
         }
+        submittingRef.current = true
+        setSubmitting(true)
         try {
             await journalsAPI.create(formData)
             toast.success('Journal entry created')
@@ -78,6 +83,9 @@ function Journals() {
             loadData()
         } catch (error) {
             toast.error(error.message)
+        } finally {
+            submittingRef.current = false
+            setSubmitting(false)
         }
     }
 
@@ -338,8 +346,8 @@ function Journals() {
                                 <button type="button" onClick={() => setShowModal(false)} style={{ height: '40px', padding: '0 16px', borderRadius: '8px', border: '1px solid var(--border-surface)', background: 'transparent', color: 'var(--color-muted)', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
                                     Cancel
                                 </button>
-                                <button type="submit" disabled={!isBalanced} style={{ height: '40px', padding: '0 20px', borderRadius: '8px', border: 'none', background: isBalanced ? 'var(--blue)' : 'var(--color-panel-2)', color: isBalanced ? '#fff' : 'var(--color-muted)', fontSize: '13px', fontWeight: 500, cursor: isBalanced ? 'pointer' : 'not-allowed', boxShadow: isBalanced ? '0 2px 8px rgba(59, 130, 246, 0.3)' : 'none' }}>
-                                    Post Journal
+                                <button type="submit" disabled={!isBalanced || submitting} style={{ height: '40px', padding: '0 20px', borderRadius: '8px', border: 'none', background: isBalanced && !submitting ? 'var(--blue)' : 'var(--color-panel-2)', color: isBalanced && !submitting ? '#fff' : 'var(--color-muted)', fontSize: '13px', fontWeight: 500, cursor: isBalanced && !submitting ? 'pointer' : 'not-allowed', boxShadow: isBalanced && !submitting ? '0 2px 8px rgba(59, 130, 246, 0.3)' : 'none' }}>
+                                    {submitting ? 'Saving...' : 'Create Journal'}
                                 </button>
                             </div>
                         </form>

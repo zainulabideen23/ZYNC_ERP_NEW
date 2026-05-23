@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { toast } from 'react-hot-toast'
 import { loansAPI } from '../services/api'
 import { 
@@ -50,6 +50,10 @@ function Loans() {
         principal_paid: '', interest_paid: '', total_payment: '', 
         payment_method: 'bank_transfer', reference_number: ''
     })
+    const [submitting, setSubmitting] = useState(false)
+    const submittingRef = useRef(false)
+    const [submittingPayment, setSubmittingPayment] = useState(false)
+    const submittingPaymentRef = useRef(false)
     // Store payment modal loan info separately to prevent re-render issues
     const [paymentLoanInfo, setPaymentLoanInfo] = useState({ outstanding_principal: 0, emi_amount: 0 })
 
@@ -70,6 +74,9 @@ function Loans() {
 
     const handleSubmit = async (e) => {
         e.preventDefault()
+        if (submittingRef.current) return
+        submittingRef.current = true
+        setSubmitting(true)
         try {
             await loansAPI.create(formData)
             toast.success('Loan created successfully!')
@@ -85,11 +92,17 @@ function Loans() {
             loadLoans()
         } catch (error) {
             toast.error(error.message || 'Failed to create loan')
+        } finally {
+            submittingRef.current = false
+            setSubmitting(false)
         }
     }
 
     const handlePaymentSubmit = async (e) => {
         e.preventDefault()
+        if (submittingPaymentRef.current) return
+        submittingPaymentRef.current = true
+        setSubmittingPayment(true)
         try {
             await loansAPI.createPayment(selectedLoan.id, paymentData)
             toast.success('Payment recorded!')
@@ -141,6 +154,9 @@ function Loans() {
             loadLoans()
         } catch (error) {
             toast.error(error.message || 'Failed to record payment')
+        } finally {
+            submittingPaymentRef.current = false
+            setSubmittingPayment(false)
         }
     }
 
@@ -687,10 +703,10 @@ function Loans() {
                                 )}
                             </div>
                             <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-                                <button type="submit" style={{ 
-                                    flex: 1, padding: '14px', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', 
-                                    color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 600, fontSize: '15px'
-                                }}>Create Loan</button>
+                                <button type="submit" disabled={submitting} style={{ 
+                                    flex: 1, padding: '14px', background: submitting ? 'var(--color-panel-2)' : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', 
+                                    color: submitting ? 'var(--color-muted)' : '#fff', border: 'none', borderRadius: '10px', cursor: submitting ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '15px'
+                                }}>{submitting ? 'Creating...' : 'Create Loan'}</button>
                                 <button type="button" onClick={() => setShowForm(false)} style={{ 
                                     padding: '14px 24px', background: 'transparent', color: 'var(--color-text)', 
                                     border: '1px solid var(--border-surface)', borderRadius: '10px', cursor: 'pointer', fontWeight: 500
@@ -802,10 +818,10 @@ function Loans() {
                                 </div>
                             )}
                             <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-                                <button type="submit" style={{ 
-                                    flex: 1, padding: '14px', background: '#10b981', 
-                                    color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 600, fontSize: '15px'
-                                }}>Record Payment</button>
+                                <button type="submit" disabled={submittingPayment} style={{ 
+                                    flex: 1, padding: '14px', background: submittingPayment ? 'var(--color-panel-2)' : '#10b981', 
+                                    color: submittingPayment ? 'var(--color-muted)' : '#fff', border: 'none', borderRadius: '10px', cursor: submittingPayment ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '15px'
+                                }}>{submittingPayment ? 'Recording...' : 'Record Payment'}</button>
                                 <button type="button" onClick={() => { setShowPaymentForm(false); setPaymentLoanInfo({ outstanding_principal: 0, emi_amount: 0 }); }} style={{ 
                                     padding: '14px 24px', background: 'transparent', color: 'var(--color-text)', 
                                     border: '1px solid var(--border-surface)', borderRadius: '10px', cursor: 'pointer', fontWeight: 500

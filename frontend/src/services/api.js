@@ -68,7 +68,12 @@ export const productsAPI = {
     delete: (id) => api.delete(`/products/${id}`),
     getStock: (id) => api.get(`/products/${id}/stock`),
     getCostHistory: (id, params) => api.get(`/products/${id}/cost-history`, { params }),
-    validateSku: (sku, excludeId) => api.post('/products/validate-sku', { sku, excludeId })
+    validateSku: (sku, excludeId) => api.post('/products/validate-sku', { sku, excludeId }),
+    importFile: (formData) => api.post('/products/import', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 120000
+    }),
+    downloadTemplate: () => api.get('/products/template', { responseType: 'blob' })
 }
 
 // Customers

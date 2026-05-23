@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { toast } from 'react-hot-toast'
 import { equityAPI } from '../services/api'
 import { useAuthStore } from '../store/auth.store'
@@ -28,6 +28,12 @@ function Equity() {
         amount: '', transaction_date: new Date().toISOString().split('T')[0],
         payment_method: 'cash', reference_number: '', notes: ''
     })
+    const [submittingCapital, setSubmittingCapital] = useState(false)
+    const submittingCapitalRef = useRef(false)
+    const [submittingDrawing, setSubmittingDrawing] = useState(false)
+    const submittingDrawingRef = useRef(false)
+    const [submittingClose, setSubmittingClose] = useState(false)
+    const submittingCloseRef = useRef(false)
     const [closeForm, setCloseForm] = useState({
         fiscal_year_end: new Date(new Date().getFullYear() - 1, 11, 31).toISOString().split('T')[0]
     })
@@ -53,6 +59,9 @@ function Equity() {
 
     const handleCapitalSubmit = async (e) => {
         e.preventDefault()
+        if (submittingCapitalRef.current) return
+        submittingCapitalRef.current = true
+        setSubmittingCapital(true)
         try {
             await equityAPI.recordCapital(capitalForm)
             toast.success('Capital contribution recorded!')
@@ -61,11 +70,17 @@ function Equity() {
             loadData()
         } catch (error) {
             toast.error(error.message || 'Failed to record capital')
+        } finally {
+            submittingCapitalRef.current = false
+            setSubmittingCapital(false)
         }
     }
 
     const handleDrawingSubmit = async (e) => {
         e.preventDefault()
+        if (submittingDrawingRef.current) return
+        submittingDrawingRef.current = true
+        setSubmittingDrawing(true)
         try {
             await equityAPI.recordDrawing(drawingForm)
             toast.success('Owner drawing recorded!')
@@ -74,11 +89,17 @@ function Equity() {
             loadData()
         } catch (error) {
             toast.error(error.message || 'Failed to record drawing')
+        } finally {
+            submittingDrawingRef.current = false
+            setSubmittingDrawing(false)
         }
     }
 
     const handleCloseYear = async (e) => {
         e.preventDefault()
+        if (submittingCloseRef.current) return
+        submittingCloseRef.current = true
+        setSubmittingClose(true)
         try {
             const res = await equityAPI.closeYear(closeForm)
             toast.success(res.message || res.data?.message || 'Year closed')
@@ -86,6 +107,9 @@ function Equity() {
             loadData()
         } catch (error) {
             toast.error(error.message || 'Failed to close year')
+        } finally {
+            submittingCloseRef.current = false
+            setSubmittingClose(false)
         }
     }
 
@@ -298,10 +322,10 @@ function Equity() {
                                 </div>
                             </div>
                             <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-                                <button type="submit" style={{ 
-                                    flex: 1, padding: '14px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', 
-                                    color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 600, fontSize: '15px'
-                                }}>Record Contribution</button>
+                                <button type="submit" disabled={submittingCapital} style={{ 
+                                    flex: 1, padding: '14px', background: submittingCapital ? 'var(--color-panel-2)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)', 
+                                    color: submittingCapital ? 'var(--color-muted)' : '#fff', border: 'none', borderRadius: '10px', cursor: submittingCapital ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '15px'
+                                }}>{submittingCapital ? 'Recording...' : 'Record Contribution'}</button>
                                 <button type="button" onClick={() => setShowCapitalModal(false)} style={{ 
                                     padding: '14px 24px', background: 'transparent', color: 'var(--color-text)', 
                                     border: '1px solid var(--border-surface)', borderRadius: '10px', cursor: 'pointer', fontWeight: 500
@@ -361,10 +385,10 @@ function Equity() {
                                 </div>
                             </div>
                             <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-                                <button type="submit" style={{ 
-                                    flex: 1, padding: '14px', background: '#ef4444', 
-                                    color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 600, fontSize: '15px'
-                                }}>Record Drawing</button>
+                                <button type="submit" disabled={submittingDrawing} style={{ 
+                                    flex: 1, padding: '14px', background: submittingDrawing ? 'var(--color-panel-2)' : '#ef4444', 
+                                    color: submittingDrawing ? 'var(--color-muted)' : '#fff', border: 'none', borderRadius: '10px', cursor: submittingDrawing ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '15px'
+                                }}>{submittingDrawing ? 'Recording...' : 'Record Drawing'}</button>
                                 <button type="button" onClick={() => setShowDrawingModal(false)} style={{ 
                                     padding: '14px 24px', background: 'transparent', color: 'var(--color-text)', 
                                     border: '1px solid var(--border-surface)', borderRadius: '10px', cursor: 'pointer', fontWeight: 500
@@ -413,10 +437,10 @@ function Equity() {
                                     style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-surface)', background: 'var(--color-bg)', color: 'var(--color-text)', fontSize: '14px' }} />
                             </div>
                             <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-                                <button type="submit" style={{ 
-                                    flex: 1, padding: '14px', background: '#8b5cf6', 
-                                    color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 600, fontSize: '15px'
-                                }}>Close Year</button>
+                                <button type="submit" disabled={submittingClose} style={{ 
+                                    flex: 1, padding: '14px', background: submittingClose ? 'var(--color-panel-2)' : '#8b5cf6', 
+                                    color: submittingClose ? 'var(--color-muted)' : '#fff', border: 'none', borderRadius: '10px', cursor: submittingClose ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '15px'
+                                }}>{submittingClose ? 'Closing...' : 'Close Year'}</button>
                                 <button type="button" onClick={() => setShowCloseModal(false)} style={{ 
                                     padding: '14px 24px', background: 'transparent', color: 'var(--color-text)', 
                                     border: '1px solid var(--border-surface)', borderRadius: '10px', cursor: 'pointer', fontWeight: 500

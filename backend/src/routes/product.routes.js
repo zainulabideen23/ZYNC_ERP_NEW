@@ -4,6 +4,71 @@ const db = require('../config/database');
 const { authorize } = require('../middleware/auth');
 const ProductService = require('../services/product.service');
 const audit = require('../utils/audit');
+const multer = require('multer');
+const path = require('path');
+
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (['.xlsx', '.xls', '.csv'].includes(ext)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Invalid file format. Only .xlsx, .xls, and .csv files are allowed.'), false);
+        }
+    }
+});
+
+// Download import template
+router.get('/template', authorize('admin', 'manager'), async (req, res, next) => {
+    try {
+        const XLSX = require('xlsx');
+        const headers = ['Product Name', 'SKU', 'Barcode', 'Category', 'Brand', 'Unit', 'Cost Price', 'Retail Price', 'Wholesale Price', 'Tax Rate %', 'Opening Stock', 'Min Stock Level', 'Reorder Qty', 'Track Stock', 'Description'];
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet([headers]);
+        ws['!cols'] = headers.map(() => ({ wch: 18 }));
+        XLSX.utils.book_append_sheet(wb, ws, 'Template');
+        const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename="product-import-template.xlsx"');
+        res.send(buffer);
+    } catch (error) {
+        next(error);
+    }
+});
+
+// Import products from file
+router.post('/import', authorize('admin', 'manager'), (req, res, next) => {
+    upload.single('file')(req, res, (err) => {
+        if (err) {
+            if (err.code === 'LIMIT_FILE_SIZE') {
+                return res.status(400).json({ success: false, message: 'File size exceeds 5MB limit' });
+            }
+            return res.status(400).json({ success: false, message: err.message || 'Upload error' });
+        }
+        next();
+    });
+}, async (req, res, next) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No file uploaded' });
+        }
+        const productService = new ProductService(db, req.tenantId);
+        const result = await productService.importProducts(req.file.buffer, req.user.id);
+        await audit(db, {
+            userId: req.user.id,
+            action: 'import',
+            tableName: 'products',
+            newValues: { imported: result.imported, total: result.total, skipped: result.skipped },
+            ip: req.ip,
+            tenantId: req.tenantId
+        });
+        res.json({ success: true, data: result });
+    } catch (error) {
+        next(error);
+    }
+});
 
 // Get all products with pagination
 router.get('/', async (req, res, next) => {

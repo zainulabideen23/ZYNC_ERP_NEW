@@ -259,8 +259,8 @@ export default function CashFlowTrendChart({ salesTrend = [], expenseTrend = [] 
                         <ComposedChart data={chartData} margin={{ top: 16, right: 14, left: 0, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="cashflowSalesFill" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.38} />
-                                    <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.02} />
+                                    <stop offset="0%" stopColor="#059669" stopOpacity={0.38} />
+                                    <stop offset="100%" stopColor="#059669" stopOpacity={0.02} />
                                 </linearGradient>
                                 <linearGradient id="cashflowExpenseFill" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stopColor="#ef4444" stopOpacity={0.25} />
@@ -306,7 +306,7 @@ export default function CashFlowTrendChart({ salesTrend = [], expenseTrend = [] 
                             <Line
                                 type="monotone"
                                 dataKey="inflow"
-                                stroke="#60a5fa"
+                                stroke="#34d399"
                                 strokeWidth={2.6}
                                 dot={false}
                                 activeDot={{ r: 4, stroke: '#0f172a', strokeWidth: 2 }}

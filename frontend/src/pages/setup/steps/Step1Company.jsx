@@ -81,7 +81,7 @@ function Step1Company({ onContinue, saving, setSaving }) {
 
     const handleFocus = (e) => {
         e.target.style.borderColor = 'var(--color-accent)'
-        e.target.style.boxShadow = '0 0 0 2px rgba(37,99,235,0.15)'
+        e.target.style.boxShadow = '0 0 0 2px rgba(5, 153, 105, 0.15)'
     }
     const handleBlur = (e) => {
         e.target.style.borderColor = 'var(--border-surface)'

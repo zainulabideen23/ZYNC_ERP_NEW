@@ -51,9 +51,9 @@ function Accounts() {
     const formatCurrency = (value) => `Rs. ${Number(value).toLocaleString()}`
 
     const groupColors = {
-        'Asset': { bg: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', icon: ArrowDownRight },
+        'Asset': { bg: 'rgba(5, 153, 105, 0.1)', color: '#059669', icon: ArrowDownRight },
         'Liability': { bg: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', icon: ArrowUpRight },
-        'Equity': { bg: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', icon: Wallet },
+        'Equity': { bg: 'rgba(8, 145, 178, 0.1)', color: '#0891B2', icon: Wallet },
         'Income': { bg: 'rgba(16, 185, 129, 0.1)', color: '#10b981', icon: TrendingUp },
         'Expense': { bg: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', icon: TrendingDown }
     }
@@ -86,8 +86,8 @@ function Accounts() {
             {/* Page Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                    <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: 'rgba(139, 92, 246, 0.12)', border: '1px solid rgba(139, 92, 246, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <BookOpen size={20} color="#8b5cf6" />
+                    <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: 'rgba(8, 145, 178, 0.12)', border: '1px solid rgba(8, 145, 178, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <BookOpen size={20} color="#0891B2" />
                     </div>
                     <div>
                         <h1 style={{ fontSize: '22px', fontWeight: 600, color: 'var(--color-text)', margin: 0, letterSpacing: '-0.01em' }}>Chart of Accounts</h1>

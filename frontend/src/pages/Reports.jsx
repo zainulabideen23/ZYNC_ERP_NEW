@@ -27,8 +27,8 @@ const allTabs = [
 ]
 
 const categoryColors = {
-    'Electronics': { color: '#3b82f6', glow: 'rgba(59, 130, 246, 0.4)' },
-    'Clothing': { color: '#a855f7', glow: 'rgba(168, 85, 247, 0.4)' },
+    'Electronics': { color: '#059669', glow: 'rgba(5, 153, 105, 0.4)' },
+    'Clothing': { color: '#06B6D4', glow: 'rgba(6, 182, 212, 0.4)' },
     'Groceries': { color: '#22c55e', glow: 'rgba(34, 197, 94, 0.4)' },
     'Sports': { color: '#f59e0b', glow: 'rgba(245, 158, 11, 0.4)' },
     'Home & Garden': { color: '#14b8a6', glow: 'rgba(20, 184, 166, 0.4)' },

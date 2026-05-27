@@ -135,7 +135,7 @@ function Step6Complete({ skippedSteps, onFinish }) {
                     fontWeight: 700, color: '#fff', cursor: finishing ? 'not-allowed' : 'pointer',
                     background: 'var(--color-accent)', border: 'none', fontFamily: 'inherit',
                     opacity: finishing ? 0.6 : 1,
-                    boxShadow: '0 4px 20px rgba(37,99,235,0.2)',
+                    boxShadow: '0 4px 20px rgba(5, 153, 105, 0.2)',
                     transition: 'opacity 0.15s, background 0.15s',
                 }}
                 onMouseEnter={e => { if (!finishing) e.currentTarget.style.background = 'var(--color-accent-hover)' }}

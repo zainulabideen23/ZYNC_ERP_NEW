@@ -48,7 +48,7 @@ function QuoteConfirm() {
         const status = String(quotation?.status || '').toLowerCase()
         if (status === 'accepted' || responseIntent === 'accept') return '#16a34a'
         if (status === 'rejected' || responseIntent === 'reject') return '#dc2626'
-        return '#2563eb'
+        return '#059669'
     }, [quotation?.status, responseIntent])
 
     return (

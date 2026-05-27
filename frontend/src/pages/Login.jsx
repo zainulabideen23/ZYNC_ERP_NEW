@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/auth.store'
 import { authAPI } from '../services/api'
 import { Eye, EyeOff, AlertCircle } from 'lucide-react'
 import { preloadPage } from '../utils/preloader'
+import LogoMark from '../components/LogoMark'
 import './Login.css'
 
 function Login() {
@@ -46,6 +47,7 @@ function Login() {
         <div className="login-page">
             <div className="login-card">
                 <div className="login-brand">
+                    <LogoMark size={48} />
                     <h1 className="login-title">ZYNC ERP</h1>
                     <p className="login-subtitle">Sign in to your company account</p>
                 </div>

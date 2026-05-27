@@ -44,7 +44,7 @@ export default function PlatformDashboard() {
             label: 'Total Clients',
             value: data.totalTenants,
             icon: Building2,
-            color: '#6366f1',
+            color: '#0891B2',
             bg: 'rgba(99,102,241,0.1)',
             border: 'rgba(99,102,241,0.2)',
         },

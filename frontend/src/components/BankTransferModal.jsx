@@ -230,12 +230,12 @@ function BankTransferModal({ isOpen, onClose, onSuccess }) {
                     transition: all 0.2s;
                 }
                 .toggle-btn.active {
-                    background: var(--color-primary, #3b82f6);
-                    border-color: var(--color-primary, #3b82f6);
+                    background: var(--color-primary, #059669);
+                    border-color: var(--color-primary, #059669);
                     color: white;
                 }
                 .toggle-btn:hover:not(.active) {
-                    border-color: var(--color-primary, #3b82f6);
+                    border-color: var(--color-primary, #059669);
                 }
                 .form-row {
                     display: grid;

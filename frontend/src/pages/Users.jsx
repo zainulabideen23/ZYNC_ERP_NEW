@@ -11,7 +11,7 @@ import {
 /* ─── Helpers ─── */
 const ROLE_COLORS = {
     admin:   { bg: 'rgba(244,63,94,0.2)', text: '#fb7185', border: 'rgba(244,63,94,0.3)', solid: '#f43f5e' },
-    manager: { bg: 'rgba(59,130,246,0.2)', text: '#60a5fa', border: 'rgba(59,130,246,0.3)', solid: '#3b82f6' },
+    manager: { bg: 'rgba(5, 153, 105, 0.2)', text: '#34d399', border: 'rgba(5, 153, 105, 0.3)', solid: '#059669' },
     cashier: { bg: 'rgba(100,116,139,0.2)', text: '#94a3b8', border: 'rgba(100,116,139,0.3)', solid: '#64748b' },
 }
 
@@ -277,7 +277,7 @@ function Users() {
         title: { fontSize: 24, fontWeight: 700, color: '#f1f5f9' },
         addBtn: {
             display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 10,
-            border: 'none', background: '#3b82f6', color: '#fff', cursor: 'pointer',
+            border: 'none', background: '#059669', color: '#fff', cursor: 'pointer',
             fontSize: 13, fontWeight: 600, transition: 'background 0.2s',
         },
         summaryBar: { display: 'flex', gap: 20, fontSize: 13, color: '#94a3b8', marginBottom: 16, flexWrap: 'wrap' },
@@ -373,8 +373,8 @@ function Users() {
             <div style={S.header}>
                 <h1 style={S.title}>User Management</h1>
                 <button style={S.addBtn} onClick={() => { resetForm(); setShowModal(true) }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#2563eb'}
-                    onMouseLeave={e => e.currentTarget.style.background = '#3b82f6'}>
+                    onMouseEnter={e => e.currentTarget.style.background = '#059669'}
+                    onMouseLeave={e => e.currentTarget.style.background = '#059669'}>
                     <Plus size={16} /> Add User
                 </button>
             </div>
@@ -385,7 +385,7 @@ function Users() {
                 <span style={{ color: '#475569' }}>·</span>
                 <span style={{ color: '#fb7185' }}>{counts.admin} admin</span>
                 <span style={{ color: '#475569' }}>·</span>
-                <span style={{ color: '#60a5fa' }}>{counts.manager} manager</span>
+                <span style={{ color: '#34d399' }}>{counts.manager} manager</span>
                 <span style={{ color: '#475569' }}>·</span>
                 <span style={{ color: '#94a3b8' }}>{counts.cashier} cashier</span>
                 <span style={{ color: '#475569' }}>·</span>
@@ -401,7 +401,7 @@ function Users() {
                         placeholder="Search by name or username..."
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        onFocus={e => e.currentTarget.style.borderColor = '#3b82f6'}
+                        onFocus={e => e.currentTarget.style.borderColor = '#059669'}
                         onBlur={e => e.currentTarget.style.borderColor = '#334155'}
                     />
                 </div>
@@ -802,7 +802,7 @@ function Users() {
                                 }}>Cancel</button>
                                 <button type="submit" disabled={submitting || !isFormValid} style={{
                                     padding: '9px 22px', borderRadius: 8, border: 'none',
-                                    background: (submitting || !isFormValid) ? '#1e40af' : '#3b82f6', color: '#fff',
+                                    background: (submitting || !isFormValid) ? '#065f46' : '#059669', color: '#fff',
                                     cursor: (submitting || !isFormValid) ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600,
                                     display: 'flex', alignItems: 'center', gap: 6, opacity: (submitting || !isFormValid) ? 0.5 : 1,
                                 }}>

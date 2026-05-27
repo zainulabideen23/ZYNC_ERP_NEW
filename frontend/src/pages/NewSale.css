@@ -8,7 +8,7 @@
     padding: var(--space-4);
     color: var(--color-text);
     background:
-        radial-gradient(1000px 460px at 5% -8%, rgba(59, 130, 246, 0.18), transparent 58%),
+        radial-gradient(1000px 460px at 5% -8%, rgba(5, 153, 105, 0.18), transparent 58%),
         radial-gradient(820px 420px at 100% 0%, rgba(16, 185, 129, 0.14), transparent 60%),
         var(--color-bg-primary);
 }
@@ -80,10 +80,10 @@
     gap: 6px;
     margin-bottom: 10px;
     padding: 4px 10px;
-    border: 1px solid rgba(59, 130, 246, 0.35);
+    border: 1px solid rgba(5, 153, 105, 0.35);
     border-radius: var(--radius-full);
-    color: #93c5fd;
-    background: rgba(59, 130, 246, 0.12);
+    color: #6ee7b7;
+    background: rgba(5, 153, 105, 0.12);
     font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
@@ -170,8 +170,8 @@
 }
 
 .pos-customer-trigger:hover {
-    border-color: rgba(59, 130, 246, 0.6);
-    background: rgba(59, 130, 246, 0.08);
+    border-color: rgba(5, 153, 105, 0.6);
+    background: rgba(5, 153, 105, 0.08);
 }
 
 .pos-customer-trigger .left {
@@ -274,7 +274,7 @@
 
 .pos-customer-menu li .selected {
     font-size: 12px;
-    color: #93c5fd;
+    color: #6ee7b7;
     font-weight: 600;
 }
 
@@ -335,21 +335,21 @@
     height: 40px;
     width: 180px;
     border-radius: var(--radius-md);
-    border: 1px solid rgba(59, 130, 246, 0.5);
-    background: rgba(59, 130, 246, 0.12);
+    border: 1px solid rgba(5, 153, 105, 0.5);
+    background: rgba(5, 153, 105, 0.12);
     color: var(--color-text);
     padding: 0 12px;
 }
 
 .pos-barcode-form input::placeholder {
-    color: #93c5fd;
+    color: #6ee7b7;
 }
 
 .pos-barcode-form button {
     width: 40px;
     height: 40px;
     border-radius: var(--radius-md);
-    border: 1px solid rgba(59, 130, 246, 0.45);
+    border: 1px solid rgba(5, 153, 105, 0.45);
     background: var(--color-accent);
     color: #ffffff;
     cursor: pointer;
@@ -431,7 +431,7 @@
 }
 
 .pos-category-chip:hover {
-    border-color: rgba(59, 130, 246, 0.5);
+    border-color: rgba(5, 153, 105, 0.5);
     color: var(--color-text);
 }
 
@@ -494,14 +494,14 @@
 .pos-panel-actions .pos-search-row input {
     height: 42px;
     border-radius: 10px;
-    border: 1px solid rgba(59, 130, 246, 0.26);
+    border: 1px solid rgba(5, 153, 105, 0.26);
     background: rgba(2, 6, 23, 0.68);
     color: #e2e8f0;
 }
 
 .pos-panel-actions .pos-search-row input:focus {
-    border-color: rgba(59, 130, 246, 0.65);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    border-color: rgba(5, 153, 105, 0.65);
+    box-shadow: 0 0 0 2px rgba(5, 153, 105, 0.2);
 }
 
 .pos-panel-actions .pos-search-row .search-hint {
@@ -574,7 +574,7 @@
 
 .pos-product-card:hover {
     transform: translateY(-2px);
-    border-color: rgba(59, 130, 246, 0.5);
+    border-color: rgba(5, 153, 105, 0.5);
     box-shadow: var(--elevation-hover);
 }
 
@@ -593,11 +593,11 @@
 
 @keyframes posPulse {
     0% {
-        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.45);
+        box-shadow: 0 0 0 0 rgba(5, 153, 105, 0.45);
     }
 
     100% {
-        box-shadow: 0 0 0 16px rgba(59, 130, 246, 0);
+        box-shadow: 0 0 0 16px rgba(5, 153, 105, 0);
     }
 }
 
@@ -676,9 +676,9 @@
 .pos-chip {
     height: 24px;
     border-radius: var(--radius-full);
-    border: 1px solid rgba(59, 130, 246, 0.35);
-    background: rgba(59, 130, 246, 0.12);
-    color: #93c5fd;
+    border: 1px solid rgba(5, 153, 105, 0.35);
+    background: rgba(5, 153, 105, 0.12);
+    color: #6ee7b7;
     padding: 0 8px;
     font-size: 11px;
     font-weight: 700;
@@ -845,8 +845,8 @@
 }
 
 .pos-cart-item.is-bump {
-    border-color: rgba(59, 130, 246, 0.6);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    border-color: rgba(5, 153, 105, 0.6);
+    box-shadow: 0 0 0 2px rgba(5, 153, 105, 0.2);
 }
 
 .pos-cart-item-top {
@@ -927,7 +927,7 @@
 }
 
 .pos-qty-stepper input:focus {
-    background: rgba(59, 130, 246, 0.1);
+    background: rgba(5, 153, 105, 0.1);
 }
 
 .pos-cart-foot {
@@ -988,7 +988,7 @@
 }
 
 .pos-inline-toggle:hover {
-    border-color: rgba(59, 130, 246, 0.5);
+    border-color: rgba(5, 153, 105, 0.5);
 }
 
 .pos-inline-toggle span.is-open {
@@ -1042,7 +1042,7 @@
 
 .pos-total-card {
     border-radius: var(--radius-lg);
-    background: linear-gradient(160deg, rgba(59, 130, 246, 0.42), rgba(59, 130, 246, 0.24));
+    background: linear-gradient(160deg, rgba(5, 153, 105, 0.42), rgba(5, 153, 105, 0.24));
     border: 1px solid rgba(147, 197, 253, 0.45);
     padding: 10px;
     color: #ffffff;
@@ -1089,14 +1089,14 @@
 
 .pos-payment-method:hover,
 .pos-quick-amount:hover {
-    border-color: rgba(59, 130, 246, 0.5);
+    border-color: rgba(5, 153, 105, 0.5);
     color: var(--color-text);
 }
 
 .pos-payment-method.is-active,
 .pos-quick-amount.is-active {
-    border-color: rgba(59, 130, 246, 0.55);
-    background: rgba(59, 130, 246, 0.16);
+    border-color: rgba(5, 153, 105, 0.55);
+    background: rgba(5, 153, 105, 0.16);
     color: #bfdbfe;
 }
 
@@ -1114,9 +1114,9 @@
     font-weight: 700;
     letter-spacing: 0.01em;
     color: #e2e8f0;
-    border-color: rgba(59, 130, 246, 0.35);
+    border-color: rgba(5, 153, 105, 0.35);
     background:
-        linear-gradient(180deg, rgba(59, 130, 246, 0.12), rgba(59, 130, 246, 0.02)),
+        linear-gradient(180deg, rgba(5, 153, 105, 0.12), rgba(5, 153, 105, 0.02)),
         var(--color-bg-primary);
 }
 
@@ -1125,8 +1125,8 @@
 }
 
 .pos-field .pos-amount-input:focus {
-    border-color: rgba(59, 130, 246, 0.6);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    border-color: rgba(5, 153, 105, 0.6);
+    box-shadow: 0 0 0 2px rgba(5, 153, 105, 0.2);
 }
 
 .pos-quick-amounts {
@@ -1165,7 +1165,7 @@
     z-index: 2;
     margin-top: 2px;
     border-radius: 12px;
-    border: 1px solid rgba(59, 130, 246, 0.35);
+    border: 1px solid rgba(5, 153, 105, 0.35);
     background: var(--color-accent);
     color: #ffffff;
     font-size: 14px;
@@ -1195,7 +1195,7 @@
     width: 56px;
     height: 56px;
     border-radius: 16px;
-    border: 1px solid rgba(59, 130, 246, 0.4);
+    border: 1px solid rgba(5, 153, 105, 0.4);
     background: var(--color-accent);
     color: #ffffff;
     display: inline-flex;

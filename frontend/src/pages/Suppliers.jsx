@@ -240,12 +240,12 @@ function Suppliers() {
                                         </button>
                                         <button
                                             onClick={() => openSupplierInsights(s)}
-                                            style={{ minWidth: '44px', height: '32px', padding: '0 12px', borderRadius: '6px', border: '1px solid rgba(59, 130, 246, 0.35)', background: 'rgba(59, 130, 246, 0.12)', color: '#93c5fd', fontSize: '12px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                            style={{ minWidth: '44px', height: '32px', padding: '0 12px', borderRadius: '6px', border: '1px solid rgba(5, 153, 105, 0.35)', background: 'rgba(5, 153, 105, 0.12)', color: '#6ee7b7', fontSize: '12px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                                             aria-label={`View insights for ${s.name}`}
                                         >
                                             <Activity size={14} /> Insights
                                         </button>
-                                        <Link to={`/suppliers/${s.id}/ledger`} style={{ minWidth: '44px', height: '32px', padding: '0 12px', borderRadius: '6px', border: 'none', background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', fontSize: '12px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }} aria-label={`View ledger for ${s.name}`}>
+                                        <Link to={`/suppliers/${s.id}/ledger`} style={{ minWidth: '44px', height: '32px', padding: '0 12px', borderRadius: '6px', border: 'none', background: 'rgba(8, 145, 178, 0.1)', color: '#0891B2', fontSize: '12px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }} aria-label={`View ledger for ${s.name}`}>
                                             <FileText size={14} /> Ledger
                                         </Link>
                                     </div>

@@ -35,6 +35,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   padding: 20px 16px 18px;
   border-bottom: 1px solid var(--border-surface);
   min-height: 72px;
@@ -42,7 +43,7 @@
 }
 
 .app-sidebar.expanded .sidebar-header {
-  justify-content: space-between;
+  justify-content: flex-start;
 }
 
 .sidebar-logo {
@@ -58,13 +59,14 @@
 }
 
 .logo {
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 1.35rem;
+  font-weight: 400;
   color: var(--color-accent);
   letter-spacing: -0.02em;
   background: none;
   -webkit-text-fill-color: unset;
   white-space: nowrap;
+  font-family: var(--font-brand);
 }
 
 .logo-sub {

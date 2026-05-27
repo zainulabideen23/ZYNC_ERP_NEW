@@ -16,11 +16,11 @@ export default function Button({
     switch (variant) {
       case 'primary':
         return {
-          background: 'var(--blue)',
+          background: 'var(--color-accent)',
           color: '#fff',
           border: 'none',
-          hoverBg: 'var(--blue-hover, #1d4ed8)',
-          shadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
+          hoverBg: 'var(--color-accent-hover)',
+          shadow: '0 2px 8px rgba(5, 153, 105, 0.25)'
         }
       case 'secondary':
         return {
@@ -48,10 +48,10 @@ export default function Button({
         }
       default:
         return {
-          background: 'var(--blue)',
+          background: 'var(--color-accent)',
           color: '#fff',
           border: 'none',
-          hoverBg: 'var(--blue-hover, #1d4ed8)',
+          hoverBg: 'var(--color-accent-hover)',
           shadow: 'none'
         }
     }

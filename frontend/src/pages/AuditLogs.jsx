@@ -19,10 +19,10 @@ const ACTION_BADGES = {
     delete:          { label: 'Delete',       bgAlpha: 'rgba(239,68,68,0.15)',  text: '#f87171', border: 'rgba(239,68,68,0.35)' },
     approve:         { label: 'Approve',      bgAlpha: 'rgba(34,197,94,0.15)',  text: '#4ade80', border: 'rgba(34,197,94,0.35)' },
     reject:          { label: 'Reject',       bgAlpha: 'rgba(239,68,68,0.15)',  text: '#f87171', border: 'rgba(239,68,68,0.35)' },
-    login:           { label: 'Login',        bgAlpha: 'rgba(59,130,246,0.15)', text: '#60a5fa', border: 'rgba(59,130,246,0.35)' },
+    login:           { label: 'Login',        bgAlpha: 'rgba(5, 153, 105, 0.15)', text: '#34d399', border: 'rgba(5, 153, 105, 0.35)' },
     login_failed:    { label: 'Failed Login', bgAlpha: 'rgba(239,68,68,0.15)',  text: '#f87171', border: 'rgba(239,68,68,0.35)' },
     password_change: { label: 'Password',     bgAlpha: 'rgba(168,85,247,0.15)', text: '#c084fc', border: 'rgba(168,85,247,0.35)' },
-    export:          { label: 'Export',       bgAlpha: 'rgba(99,102,241,0.15)', text: '#818cf8', border: 'rgba(99,102,241,0.35)' },
+    export:          { label: 'Export',       bgAlpha: 'rgba(99,102,241,0.15)', text: '#c084fc', border: 'rgba(99,102,241,0.35)' },
     impersonate:     { label: 'Impersonate',  bgAlpha: 'rgba(249,115,22,0.15)', text: '#fb923c', border: 'rgba(249,115,22,0.35)' },
     read:            { label: 'Read',         bgAlpha: 'rgba(100,116,139,0.15)', text: '#94a3b8', border: 'rgba(100,116,139,0.35)' },
 }
@@ -58,7 +58,7 @@ function CustomSelect({ label, value, onChange, options, placeholder = 'All' }) 
                     fontSize: '0.8rem', cursor: 'pointer', outline: 'none',
                     transition: 'border-color 0.15s, box-shadow 0.15s',
                 }}
-                onFocus={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59,130,246,0.3)' }}
+                onFocus={e => { e.currentTarget.style.borderColor = '#059669'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(5, 153, 105, 0.3)' }}
                 onBlur={e => { if (!open) { e.currentTarget.style.borderColor = '#4b5563'; e.currentTarget.style.boxShadow = 'none' } }}
             >
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedLabel}</span>
@@ -74,7 +74,7 @@ function CustomSelect({ label, value, onChange, options, placeholder = 'All' }) 
                         onClick={() => { onChange(''); setOpen(false) }}
                         style={{
                             padding: '6px 10px', borderRadius: 6, cursor: 'pointer', fontSize: '0.8rem',
-                            color: !value ? '#60a5fa' : '#d1d5db', background: !value ? 'rgba(59,130,246,0.1)' : 'transparent',
+                            color: !value ? '#34d399' : '#d1d5db', background: !value ? 'rgba(5, 153, 105, 0.1)' : 'transparent',
                             transition: 'background 0.1s',
                         }}
                         onMouseEnter={e => { if (value) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
@@ -88,8 +88,8 @@ function CustomSelect({ label, value, onChange, options, placeholder = 'All' }) 
                                 onClick={() => { onChange(String(opt.value)); setOpen(false) }}
                                 style={{
                                     padding: '6px 10px', borderRadius: 6, cursor: 'pointer', fontSize: '0.8rem',
-                                    color: isSelected ? '#60a5fa' : '#d1d5db',
-                                    background: isSelected ? 'rgba(59,130,246,0.1)' : 'transparent',
+                                    color: isSelected ? '#34d399' : '#d1d5db',
+                                    background: isSelected ? 'rgba(5, 153, 105, 0.1)' : 'transparent',
                                     transition: 'background 0.1s',
                                 }}
                                 onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
@@ -251,10 +251,10 @@ function AuditLogs() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
                 <div style={{
                     width: 40, height: 40, borderRadius: 10,
-                    background: 'rgba(59,130,246,0.12)',
+                    background: 'rgba(5, 153, 105, 0.12)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
-                    <Shield size={20} style={{ color: '#60a5fa' }} />
+                    <Shield size={20} style={{ color: '#34d399' }} />
                 </div>
                 <div>
                     <h1 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#f1f5f9', margin: 0, lineHeight: 1.2 }}>Audit Logs</h1>
@@ -279,7 +279,7 @@ function AuditLogs() {
                             type="date" value={dateFrom}
                             onChange={e => { setDateFrom(e.target.value); setPagination(p => ({ ...p, page: 1 })) }}
                             style={dateInputStyle}
-                            onFocus={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59,130,246,0.3)' }}
+                            onFocus={e => { e.currentTarget.style.borderColor = '#059669'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(5, 153, 105, 0.3)' }}
                             onBlur={e => { e.currentTarget.style.borderColor = '#4b5563'; e.currentTarget.style.boxShadow = 'none' }}
                         />
                     </div>
@@ -289,7 +289,7 @@ function AuditLogs() {
                             type="date" value={dateTo}
                             onChange={e => { setDateTo(e.target.value); setPagination(p => ({ ...p, page: 1 })) }}
                             style={dateInputStyle}
-                            onFocus={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59,130,246,0.3)' }}
+                            onFocus={e => { e.currentTarget.style.borderColor = '#059669'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(5, 153, 105, 0.3)' }}
                             onBlur={e => { e.currentTarget.style.borderColor = '#4b5563'; e.currentTarget.style.boxShadow = 'none' }}
                         />
                     </div>
@@ -322,7 +322,7 @@ function AuditLogs() {
                             padding: '8px 12px 8px 34px', fontSize: '0.8rem', color: '#e5e7eb',
                             outline: 'none', transition: 'border-color 0.15s, box-shadow 0.15s',
                         }}
-                        onFocus={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59,130,246,0.3)' }}
+                        onFocus={e => { e.currentTarget.style.borderColor = '#059669'; e.currentTarget.style.boxShadow = '0 0 0 2px rgba(5, 153, 105, 0.3)' }}
                         onBlur={e => { e.currentTarget.style.borderColor = '#4b5563'; e.currentTarget.style.boxShadow = 'none' }}
                     />
                 </div>
@@ -335,12 +335,12 @@ function AuditLogs() {
                         <span key={f.key} style={{
                             display: 'inline-flex', alignItems: 'center', gap: 6,
                             padding: '3px 10px', borderRadius: 9999, fontSize: '0.72rem', fontWeight: 500,
-                            background: 'rgba(59,130,246,0.12)', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.25)',
+                            background: 'rgba(5, 153, 105, 0.12)', color: '#34d399', border: '1px solid rgba(5, 153, 105, 0.25)',
                         }}>
                             {f.label}
                             <button onClick={f.clear} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'inherit', display: 'flex', lineHeight: 1 }}
                                 onMouseEnter={e => e.currentTarget.style.color = '#fff'}
-                                onMouseLeave={e => e.currentTarget.style.color = '#60a5fa'}
+                                onMouseLeave={e => e.currentTarget.style.color = '#34d399'}
                             ><X size={12} /></button>
                         </span>
                     ))}
@@ -393,7 +393,7 @@ function AuditLogs() {
                                 {logs.map((log) => {
                                     const isExpanded = expandedRow === log.id
                                     const badge = ACTION_BADGES[log.action] || ACTION_BADGES.read
-                                    const avatarBg = log.user?.role === 'admin' ? '#be123c' : log.user?.role === 'manager' ? '#2563eb' : '#475569'
+                                    const avatarBg = log.user?.role === 'admin' ? '#be123c' : log.user?.role === 'manager' ? '#059669' : '#475569'
                                     const desc = formatActivity(log)
 
                                     return (

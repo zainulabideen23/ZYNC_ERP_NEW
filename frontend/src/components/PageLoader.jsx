@@ -1,3 +1,5 @@
+import LogoMark from './LogoMark'
+
 export default function PageLoader() {
     return (
         <div style={{
@@ -24,41 +26,36 @@ export default function PageLoader() {
                         position: 'absolute', inset: 0,
                         borderRadius: '50%',
                         border: '4px solid transparent',
-                        borderTopColor: '#3b82f6',
-                        borderRightColor: '#7c3aed',
-                        borderBottomColor: '#ec4899',
+                        borderTopColor: '#059669',
+                        borderRightColor: '#047857',
+                        borderBottomColor: '#22D3EE',
                         animation: 'zyncSpin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite',
                     }} />
                     <div style={{
                         position: 'absolute', inset: '6px',
                         borderRadius: '50%',
                         border: '3px solid transparent',
-                        borderLeftColor: '#3b82f6',
-                        borderBottomColor: '#7c3aed',
+                        borderLeftColor: '#059669',
+                        borderBottomColor: '#047857',
                         animation: 'zyncSpin 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite reverse',
                     }} />
                     {/* Logo mark in center */}
-                    <span style={{
-                        fontSize: '20px',
-                        fontWeight: 900,
-                        letterSpacing: '-0.04em',
-                        background: 'linear-gradient(135deg, #3b82f6, #7c3aed)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        zIndex: 1,
-                    }}>Z</span>
+                    <div style={{ zIndex: 1, display: 'flex' }}>
+                        <LogoMark size={28} />
+                    </div>
                 </div>
 
                 {/* ZYNC Brand */}
                 <div style={{
-                    fontSize: '2rem',
-                    fontWeight: 900,
+                    fontSize: '2.25rem',
+                    fontWeight: 400,
                     letterSpacing: '-0.04em',
-                    background: 'linear-gradient(135deg, #3b82f6 0%, #7c3aed 50%, #ec4899 100%)',
+                    fontFamily: 'var(--font-brand)',
+                    background: 'linear-gradient(135deg, #059669 0%, #0E7490 50%, #22D3EE 100%)',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
                     animation: 'zyncPulse 2.5s ease-in-out infinite',
-                    textShadow: '0 0 40px rgba(59,130,246,0.15)',
+                    textShadow: '0 0 40px rgba(5,153,105,0.15)',
                 }}>
                     ZYNC
                 </div>

@@ -149,7 +149,7 @@ function Journals() {
             {/* Page Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                    <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.12)', border: '1px solid rgba(59, 130, 246, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: 'rgba(5, 153, 105, 0.12)', border: '1px solid rgba(5, 153, 105, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <FileText size={20} color="var(--blue)" />
                     </div>
                     <div>
@@ -162,7 +162,7 @@ function Journals() {
                         <ArrowRightLeft size={16} />
                         Bank Transfer
                     </button>
-                    <button onClick={() => setShowModal(true)} style={{ height: '38px', padding: '0 16px', borderRadius: '8px', border: 'none', background: 'var(--blue)', color: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)' }}>
+                    <button onClick={() => setShowModal(true)} style={{ height: '38px', padding: '0 16px', borderRadius: '8px', border: 'none', background: 'var(--blue)', color: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 8px rgba(5, 153, 105, 0.3)' }}>
                         <Plus size={16} />
                         New Entry
                     </button>
@@ -171,7 +171,7 @@ function Journals() {
 
             {/* Metrics */}
             <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
-                <MetricCard label="Total Entries" value={aggregates.total} icon={FileText} color="#3b82f6" subtext="All time" />
+                <MetricCard label="Total Entries" value={aggregates.total} icon={FileText} color="#059669" subtext="All time" />
                 <MetricCard label="Posted" value={aggregates.posted} icon={Check} color="#10b981" subtext="Balanced" />
                 <MetricCard label="Drafts" value={aggregates.drafts} icon={X} color="#f59e0b" subtext="Pending" />
             </div>
@@ -250,7 +250,7 @@ function Journals() {
                     <div style={{ background: 'var(--color-panel)', borderRadius: '16px', width: '95%', maxWidth: '900px', maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--border-surface)' }} onClick={e => e.stopPropagation()}>
                         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-surface)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(5, 153, 105, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <FileText size={18} color="var(--blue)" />
                                 </div>
                                 <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text)', margin: 0 }}>New Journal Entry</h2>
@@ -346,7 +346,7 @@ function Journals() {
                                 <button type="button" onClick={() => setShowModal(false)} style={{ height: '40px', padding: '0 16px', borderRadius: '8px', border: '1px solid var(--border-surface)', background: 'transparent', color: 'var(--color-muted)', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
                                     Cancel
                                 </button>
-                                <button type="submit" disabled={!isBalanced || submitting} style={{ height: '40px', padding: '0 20px', borderRadius: '8px', border: 'none', background: isBalanced && !submitting ? 'var(--blue)' : 'var(--color-panel-2)', color: isBalanced && !submitting ? '#fff' : 'var(--color-muted)', fontSize: '13px', fontWeight: 500, cursor: isBalanced && !submitting ? 'pointer' : 'not-allowed', boxShadow: isBalanced && !submitting ? '0 2px 8px rgba(59, 130, 246, 0.3)' : 'none' }}>
+                                <button type="submit" disabled={!isBalanced || submitting} style={{ height: '40px', padding: '0 20px', borderRadius: '8px', border: 'none', background: isBalanced && !submitting ? 'var(--blue)' : 'var(--color-panel-2)', color: isBalanced && !submitting ? '#fff' : 'var(--color-muted)', fontSize: '13px', fontWeight: 500, cursor: isBalanced && !submitting ? 'pointer' : 'not-allowed', boxShadow: isBalanced && !submitting ? '0 2px 8px rgba(5, 153, 105, 0.3)' : 'none' }}>
                                     {submitting ? 'Saving...' : 'Create Journal'}
                                 </button>
                             </div>
@@ -361,7 +361,7 @@ function Journals() {
                     <div style={{ background: 'var(--color-panel)', borderRadius: '16px', width: '95%', maxWidth: '800px', maxHeight: '85vh', overflowY: 'auto', border: '1px solid var(--border-surface)' }} onClick={e => e.stopPropagation()}>
                         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-surface)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(5, 153, 105, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <FileText size={18} color="var(--blue)" />
                                 </div>
                                 <div>

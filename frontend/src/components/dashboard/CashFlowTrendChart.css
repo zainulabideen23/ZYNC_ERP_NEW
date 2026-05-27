@@ -38,7 +38,7 @@
 }
 
 .cashflow-card .time-range-btn.active {
-    background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
+    background: linear-gradient(135deg, #059669 0%, #0ea5e9 100%);
     color: #f8fafc;
 }
 
@@ -61,7 +61,7 @@
 
 .cashflow-export-btn:hover {
     transform: translateY(-1px);
-    background: rgba(59, 130, 246, 0.22);
+    background: rgba(5, 153, 105, 0.22);
     color: #f8fafc;
 }
 
@@ -156,8 +156,8 @@
 }
 
 .cashflow-pill.sales {
-    background: #60a5fa;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+    background: #34d399;
+    box-shadow: 0 0 0 4px rgba(5, 153, 105, 0.15);
 }
 
 .cashflow-pill.expense {
@@ -168,7 +168,7 @@
 .cashflow-chart-wrap {
     border-radius: 14px;
     border: 1px solid rgba(148, 163, 184, 0.16);
-    background: radial-gradient(circle at 20% 0%, rgba(37, 99, 235, 0.16), transparent 60%),
+    background: radial-gradient(circle at 20% 0%, rgba(5, 153, 105, 0.16), transparent 60%),
         radial-gradient(circle at 80% 0%, rgba(239, 68, 68, 0.13), transparent 60%),
         rgba(10, 18, 33, 0.68);
     padding: 8px 8px 2px;

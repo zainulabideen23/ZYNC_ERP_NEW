@@ -137,7 +137,7 @@ export default function NewClient() {
                             <div style={{
                                 width: 28, height: 28, borderRadius: '50%', fontSize: 12, fontWeight: 600,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                background: s <= step ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'rgba(51,65,85,0.5)',
+                                background: s <= step ? 'linear-gradient(135deg, #0891B2, #0891B2)' : 'rgba(51,65,85,0.5)',
                                 color: s <= step ? '#fff' : '#64748b',
                                 border: `1px solid ${s <= step ? 'rgba(99,102,241,0.4)' : 'rgba(99,102,241,0.1)'}`,
                             }}>{s}</div>
@@ -154,7 +154,7 @@ export default function NewClient() {
             {step === 1 && (
                 <div style={cardS}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                        <Building2 size={18} color="#818cf8" />
+                        <Building2 size={18} color="#c084fc" />
                         <h3 style={{ fontSize: 15, fontWeight: 600, color: '#e2e8f0', margin: 0 }}>Client Information</h3>
                     </div>
 
@@ -216,7 +216,7 @@ export default function NewClient() {
             {step === 2 && (
                 <div style={cardS}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                        <UserPlus size={18} color="#818cf8" />
+                        <UserPlus size={18} color="#c084fc" />
                         <h3 style={{ fontSize: 15, fontWeight: 600, color: '#e2e8f0', margin: 0 }}>Admin Account</h3>
                     </div>
 
@@ -277,7 +277,7 @@ export default function NewClient() {
                         padding: 16, borderRadius: 10, marginBottom: 16,
                         background: 'rgba(15,23,42,0.6)', border: '1px solid rgba(99,102,241,0.15)',
                     }}>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: '#818cf8', marginBottom: 10, textTransform: 'uppercase' }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: '#c084fc', marginBottom: 10, textTransform: 'uppercase' }}>
                             Client Details
                         </div>
                         <CopyRow label="Name" value={result.tenant.name} copied={copied} onCopy={copyText} />
@@ -357,7 +357,7 @@ const inputS = {
 const primaryBtnS = {
     display: 'flex', alignItems: 'center', gap: 6,
     padding: '10px 20px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', border: 'none',
+    background: 'linear-gradient(135deg, #0891B2, #0891B2)', border: 'none',
     color: '#fff', cursor: 'pointer', boxShadow: '0 4px 12px rgba(99,102,241,0.3)',
 }
 

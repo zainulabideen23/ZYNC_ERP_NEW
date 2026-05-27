@@ -124,7 +124,7 @@
 .dashboard-search input:focus {
   outline: none;
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 0 3px rgba(5, 153, 105, 0.15);
   background: var(--color-panel);
 }
 
@@ -172,7 +172,7 @@
   background: var(--blue-dim);
   padding: 10px 18px;
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(37, 99, 235, 0.1);
+  border: 1px solid rgba(5, 153, 105, 0.1);
 }
 
 .greeting-stat .value {
@@ -380,7 +380,7 @@
 /* KPI Top Accent Borders */
 .kpi-sales     { border-top: 3px solid var(--color-success); }
 .kpi-cash      { border-top: 3px solid var(--color-accent); }
-.kpi-profit    { border-top: 3px solid #8B5CF6; }
+.kpi-profit    { border-top: 3px solid #0891B2; }
 .kpi-receivable { border-top: 3px solid var(--color-warning); }
 .kpi-payable   { border-top: 3px solid var(--color-danger); }
 
@@ -811,7 +811,7 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--color-accent), #60a5fa);
+  background: linear-gradient(90deg, var(--color-accent), #34d399);
   border-radius: var(--radius-full);
   transition: width 0.6s ease;
 }
@@ -1070,7 +1070,7 @@
 
 .notification-dropdown-item .n-icon.yellow { color: var(--color-warning); }
 .notification-dropdown-item .n-icon.blue { color: var(--color-accent); }
-.notification-dropdown-item .n-icon.purple { color: #8B5CF6; }
+.notification-dropdown-item .n-icon.purple { color: #0891B2; }
 
 .notification-dropdown-item span {
   font-size: 0.8125rem;

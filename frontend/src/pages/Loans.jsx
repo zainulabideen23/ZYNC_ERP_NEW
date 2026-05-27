@@ -334,7 +334,7 @@ function Loans() {
     const StatusBadge = ({ status }) => {
         const styles = {
             active: { bg: 'rgba(16, 185, 129, 0.1)', color: '#10b981', icon: CheckCircle },
-            paid_off: { bg: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', icon: CheckCircle },
+            paid_off: { bg: 'rgba(5, 153, 105, 0.1)', color: '#059669', icon: CheckCircle },
             defaulted: { bg: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', icon: AlertCircle }
         }
         const style = styles[status] || styles.active
@@ -375,7 +375,7 @@ function Loans() {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Banknote size={24} color="#fff" />
                     </div>
                     <div>
@@ -393,8 +393,8 @@ function Loans() {
                     </button>
                     <button onClick={() => setShowForm(true)} style={{ 
                         display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', 
-                        background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: '#fff', 
-                        border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 600, boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+                        background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: '#fff', 
+                        border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 600, boxShadow: '0 4px 12px rgba(5, 153, 105, 0.3)'
                     }}>
                         <Plus size={18} /> Add New Loan
                     </button>
@@ -404,7 +404,7 @@ function Loans() {
             {/* Summary Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
                 {[
-                    { label: 'Total Loans', value: stats.total, icon: Banknote, color: '#3b82f6' },
+                    { label: 'Total Loans', value: stats.total, icon: Banknote, color: '#059669' },
                     { label: 'Outstanding', value: formatCurrency(stats.outstanding), icon: DollarSign, color: '#ef4444' },
                     { label: 'Interest Paid', value: formatCurrency(stats.interestPaid), icon: Percent, color: '#f59e0b' },
                     { label: 'Active Loans', value: stats.active, icon: CheckCircle, color: '#10b981' },
@@ -474,8 +474,8 @@ function Loans() {
             {/* Loan Cards */}
             {filteredLoans.length === 0 ? (
                 <div style={{ padding: '80px', textAlign: 'center', background: 'var(--color-panel)', borderRadius: '16px', border: '1px solid var(--border-surface)' }}>
-                    <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-                        <Banknote size={40} color="#3b82f6" />
+                    <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(5, 153, 105, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                        <Banknote size={40} color="#059669" />
                     </div>
                     <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--color-text)', marginBottom: '8px' }}>No loans found</h3>
                     <p style={{ color: 'var(--color-hint)', marginBottom: '20px' }}>{searchTerm ? 'Try adjusting your search' : 'Get started by adding your first loan'}</p>
@@ -505,7 +505,7 @@ function Loans() {
                                         <Building2 size={14} />
                                         <span>{loan.bank_name}</span>
                                         {loan.interest_type === 'floating' && (
-                                            <span style={{ fontSize: '10px', padding: '2px 6px', background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', borderRadius: '4px' }}>KIBOR</span>
+                                            <span style={{ fontSize: '10px', padding: '2px 6px', background: 'rgba(8, 145, 178, 0.1)', color: '#0891B2', borderRadius: '4px' }}>KIBOR</span>
                                         )}
                                     </div>
                                 </div>
@@ -527,7 +527,7 @@ function Loans() {
                                     <div style={{ height: '8px', background: 'var(--border-light)', borderRadius: '4px', overflow: 'hidden' }}>
                                         <div style={{ 
                                             width: `${((loan.principal_amount - loan.outstanding_principal) / loan.principal_amount) * 100}%`,
-                                            height: '100%', background: 'linear-gradient(90deg, #3b82f6, #60a5fa)', borderRadius: '4px'
+                                            height: '100%', background: 'linear-gradient(90deg, #059669, #34d399)', borderRadius: '4px'
                                         }} />
                                     </div>
                                 </div>
@@ -704,7 +704,7 @@ function Loans() {
                             </div>
                             <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
                                 <button type="submit" disabled={submitting} style={{ 
-                                    flex: 1, padding: '14px', background: submitting ? 'var(--color-panel-2)' : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', 
+                                    flex: 1, padding: '14px', background: submitting ? 'var(--color-panel-2)' : 'linear-gradient(135deg, #059669 0%, #047857 100%)', 
                                     color: submitting ? 'var(--color-muted)' : '#fff', border: 'none', borderRadius: '10px', cursor: submitting ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '15px'
                                 }}>{submitting ? 'Creating...' : 'Create Loan'}</button>
                                 <button type="button" onClick={() => setShowForm(false)} style={{ 
@@ -757,12 +757,12 @@ function Loans() {
                             {/* Quick Actions */}
                             <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
                                 <button type="button" onClick={applyFullEMI} style={{ 
-                                    flex: 1, padding: '8px', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', 
-                                    border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 600
+                                    flex: 1, padding: '8px', background: 'rgba(5, 153, 105, 0.1)', color: '#059669', 
+                                    border: '1px solid rgba(5, 153, 105, 0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 600
                                 }}>Full EMI</button>
                                 <button type="button" onClick={applyPrincipalOnly} style={{ 
-                                    flex: 1, padding: '8px', background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', 
-                                    border: '1px solid rgba(139, 92, 246, 0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 600
+                                    flex: 1, padding: '8px', background: 'rgba(8, 145, 178, 0.1)', color: '#0891B2', 
+                                    border: '1px solid rgba(8, 145, 178, 0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 600
                                 }}>Principal Only</button>
                             </div>
 
@@ -933,7 +933,7 @@ function Loans() {
                     }} onClick={e => e.stopPropagation()}>
                         <div style={{ padding: '24px', borderBottom: '1px solid var(--border-surface)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <Calculator size={24} color="#8b5cf6" />
+                                <Calculator size={24} color="#0891B2" />
                                 <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-text)', margin: 0 }}>EMI Calculator</h2>
                             </div>
                             <button onClick={() => setShowEmiCalculator(false)} style={{ 
@@ -984,11 +984,11 @@ function Loans() {
                             
                             {emiResult && (
                                 <div style={{ 
-                                    background: 'rgba(139, 92, 246, 0.1)', borderRadius: '12px', padding: '20px', marginTop: '20px',
+                                    background: 'rgba(8, 145, 178, 0.1)', borderRadius: '12px', padding: '20px', marginTop: '20px',
                                     textAlign: 'center'
                                 }}>
                                     <p style={{ fontSize: '14px', color: 'var(--color-hint)', margin: '0 0 8px 0' }}>Monthly EMI</p>
-                                    <p style={{ fontSize: '32px', fontWeight: 700, color: '#8b5cf6', margin: '0 0 16px 0' }}>{formatCurrency(emiResult.emi)}</p>
+                                    <p style={{ fontSize: '32px', fontWeight: 700, color: '#0891B2', margin: '0 0 16px 0' }}>{formatCurrency(emiResult.emi)}</p>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '13px' }}>
                                         <div>
                                             <p style={{ color: 'var(--color-hint)', margin: '0' }}>Total Interest</p>
@@ -1004,7 +1004,7 @@ function Loans() {
                             
                             <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
                                 <button onClick={calculateEMI} style={{ 
-                                    flex: 1, padding: '14px', background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)', 
+                                    flex: 1, padding: '14px', background: 'linear-gradient(135deg, #0891B2 0%, #155E75 100%)', 
                                     color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 600, fontSize: '15px'
                                 }}>Calculate</button>
                                 {emiResult && (

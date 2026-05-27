@@ -359,7 +359,7 @@ function Products() {
                         <div className="form-section">
                             <div className="section-header">
                                 <span className="section-icon">
-                                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="2" stroke="#3b82f6" strokeWidth="2"/><path d="M7 10H13M10 7V13" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"/></svg>
+                                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="2" stroke="#059669" strokeWidth="2"/><path d="M7 10H13M10 7V13" stroke="#059669" strokeWidth="2" strokeLinecap="round"/></svg>
                                 </span>
                                 <h2>Basic Information</h2>
                             </div>
@@ -474,7 +474,7 @@ function Products() {
                         <div className="form-section">
                             <div className="section-header">
                                 <span className="section-icon">
-                                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2L3 7V18H17V7L10 2Z" stroke="#8b5cf6" strokeWidth="2" strokeLinejoin="round"/><path d="M7 18V12H13V18" stroke="#8b5cf6" strokeWidth="2"/></svg>
+                                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2L3 7V18H17V7L10 2Z" stroke="#0891B2" strokeWidth="2" strokeLinejoin="round"/><path d="M7 18V12H13V18" stroke="#0891B2" strokeWidth="2"/></svg>
                                 </span>
                                 <h2>Physical Properties</h2>
                             </div>
@@ -541,7 +541,7 @@ function Products() {
                     label { font-size: 0.85rem; font-weight: 500; color: var(--color-muted); }
                     .required { color: #ef4444; margin-left: 2px; }
                     input, select, textarea { background: var(--color-panel-2); border: 1px solid var(--border-surface); border-radius: 8px; padding: 0.75rem 1rem; color: var(--color-text); font-size: 0.9rem; transition: all 0.2s; width: 100%; }
-                    input:focus, select:focus, textarea:focus { border-color: var(--blue); outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+                    input:focus, select:focus, textarea:focus { border-color: var(--blue); outline: none; box-shadow: 0 0 0 3px rgba(5, 153, 105, 0.15); }
                     input.error, select.error { border-color: #ef4444; }
                     .error-text { color: #ef4444; font-size: 0.75rem; font-weight: 500; }
                     .warning-text { color: #ef4444; font-size: 0.75rem; font-weight: 600; font-style: italic; margin-top: 4px; }
@@ -557,7 +557,7 @@ function Products() {
                     .border-l { border-left: 1px solid var(--border-surface); padding-left: 2rem; }
                     .btn { padding: 0.75rem 2rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
                     .btn-primary { background: var(--blue); color: #fff; }
-                    .btn-primary:hover:not(:disabled) { background: #2563eb; }
+                    .btn-primary:hover:not(:disabled) { background: #059669; }
                     .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
                     .btn-ghost { background: transparent; color: var(--color-muted); border: 1px solid var(--border-surface); }
                     .btn-ghost:hover { background: var(--color-panel-2); color: var(--color-text); }
@@ -584,7 +584,7 @@ function Products() {
             {/* Page Header */}
             <div className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                    <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.12)', border: '1px solid rgba(59, 130, 246, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: 'rgba(5, 153, 105, 0.12)', border: '1px solid rgba(5, 153, 105, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Package size={20} color="var(--blue)" />
                     </div>
                     <div>
@@ -598,7 +598,7 @@ function Products() {
                         Import
                     </button>
                 )}
-                <button className="add-btn" onClick={openCreateView} style={{ height: '38px', padding: '0 16px', borderRadius: '8px', border: 'none', background: 'var(--blue)', color: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)' }}>
+                <button className="add-btn" onClick={openCreateView} style={{ height: '38px', padding: '0 16px', borderRadius: '8px', border: 'none', background: 'var(--blue)', color: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 8px rgba(5, 153, 105, 0.3)' }}>
                     <Plus size={16} />
                     Add Product
                 </button>
@@ -606,7 +606,7 @@ function Products() {
 
             {/* Metrics Row */}
             <div className="metrics-row" style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
-                <MetricCard label="Total Products" value={aggregates.totalProducts} icon={Package} color="#3b82f6" subtext="In catalog" />
+                <MetricCard label="Total Products" value={aggregates.totalProducts} icon={Package} color="#059669" subtext="In catalog" />
                 <MetricCard label="Inventory Value" value={formatCurrency(aggregates.totalValue)} icon={TrendingUp} color="#10b981" subtext="At retail" />
                 <MetricCard label="Low Stock" value={aggregates.lowStock} icon={AlertTriangle} color="#f59e0b" subtext="Need reorder" />
             </div>
@@ -720,7 +720,7 @@ function Products() {
                             return (
                                 <tr key={product.id} style={{ borderBottom: index < products.length - 1 ? '1px solid var(--border-light)' : 'none', background: 'var(--color-panel)', transition: 'background 0.15s' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--color-panel-2)'} onMouseLeave={e => e.currentTarget.style.background = 'var(--color-panel)'}>
                                     <td style={{ padding: '14px 16px' }}>
-                                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600, color: 'var(--blue)', background: 'rgba(59, 130, 246, 0.1)', padding: '3px 8px', borderRadius: '4px' }}>
+                                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600, color: 'var(--blue)', background: 'rgba(5, 153, 105, 0.1)', padding: '3px 8px', borderRadius: '4px' }}>
                                             {product.code}
                                         </span>
                                     </td>
@@ -771,7 +771,7 @@ function Products() {
                         {/* Header */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid var(--border-surface)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(5, 153, 105, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <FileSpreadsheet size={18} color="var(--blue)" />
                                 </div>
                                 <div>
@@ -855,7 +855,7 @@ function Products() {
                                 /* Upload View */
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                     {!importFile ? (
-                                        <div onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--blue)'; e.currentTarget.style.background = 'rgba(59,130,246,0.05)' }} onDragLeave={e => { e.currentTarget.style.borderColor = 'var(--border-surface)'; e.currentTarget.style.background = 'transparent' }} onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f && ['.xlsx','.xls','.csv'].some(ext => f.name.toLowerCase().endsWith(ext))) { setImportFile(f) } else { toast.error('Invalid file format') } }} onClick={() => document.getElementById('import-file-input').click()} style={{ border: '2px dashed var(--border-surface)', borderRadius: '12px', padding: '40px 24px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}>
+                                        <div onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--blue)'; e.currentTarget.style.background = 'rgba(5, 153, 105, 0.05)' }} onDragLeave={e => { e.currentTarget.style.borderColor = 'var(--border-surface)'; e.currentTarget.style.background = 'transparent' }} onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f && ['.xlsx','.xls','.csv'].some(ext => f.name.toLowerCase().endsWith(ext))) { setImportFile(f) } else { toast.error('Invalid file format') } }} onClick={() => document.getElementById('import-file-input').click()} style={{ border: '2px dashed var(--border-surface)', borderRadius: '12px', padding: '40px 24px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}>
                                             <Upload size={32} color="var(--color-hint)" style={{ marginBottom: '12px' }} />
                                             <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--color-text)' }}>Drop your file here or click to browse</div>
                                             <div style={{ fontSize: '12px', color: 'var(--color-hint)', marginTop: '6px' }}>Supports .xlsx, .xls, .csv (max 5MB)</div>
@@ -864,7 +864,7 @@ function Products() {
                                     ) : (
                                         <div style={{ background: 'var(--color-panel-2)', borderRadius: '10px', padding: '16px', border: '1px solid var(--border-surface)' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(5, 153, 105, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                                     <FileSpreadsheet size={20} color="var(--blue)" />
                                                 </div>
                                                 <div style={{ flex: 1, minWidth: 0 }}>

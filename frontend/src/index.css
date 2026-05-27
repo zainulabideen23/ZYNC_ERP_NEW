@@ -102,12 +102,12 @@ a:hover {
 .btn-primary {
   background: var(--color-accent);
   color: white;
-  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 1px 2px rgba(5, 153, 105, 0.2);
 }
 
 .btn-primary:hover {
   background: var(--color-accent-hover);
-  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 2px 4px rgba(5, 153, 105, 0.3);
 }
 
 .btn-secondary {
@@ -198,7 +198,7 @@ a:hover {
 .form-select:focus,
 .form-textarea:focus {
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 0 3px rgba(5, 153, 105, 0.15);
   outline: none;
 }
 
@@ -756,7 +756,7 @@ a:hover {
 }
 
 .balance-edit-btn:hover {
-  background: rgba(37, 99, 235, 0.15);
+  background: rgba(5, 153, 105, 0.15);
 }
 
 .balance-edit-btn.supplier {

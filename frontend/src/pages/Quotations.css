@@ -1,7 +1,7 @@
 .quote-ui-page {
     background:
-        radial-gradient(760px 320px at 0% -4%, rgba(59, 130, 246, 0.12), transparent 60%),
-        radial-gradient(620px 280px at 100% -8%, rgba(139, 92, 246, 0.12), transparent 58%),
+        radial-gradient(760px 320px at 0% -4%, rgba(5, 153, 105, 0.12), transparent 60%),
+        radial-gradient(620px 280px at 100% -8%, rgba(8, 145, 178, 0.12), transparent 58%),
         var(--color-bg);
 }
 
@@ -24,7 +24,7 @@
 }
 
 .quote-ui-title-icon {
-    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.15);
+    box-shadow: 0 0 0 0 rgba(8, 145, 178, 0.15);
     animation: quotePulse 2.2s ease-in-out infinite;
 }
 
@@ -35,7 +35,7 @@
 .quote-ui-primary-btn:hover {
     transform: translateY(-1px);
     filter: brightness(1.05);
-    box-shadow: 0 8px 20px rgba(139, 92, 246, 0.26);
+    box-shadow: 0 8px 20px rgba(8, 145, 178, 0.26);
 }
 
 .quote-ui-primary-btn:active {
@@ -89,14 +89,14 @@
 }
 
 .quote-ui-mail-sending-banner {
-    border-bottom: 1px solid rgba(59, 130, 246, 0.24);
-    background: linear-gradient(90deg, rgba(59, 130, 246, 0.14), rgba(37, 99, 235, 0.08));
+    border-bottom: 1px solid rgba(5, 153, 105, 0.24);
+    background: linear-gradient(90deg, rgba(5, 153, 105, 0.14), rgba(5, 153, 105, 0.08));
 }
 
 .quote-ui-mail-progress {
     height: 3px;
     width: 100%;
-    background: linear-gradient(90deg, #1d4ed8 0%, #3b82f6 35%, #93c5fd 52%, #3b82f6 72%, #1d4ed8 100%);
+    background: linear-gradient(90deg, #047857 0%, #059669 35%, #6ee7b7 52%, #059669 72%, #047857 100%);
     background-size: 180% 100%;
     animation: quoteProgressSlide 1s linear infinite;
 }
@@ -108,7 +108,7 @@
     padding: 8px 12px;
     font-size: 12px;
     font-weight: 600;
-    color: #93c5fd;
+    color: #6ee7b7;
 }
 
 .quote-ui-spin {
@@ -116,7 +116,7 @@
 }
 
 .quote-ui-sending-btn {
-    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+    box-shadow: 0 0 0 0 rgba(5, 153, 105, 0.4);
     animation: quoteBtnPulse 1.2s ease-in-out infinite;
 }
 
@@ -129,11 +129,11 @@
 
 @keyframes quotePulse {
     0%, 100% {
-        box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.15);
+        box-shadow: 0 0 0 0 rgba(8, 145, 178, 0.15);
     }
 
     50% {
-        box-shadow: 0 0 0 8px rgba(139, 92, 246, 0);
+        box-shadow: 0 0 0 8px rgba(8, 145, 178, 0);
     }
 }
 
@@ -181,11 +181,11 @@
 
 @keyframes quoteBtnPulse {
     0%, 100% {
-        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.45);
+        box-shadow: 0 0 0 0 rgba(5, 153, 105, 0.45);
     }
 
     50% {
-        box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+        box-shadow: 0 0 0 8px rgba(5, 153, 105, 0);
     }
 }
 

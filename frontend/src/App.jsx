@@ -62,7 +62,7 @@ function RouteFallback() {
                     fontSize: '2rem',
                     fontWeight: 800,
                     letterSpacing: '-0.03em',
-                    background: 'linear-gradient(135deg, var(--color-accent), #7c3aed)',
+                    background: 'linear-gradient(135deg, var(--color-accent), #0E7490)',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
                     animation: 'pulse 2s ease-in-out infinite',

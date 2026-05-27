@@ -113,10 +113,10 @@ function Step2Categories({ onContinue, saving }) {
                             display: 'flex', alignItems: 'center', gap: 6,
                             padding: '8px 14px', borderRadius: 8, fontSize: '0.8rem',
                             fontWeight: 600, color: 'var(--color-accent)', cursor: 'pointer',
-                            background: 'var(--blue-dim)', border: '1px solid rgba(37,99,235,0.2)',
+                            background: 'var(--blue-dim)', border: '1px solid rgba(5, 153, 105, 0.2)',
                             whiteSpace: 'nowrap', transition: 'background 0.15s', fontFamily: 'inherit',
                         }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(37,99,235,0.15)'}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(5, 153, 105, 0.15)'}
                         onMouseLeave={e => e.currentTarget.style.background = 'var(--blue-dim)'}
                     >
                         <Plus size={14} /> Add Category

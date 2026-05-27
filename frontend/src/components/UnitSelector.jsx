@@ -134,7 +134,7 @@ function UnitSelector({ value, onChange, units = [], onUnitsChange, error }) {
                     background: var(--color-bg); border: 1px solid var(--border-surface); border-radius: 8px;
                     padding: 0.75rem 1rem; color: var(--color-text); font-size: 0.9rem;
                 }
-                .unit-modal-field input:focus { border-color: var(--color-accent); outline: none; box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
+                .unit-modal-field input:focus { border-color: var(--color-accent); outline: none; box-shadow: 0 0 0 3px rgba(5, 153, 105, 0.15); }
                 .unit-modal-footer {
                     padding: 1rem 1.5rem; border-top: 1px solid var(--border-surface);
                     display: flex; justify-content: flex-end; gap: 0.75rem;

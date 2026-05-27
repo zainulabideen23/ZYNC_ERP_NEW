@@ -5,14 +5,14 @@
 :root {
     /* State Colors */
     --pos-color-neutral: rgba(255, 255, 255, 0.05);
-    --pos-color-selected: rgba(59, 130, 246, 0.15);
+    --pos-color-selected: rgba(5, 153, 105, 0.15);
     --pos-color-in-cart: rgba(16, 185, 129, 0.12);
     --pos-color-low-stock: rgba(251, 191, 36, 0.12);
     --pos-color-out-stock: rgba(239, 68, 68, 0.08);
-    --pos-color-flash: rgba(59, 130, 246, 0.4);
+    --pos-color-flash: rgba(5, 153, 105, 0.4);
 
     /* Accent Colors */
-    --pos-accent-selected: #3b82f6;
+    --pos-accent-selected: #059669;
     --pos-accent-in-cart: #10b981;
     --pos-accent-warning: #fbbf24;
     --pos-accent-danger: #ef4444;
@@ -88,13 +88,13 @@
 /* Focus visible */
 .product-card:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 0 3px rgba(5, 153, 105, 0.5);
 }
 
 /* Selected state */
 .product-card.selected {
     background: #2a384e;
-    box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.5);
+    box-shadow: inset 0 0 0 1px rgba(5, 153, 105, 0.5);
 }
 
 /* In-cart state - Subtle background tint */
@@ -126,7 +126,7 @@
 @keyframes card-flash {
     0% {
         transform: scale(1.02);
-        background: rgba(59, 130, 246, 0.2);
+        background: rgba(5, 153, 105, 0.2);
     }
 
     100% {
@@ -359,7 +359,7 @@
 }
 
 .customer-option.selected {
-    background: rgba(59, 130, 246, 0.1);
+    background: rgba(5, 153, 105, 0.1);
 }
 
 .option-icon {
@@ -412,7 +412,7 @@
 
 .quick-amount-btn:hover {
     border-color: var(--color-accent);
-    background: rgba(59, 130, 246, 0.1);
+    background: rgba(5, 153, 105, 0.1);
 }
 
 .quick-amount-btn.exact {
@@ -468,7 +468,7 @@
 
 .barcode-input:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 0 3px rgba(5, 153, 105, 0.2);
 }
 
 .barcode-submit {
@@ -508,7 +508,7 @@
 }
 
 .qty-btn:hover:not(:disabled) {
-    background: rgba(59, 130, 246, 0.2);
+    background: rgba(5, 153, 105, 0.2);
 }
 
 .qty-btn:disabled {
@@ -546,7 +546,7 @@
 
 .qty-input:focus {
     outline: none;
-    background: rgba(59, 130, 246, 0.1);
+    background: rgba(5, 153, 105, 0.1);
     border-radius: 4px;
 }
 
@@ -578,7 +578,7 @@
 }
 
 .payment-option.active {
-    background: rgba(59, 130, 246, 0.15);
+    background: rgba(5, 153, 105, 0.15);
     border-color: var(--color-accent);
     color: var(--color-accent);
 }
@@ -1362,14 +1362,14 @@
     width: 64px;
     height: 64px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
     border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow:
-        0 4px 12px rgba(59, 130, 246, 0.4),
+        0 4px 12px rgba(5, 153, 105, 0.4),
         0 2px 4px rgba(0, 0, 0, 0.2);
     transition: all 0.2s ease;
     z-index: 1000;
@@ -1378,7 +1378,7 @@
 .cart-toggle-fab:hover {
     transform: scale(1.08);
     box-shadow:
-        0 6px 20px rgba(59, 130, 246, 0.5),
+        0 6px 20px rgba(5, 153, 105, 0.5),
         0 4px 8px rgba(0, 0, 0, 0.25);
 }
 

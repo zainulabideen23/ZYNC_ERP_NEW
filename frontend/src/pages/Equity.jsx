@@ -128,7 +128,7 @@ function Equity() {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #0891B2 0%, #155E75 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <TrendingUp size={24} color="#fff" />
                     </div>
                     <div>
@@ -145,8 +145,8 @@ function Equity() {
                     </button>
                     <button onClick={() => setShowCapitalModal(true)} style={{ 
                         display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', 
-                        background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)', color: '#fff', 
-                        border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 600, boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)'
+                        background: 'linear-gradient(135deg, #0891B2 0%, #155E75 100%)', color: '#fff', 
+                        border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 600, boxShadow: '0 4px 12px rgba(8, 145, 178, 0.3)'
                     }}>
                         <Plus size={18} /> Add Capital
                     </button>
@@ -159,7 +159,7 @@ function Equity() {
                     { label: 'Owner Capital (3001)', value: stats.capital, icon: DollarSign, color: '#10b981' },
                     { label: 'Owner Drawings (3003)', value: Math.abs(stats.drawings), icon: TrendingDown, color: '#ef4444', prefix: '-' },
                     { label: 'Retained Earnings (3002)', value: stats.retained, icon: History, color: '#f59e0b' },
-                    { label: 'Total Equity', value: stats.total, icon: TrendingUp, color: '#8b5cf6' },
+                    { label: 'Total Equity', value: stats.total, icon: TrendingUp, color: '#0891B2' },
                 ].map((stat, i) => (
                     <div key={i} style={{ 
                         background: 'var(--color-panel)', borderRadius: '16px', padding: '20px', 
@@ -420,7 +420,7 @@ function Equity() {
                         </div>
                         <form onSubmit={handleCloseYear} style={{ padding: '24px' }}>
                             <div style={{ 
-                                background: 'rgba(139, 92, 246, 0.1)', borderRadius: '12px', padding: '16px', marginBottom: '20px'
+                                background: 'rgba(8, 145, 178, 0.1)', borderRadius: '12px', padding: '16px', marginBottom: '20px'
                             }}>
                                 <p style={{ fontSize: '13px', color: 'var(--color-text)', margin: '0 0 8px 0' }}>
                                     This will:
@@ -438,7 +438,7 @@ function Equity() {
                             </div>
                             <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
                                 <button type="submit" disabled={submittingClose} style={{ 
-                                    flex: 1, padding: '14px', background: submittingClose ? 'var(--color-panel-2)' : '#8b5cf6', 
+                                    flex: 1, padding: '14px', background: submittingClose ? 'var(--color-panel-2)' : '#0891B2', 
                                     color: submittingClose ? 'var(--color-muted)' : '#fff', border: 'none', borderRadius: '10px', cursor: submittingClose ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '15px'
                                 }}>{submittingClose ? 'Closing...' : 'Close Year'}</button>
                                 <button type="button" onClick={() => setShowCloseModal(false)} style={{ 

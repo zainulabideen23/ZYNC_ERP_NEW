@@ -37,7 +37,7 @@ export default function PlatformLayout() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div style={{
                             width: 36, height: 36, borderRadius: 10,
-                            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                            background: 'linear-gradient(135deg, #0891B2, #0891B2)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
                             <Shield size={20} color="#fff" />
@@ -46,7 +46,7 @@ export default function PlatformLayout() {
                             <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--color-text)', letterSpacing: 0.3 }}>
                                 ZYNC Platform
                             </div>
-                            <div style={{ fontSize: 11, color: '#818cf8', fontWeight: 500 }}>
+                            <div style={{ fontSize: 11, color: '#c084fc', fontWeight: 500 }}>
                                 Admin Panel
                             </div>
                         </div>
@@ -69,7 +69,7 @@ export default function PlatformLayout() {
                                 fontSize: 14,
                                 fontWeight: 500,
                                 textDecoration: 'none',
-                                color: isActive ? '#6366f1' : 'var(--color-muted)',
+                                color: isActive ? '#0891B2' : 'var(--color-muted)',
                                 background: isActive ? 'rgba(99,102,241,0.12)' : 'transparent',
                                 transition: 'all 0.15s ease',
                             })}
@@ -88,7 +88,7 @@ export default function PlatformLayout() {
                     <div style={{ fontSize: 13, color: 'var(--color-text)', fontWeight: 500, marginBottom: 4 }}>
                         {platformAdmin?.fullName || 'Admin'}
                     </div>
-                    <div style={{ fontSize: 11, color: '#818cf8', marginBottom: 12 }}>
+                    <div style={{ fontSize: 11, color: '#c084fc', marginBottom: 12 }}>
                         {platformAdmin?.email || ''}
                     </div>
                     <button
@@ -130,7 +130,7 @@ export default function PlatformLayout() {
                         background: 'rgba(99,102,241,0.1)',
                         border: '1px solid rgba(99,102,241,0.2)',
                     }}>
-                        <Shield size={14} color="#818cf8" />
+                        <Shield size={14} color="#c084fc" />
                         <span style={{ fontSize: 12, fontWeight: 600, color: '#a5b4fc', letterSpacing: 0.5 }}>
                             PLATFORM ADMIN
                         </span>

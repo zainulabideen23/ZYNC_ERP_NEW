@@ -60,15 +60,15 @@ const resolveIcon = (action, tableName) =>
 
 // ─── Hex colors for dot indicator (avoids dynamic Tailwind class issues) ───
 const DOT_COLORS = {
-    'bg-green-500': '#22c55e', 'bg-blue-500': '#3b82f6', 'bg-red-500': '#ef4444',
+    'bg-green-500': '#22c55e', 'bg-blue-500': '#059669', 'bg-red-500': '#ef4444',
     'bg-yellow-500': '#eab308', 'bg-red-400': '#f87171', 'bg-red-600': '#dc2626',
-    'bg-purple-500': '#a855f7', 'bg-indigo-500': '#6366f1', 'bg-orange-500': '#f97316',
+    'bg-purple-500': '#06B6D4', 'bg-indigo-500': '#0891B2', 'bg-orange-500': '#f97316',
     'bg-slate-400': '#94a3b8', 'bg-slate-500': '#64748b',
 }
 // Icon tint per action
 const ICON_TINT = {
     create: '#4ade80', update: '#fbbf24', delete: '#f87171',
-    login: '#60a5fa', login_failed: '#f87171', password_change: '#c084fc',
+    login: '#34d399', login_failed: '#f87171', password_change: '#c084fc',
     approve: '#4ade80', reject: '#f87171',
 }
 import toast from 'react-hot-toast'
@@ -201,7 +201,7 @@ function Dashboard() {
         let gradient = 'conic-gradient('
         let currentDeg = 0
         const total = data.expense_breakdown.reduce((sum, item) => sum + item.total, 0) || 1
-        const colors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#a855f7']
+        const colors = ['#059669', '#22c55e', '#f59e0b', '#ef4444', '#06B6D4']
         data.expense_breakdown.forEach((item, idx) => {
             const deg = (item.total / total) * 360
             const color = colors[idx % colors.length]
@@ -438,7 +438,7 @@ function Dashboard() {
                     <div className="kpi-header">
                         <span className="kpi-label">Net Profit (Month)</span>
                         <div className="kpi-icon" style={{ background: 'var(--purple-dim)' }} aria-label="Profit Icon">
-                            <BarChart2 size={18} style={{ color: '#8B5CF6' }} />
+                            <BarChart2 size={18} style={{ color: '#0891B2' }} />
                         </div>
                     </div>
                     <div className={`kpi-value ${!data?.month_profit?.net_profit ? 'zero-value' : ''}`}
@@ -616,7 +616,7 @@ function Dashboard() {
                             </div>
                             <div className="donut-legend">
                                 {data.expense_breakdown.slice(0, 3).map((cat, i) => {
-                                    const colors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#a855f7']
+                                    const colors = ['#059669', '#22c55e', '#f59e0b', '#ef4444', '#06B6D4']
                                     return (
                                         <div key={i} className="legend-row">
                                             <div className="legend-cat">

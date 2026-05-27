@@ -147,8 +147,8 @@ function SetupWizard() {
                                         width: isCurrent ? 42 : 36, height: isCurrent ? 42 : 36,
                                         borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                         background: isCompleted ? 'var(--color-accent)' : isCurrent ? 'var(--color-accent)' : 'var(--color-panel-2)',
-                                        border: isCurrent ? '3px solid rgba(37,99,235,0.3)' : isCompleted ? '2px solid var(--color-accent)' : '2px solid var(--border-surface)',
-                                        boxShadow: isCurrent ? '0 0 20px rgba(37,99,235,0.25)' : 'none',
+                                        border: isCurrent ? '3px solid rgba(5, 153, 105, 0.3)' : isCompleted ? '2px solid var(--color-accent)' : '2px solid var(--border-surface)',
+                                        boxShadow: isCurrent ? '0 0 20px rgba(5, 153, 105, 0.25)' : 'none',
                                         transition: 'all 0.3s ease',
                                     }}>
                                         {isCompleted ? (

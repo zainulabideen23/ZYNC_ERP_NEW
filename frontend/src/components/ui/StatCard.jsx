@@ -2,13 +2,13 @@ import React from 'react'
 
 const accentColors = {
   blue: {
-    gradient: 'radial-gradient(circle at top right, rgba(37, 99, 235, 0.08) 0%, transparent 60%)',
+    gradient: 'radial-gradient(circle at top right, rgba(5, 153, 105, 0.08) 0%, transparent 60%)',
     iconBg: 'var(--blue-dim)',
     iconColor: 'var(--blue)',
     valueColor: 'var(--color-text)'
   },
   purple: {
-    gradient: 'radial-gradient(circle at top right, rgba(139, 92, 246, 0.08) 0%, transparent 60%)',
+    gradient: 'radial-gradient(circle at top right, rgba(8, 145, 178, 0.08) 0%, transparent 60%)',
     iconBg: 'var(--purple-dim)',
     iconColor: 'var(--purple)',
     valueColor: 'var(--color-text)'
@@ -43,7 +43,7 @@ export default function StatCard({
   label, 
   value, 
   sublabel, 
-  accentColor = 'blue', 
+  accentColor = 'emerald', 
   icon: Icon, 
   trend,
   trendDirection = 'up',

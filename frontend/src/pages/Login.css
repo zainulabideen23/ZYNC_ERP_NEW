@@ -14,8 +14,8 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse at 20% 50%, rgba(37, 99, 235, 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(139, 92, 246, 0.06) 0%, transparent 50%);
+    radial-gradient(ellipse at 20% 50%, rgba(5, 153, 105, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(8, 145, 178, 0.06) 0%, transparent 50%);
   pointer-events: none;
 }
 
@@ -33,14 +33,19 @@
 .login-brand {
   text-align: center;
   margin-bottom: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 }
 
 .login-title {
-  font-size: 2.25rem;
-  font-weight: 800;
+  font-size: 2.5rem;
+  font-weight: 400;
   color: var(--color-text);
   margin: 0;
   letter-spacing: -0.02em;
+  font-family: var(--font-brand);
 }
 
 .login-subtitle {

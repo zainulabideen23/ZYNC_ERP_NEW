@@ -171,7 +171,7 @@ function Customers() {
             {/* Metrics */}
             <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
                 <MetricCard label="Total Customers" value={aggregates.total} icon={Users} color="#10b981" subtext="In database" />
-                <MetricCard label="With Balance" value={aggregates.withBalance} icon={UserCheck} color="#3b82f6" subtext="Have outstanding" />
+                <MetricCard label="With Balance" value={aggregates.withBalance} icon={UserCheck} color="#059669" subtext="Have outstanding" />
                 <MetricCard label="Total Receivable" value={formatCurrency(aggregates.totalBalance)} icon={ArrowUpRight} color="#f59e0b" subtext="Outstanding balance" />
             </div>
 
@@ -266,7 +266,7 @@ function Customers() {
                                             </button>
                                         )}
                                         {can(userRole, 'customers.view_ledger') && (
-                                            <Link to={`/customers/${c.id}/ledger`} style={{ minWidth: '44px', height: '32px', padding: '0 12px', borderRadius: '6px', border: 'none', background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', fontSize: '12px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }} aria-label={`View ledger for ${c.name}`}>
+                                            <Link to={`/customers/${c.id}/ledger`} style={{ minWidth: '44px', height: '32px', padding: '0 12px', borderRadius: '6px', border: 'none', background: 'rgba(8, 145, 178, 0.1)', color: '#0891B2', fontSize: '12px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }} aria-label={`View ledger for ${c.name}`}>
                                                 <FileText size={14} /> Ledger
                                             </Link>
                                         )}

@@ -10,6 +10,7 @@ import {
     LogOut, User, ChevronDown, Shield, Ruler, ArrowLeftRight, CreditCard,
     ChevronLeft, ChevronRight, Menu, X, Sun, Moon, Banknote, TrendingUp
 } from 'lucide-react'
+import LogoMark from './LogoMark'
 import './Layout.css'
 
 const menuSections = [
@@ -188,6 +189,7 @@ function Layout() {
                 aria-label="Main navigation"
             >
                 <div className="sidebar-header">
+                    <LogoMark size={28} />
                     <div className="sidebar-logo">
                         <h1 className="logo">ZYNC</h1>
                         <span className="logo-sub">ERP System</span>

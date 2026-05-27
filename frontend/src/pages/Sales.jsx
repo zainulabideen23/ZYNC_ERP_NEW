@@ -61,24 +61,24 @@ function Sales() {
             const printContent = `
                 <!DOCTYPE html><html><head><title>Invoice-${data.invoice_number}</title><style>
                 *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;padding:40px;max-width:800px;margin:0 auto;color:#1a1a2e;line-height:1.5}
-                .invoice-header{display:flex;justify-content:space-between;margin-bottom:40px;padding-bottom:25px;border-bottom:3px solid #3b82f6}
-                .company-info h1{font-size:32px;font-weight:700;color:#3b82f6}.company-info p{color:#64748b;font-size:13px;margin-top:4px}
+                .invoice-header{display:flex;justify-content:space-between;margin-bottom:40px;padding-bottom:25px;border-bottom:3px solid #059669}
+                .company-info h1{font-size:32px;font-weight:700;color:#059669}.company-info p{color:#64748b;font-size:13px;margin-top:4px}
                 .invoice-title{text-align:right}.invoice-title h2{font-size:28px;font-weight:300;color:#64748b;text-transform:uppercase;letter-spacing:3px}
                 .invoice-title .invoice-number{font-size:18px;font-weight:600;color:#1a1a2e;margin-top:5px}
                 .billing-section{display:flex;justify-content:space-between;margin-bottom:35px;gap:40px}
-                .billing-box{flex:1;padding:20px;background:#f8fafc;border-radius:8px;border-left:4px solid #3b82f6}
+                .billing-box{flex:1;padding:20px;background:#f8fafc;border-radius:8px;border-left:4px solid #059669}
                 .billing-box h3{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-bottom:10px;font-weight:600}
                 .billing-box p{font-size:15px;color:#1a1a2e}.billing-box .highlight{font-weight:600;font-size:16px}
-                table{width:100%;border-collapse:collapse;margin-bottom:30px}thead tr{background:#3b82f6}
+                table{width:100%;border-collapse:collapse;margin-bottom:30px}thead tr{background:#059669}
                 th{padding:14px 16px;text-align:left;font-weight:600;color:#fff;font-size:12px;text-transform:uppercase}
                 td{padding:16px;border-bottom:1px solid #e2e8f0;font-size:14px}.text-right{text-align:right}.text-center{text-align:center}
                 .totals-wrapper{display:flex;justify-content:flex-end}.totals{width:320px;background:#f8fafc;border-radius:8px;padding:20px}
                 .totals .row{display:flex;justify-content:space-between;padding:10px 0;font-size:14px}
-                .totals .row.total{font-size:20px;font-weight:700;border-top:2px solid #3b82f6;margin-top:10px;padding-top:15px}
+                .totals .row.total{font-size:20px;font-weight:700;border-top:2px solid #059669;margin-top:10px;padding-top:15px}
                 .status-badge{display:inline-block;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;text-transform:uppercase}
                 .status-paid{background:#dcfce7;color:#16a34a}.status-partial{background:#fef3c7;color:#d97706}.status-unpaid{background:#fee2e2;color:#dc2626}
                 .footer{margin-top:50px;padding-top:25px;border-top:1px solid #e2e8f0;text-align:center}
-                .footer .thanks{font-size:18px;color:#3b82f6;font-weight:500;margin-bottom:8px}.footer .meta{font-size:11px;color:#94a3b8}
+                .footer .thanks{font-size:18px;color:#059669;font-weight:500;margin-bottom:8px}.footer .meta{font-size:11px;color:#94a3b8}
                 @media print{body{padding:20px}.billing-box,.totals,thead tr{background:#f8fafc!important;-webkit-print-color-adjust:exact}.status-badge{-webkit-print-color-adjust:exact}}
                 </style></head><body>
                 <div class="invoice-header"><div class="company-info"><h1>ZYNC</h1><p>Enterprise Resource Planning</p></div>
@@ -130,11 +130,11 @@ function Sales() {
         const styles = {
             completed: { bg: 'rgba(16, 185, 129, 0.15)', color: '#10b981', label: 'Paid' },
             paid: { bg: 'rgba(16, 185, 129, 0.15)', color: '#10b981', label: 'Paid' },
-            confirmed: { bg: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', label: 'Confirmed' },
+            confirmed: { bg: 'rgba(5, 153, 105, 0.15)', color: '#059669', label: 'Confirmed' },
             draft: { bg: 'rgba(100, 116, 139, 0.15)', color: '#94a3b8', label: 'Draft' },
             cancelled: { bg: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', label: 'Cancelled' },
-            returned: { bg: 'rgba(168, 85, 247, 0.15)', color: '#a855f7', label: 'Returned' },
-            partially_returned: { bg: 'rgba(124, 58, 237, 0.15)', color: '#8b5cf6', label: 'Partial Return' },
+            returned: { bg: 'rgba(6, 182, 212, 0.15)', color: '#06B6D4', label: 'Returned' },
+            partially_returned: { bg: 'rgba(14, 116, 144, 0.15)', color: '#0891B2', label: 'Partial Return' },
         }
         const s = styles[status] || { bg: 'rgba(100, 116, 139, 0.15)', color: '#64748b', label: status || 'N/A' }
         return (
@@ -226,8 +226,8 @@ function Sales() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                     <div style={{
                         width: '44px', height: '44px', borderRadius: '10px',
-                        background: 'rgba(59, 130, 246, 0.12)',
-                        border: '1px solid rgba(59, 130, 246, 0.2)',
+                        background: 'rgba(5, 153, 105, 0.12)',
+                        border: '1px solid rgba(5, 153, 105, 0.2)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center'
                     }}>
                         <ShoppingCart size={20} color="var(--blue)" />
@@ -258,7 +258,7 @@ function Sales() {
                             background: 'var(--blue)', color: '#fff',
                             fontSize: '13px', fontWeight: 500, cursor: 'pointer',
                             display: 'flex', alignItems: 'center', gap: '6px',
-                            boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)'
+                            boxShadow: '0 2px 8px rgba(5, 153, 105, 0.3)'
                         }}>
                             <Plus size={16} />
                             New Sale
@@ -273,14 +273,14 @@ function Sales() {
                     label="Total Revenue"
                     value={formatCurrency(aggregates?.total_sales || 0)}
                     icon={TrendingUp}
-                    color="#3b82f6"
+                    color="#059669"
                     subtext="Filtered total"
                 />
                 <MetricCard
                     label="Invoices"
                     value={aggregates?.count || 0}
                     icon={FileText}
-                    color="#8b5cf6"
+                    color="#0891B2"
                     subtext="Filtered count"
                 />
                 <MetricCard

@@ -85,7 +85,7 @@ export default function PlatformSettings() {
                 border: '1px solid var(--border-surface)',
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-                    <Shield size={16} color="#818cf8" />
+                    <Shield size={16} color="#c084fc" />
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>Platform Info</span>
                 </div>
 
@@ -115,7 +115,7 @@ export default function PlatformSettings() {
                 }}
             >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <KeyRound size={16} color="#818cf8" />
+                    <KeyRound size={16} color="#c084fc" />
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>Change Password</span>
                 </div>
 
@@ -151,7 +151,7 @@ export default function PlatformSettings() {
                             padding: '10px 16px',
                             borderRadius: 8,
                             border: 'none',
-                            background: saving ? 'rgba(99,102,241,0.5)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                            background: saving ? 'rgba(99,102,241,0.5)' : 'linear-gradient(135deg, #0891B2, #0891B2)',
                             color: '#fff',
                             fontSize: 13,
                             fontWeight: 600,

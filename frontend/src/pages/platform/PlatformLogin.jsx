@@ -49,7 +49,7 @@ export default function PlatformLogin() {
                 <div style={{ textAlign: 'center', marginBottom: 32 }}>
                     <div style={{
                         width: 56, height: 56, borderRadius: 14,
-                        background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                        background: 'linear-gradient(135deg, #0891B2, #0891B2)',
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                         marginBottom: 16,
                         boxShadow: '0 8px 24px rgba(99,102,241,0.3)',
@@ -160,7 +160,7 @@ export default function PlatformLogin() {
                             borderRadius: 8, fontSize: 14, fontWeight: 600,
                             background: loading
                                 ? 'rgba(99,102,241,0.4)'
-                                : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                                : 'linear-gradient(135deg, #0891B2, #0891B2)',
                             border: 'none', color: '#fff',
                             cursor: loading ? 'not-allowed' : 'pointer',
                             transition: 'all 0.2s',

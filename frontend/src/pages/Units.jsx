@@ -17,8 +17,8 @@ function ReferenceData() {
         <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto', background: 'var(--color-bg)', minHeight: '100vh' }}>
             {/* Page Header */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '24px' }}>
-                <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: 'rgba(139, 92, 246, 0.12)', border: '1px solid rgba(139, 92, 246, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Scale size={20} color="#8b5cf6" />
+                <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: 'rgba(8, 145, 178, 0.12)', border: '1px solid rgba(8, 145, 178, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Scale size={20} color="#0891B2" />
                 </div>
                 <div>
                     <h1 style={{ fontSize: '22px', fontWeight: 600, color: 'var(--color-text)', margin: 0, letterSpacing: '-0.01em' }}>Reference Data</h1>

@@ -274,7 +274,7 @@ function Purchases() {
             billed: { bg: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', label: 'Billed' },
             draft: { bg: 'rgba(100, 116, 139, 0.2)', color: '#94a3b8', label: 'Draft' },
             cancelled: { bg: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', label: 'Cancelled' },
-            returned: { bg: 'rgba(139, 92, 246, 0.15)', color: '#8b5cf6', label: 'Returned' }
+            returned: { bg: 'rgba(8, 145, 178, 0.15)', color: '#0891B2', label: 'Returned' }
         }
         const s = config[status] || { bg: 'rgba(100, 116, 139, 0.15)', color: '#64748b', label: status || 'N/A' }
         return (
@@ -382,14 +382,14 @@ function Purchases() {
                     label="Bills"
                     value={aggregates.bills}
                     icon={FileText}
-                    color="#8b5cf6"
+                    color="#0891B2"
                     subtext="Total bills"
                 />
                 <MetricCard
                     label="Paid"
                     value={formatCurrency(aggregates.paid)}
                     icon={Banknote}
-                    color="#3b82f6"
+                    color="#059669"
                     subtext="Settled"
                 />
                 <MetricCard
@@ -680,7 +680,7 @@ function Purchases() {
                                 <td style={{ padding: '14px 16px', textAlign: 'right', fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>
                                     {formatCurrency(purchase.total_amount)}
                                 </td>
-                                <td style={{ padding: '14px 16px', textAlign: 'right', fontSize: '13px', color: '#3b82f6' }}>
+                                <td style={{ padding: '14px 16px', textAlign: 'right', fontSize: '13px', color: '#059669' }}>
                                     {formatCurrency(purchase.amount_paid)}
                                 </td>
                                 <td style={{ padding: '14px 16px' }}>
@@ -888,7 +888,7 @@ function Purchases() {
                                 </div>
                                 <div style={{ padding: '16px', background: 'var(--color-panel-2)', borderRadius: '10px' }}>
                                     <div style={{ fontSize: '11px', color: 'var(--color-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Paid</div>
-                                    <div style={{ fontSize: '18px', fontWeight: 600, color: '#3b82f6' }}>{formatCurrency(selectedPurchase.amount_paid || 0)}</div>
+                                    <div style={{ fontSize: '18px', fontWeight: 600, color: '#059669' }}>{formatCurrency(selectedPurchase.amount_paid || 0)}</div>
                                 </div>
                                 <div style={{ padding: '16px', background: 'var(--color-panel-2)', borderRadius: '10px' }}>
                                     <div style={{ fontSize: '11px', color: 'var(--color-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Balance</div>

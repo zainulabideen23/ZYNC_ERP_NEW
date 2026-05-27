@@ -23,9 +23,9 @@
     --red-dim: rgba(239, 68, 68, 0.12);
     --amber: #f59e0b;
     --amber-dim: rgba(245, 158, 11, 0.12);
-    --blue: #3b82f6;
-    --blue-dim: rgba(59, 130, 246, 0.12);
-    --purple: #a855f7;
+    --blue: #059669;
+    --blue-dim: rgba(5, 153, 105, 0.12);
+    --purple: #06B6D4;
     --font-mono: 'JetBrains Mono', 'SF Mono', 'Monaco', 'Consolas', monospace;
     --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
@@ -760,7 +760,7 @@
 }
 
 .data-table tbody tr:hover {
-    background: rgba(59, 130, 246, 0.06);
+    background: rgba(5, 153, 105, 0.06);
 }
 
 .data-table tbody tr:hover .action-col {
@@ -883,7 +883,7 @@
     justify-content: center;
     width: 26px;
     height: 26px;
-    background: rgba(59, 130, 246, 0.1);
+    background: rgba(5, 153, 105, 0.1);
     border: none;
     border-radius: 4px;
     color: var(--text-muted);
@@ -892,7 +892,7 @@
 }
 
 .row-action:hover {
-    background: rgba(59, 130, 246, 0.2);
+    background: rgba(5, 153, 105, 0.2);
     color: var(--blue);
 }
 

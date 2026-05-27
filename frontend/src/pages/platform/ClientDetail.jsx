@@ -75,7 +75,7 @@ export default function ClientDetail() {
     const planColor = planColors[tenant.plan] || planColors.basic
 
     const stats = [
-        { label: 'Users', value: tenant.user_count || 0, max: tenant.max_users, icon: Users, color: '#818cf8', bg: 'rgba(99,102,241,0.1)' },
+        { label: 'Users', value: tenant.user_count || 0, max: tenant.max_users, icon: Users, color: '#c084fc', bg: 'rgba(99,102,241,0.1)' },
         { label: 'Products', value: tenant.product_count || 0, icon: Package, color: '#22d3ee', bg: 'rgba(6,182,212,0.1)' },
         { label: 'Sales', value: tenant.sale_count || 0, icon: ShoppingCart, color: '#4ade80', bg: 'rgba(34,197,94,0.1)' },
         { label: 'Purchases', value: tenant.purchase_count || 0, icon: Receipt, color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },

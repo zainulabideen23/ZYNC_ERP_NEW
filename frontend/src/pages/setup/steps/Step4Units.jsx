@@ -108,7 +108,7 @@ function Step4Units({ onContinue, saving }) {
                         display: 'inline-flex', alignItems: 'center', gap: 6,
                         padding: '9px 18px', borderRadius: 10, fontSize: '0.82rem',
                         fontWeight: 600, color: '#fff', cursor: seeding ? 'not-allowed' : 'pointer',
-                        background: 'linear-gradient(135deg, var(--color-accent), #6366f1)', border: 'none', fontFamily: 'inherit',
+                        background: 'linear-gradient(135deg, var(--color-accent), #0891B2)', border: 'none', fontFamily: 'inherit',
                         opacity: seeding ? 0.6 : 1, transition: 'opacity 0.15s',
                         marginBottom: 20,
                     }}
@@ -229,11 +229,11 @@ function Step4Units({ onContinue, saving }) {
                         display: 'inline-flex', alignItems: 'center', gap: 4,
                         padding: '8px 14px', borderRadius: 8, fontSize: '0.8rem',
                         fontWeight: 600, color: 'var(--color-accent)', cursor: 'pointer',
-                        background: 'rgba(37,99,235,0.06)', border: '1px dashed rgba(37,99,235,0.25)',
+                        background: 'rgba(5, 153, 105, 0.06)', border: '1px dashed rgba(5, 153, 105, 0.25)',
                         transition: 'background 0.15s', marginBottom: 16, fontFamily: 'inherit',
                     }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(37,99,235,0.12)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(37,99,235,0.06)'}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(5, 153, 105, 0.12)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(5, 153, 105, 0.06)'}
                 >
                     <Plus size={14} /> Add Custom Unit
                 </button>

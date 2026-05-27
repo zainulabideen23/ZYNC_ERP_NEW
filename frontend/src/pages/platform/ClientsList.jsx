@@ -91,7 +91,7 @@ export default function ClientsList() {
                     style={{
                         display: 'flex', alignItems: 'center', gap: 6,
                         padding: '10px 18px', borderRadius: 8,
-                        background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                        background: 'linear-gradient(135deg, #0891B2, #0891B2)',
                         border: 'none', color: '#fff', fontSize: 13, fontWeight: 600,
                         cursor: 'pointer', boxShadow: '0 4px 12px rgba(99,102,241,0.3)',
                     }}
@@ -124,7 +124,7 @@ export default function ClientsList() {
                                 padding: '7px 16px', borderRadius: 6, fontSize: 12, fontWeight: 500,
                                 border: '1px solid var(--border-surface)',
                                 background: filter === b.key ? 'rgba(99,102,241,0.15)' : 'transparent',
-                                color: filter === b.key ? '#6366f1' : 'var(--color-muted)',
+                                color: filter === b.key ? '#0891B2' : 'var(--color-muted)',
                                 cursor: 'pointer', transition: 'all 0.15s',
                             }}
                         >
@@ -171,12 +171,12 @@ export default function ClientsList() {
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                     flexShrink: 0,
                                                 }}>
-                                                    <Building2 size={15} color="#818cf8" />
+                                                    <Building2 size={15} color="#c084fc" />
                                                 </div>
                                                 <span style={{ fontWeight: 500 }}>{t.name}</span>
                                             </div>
                                         </td>
-                                        <td style={{ ...tdS, fontFamily: 'monospace', fontSize: 12, color: '#818cf8' }}>{t.slug}</td>
+                                        <td style={{ ...tdS, fontFamily: 'monospace', fontSize: 12, color: '#c084fc' }}>{t.slug}</td>
                                         <td style={tdS}>
                                             <span style={{
                                                 padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 600,
@@ -403,6 +403,6 @@ const cancelBtnS = {
 
 const saveBtnS = {
     padding: '8px 18px', borderRadius: 7, fontSize: 13, fontWeight: 600,
-    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', border: 'none',
+    background: 'linear-gradient(135deg, #0891B2, #0891B2)', border: 'none',
     color: '#fff', cursor: 'pointer', boxShadow: '0 4px 12px rgba(99,102,241,0.3)',
 }

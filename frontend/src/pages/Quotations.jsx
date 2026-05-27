@@ -423,10 +423,10 @@ function Quotations() {
     const StatusBadge = ({ status }) => {
         const config = {
             draft: { bg: 'rgba(100, 116, 139, 0.15)', color: '#64748b', label: 'Draft', icon: FileText },
-            sent: { bg: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', label: 'Sent', icon: Send },
+            sent: { bg: 'rgba(5, 153, 105, 0.15)', color: '#059669', label: 'Sent', icon: Send },
             accepted: { bg: 'rgba(16, 185, 129, 0.15)', color: '#10b981', label: 'Accepted', icon: CheckCircle },
             rejected: { bg: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', label: 'Rejected', icon: XCircle },
-            converted: { bg: 'rgba(139, 92, 246, 0.15)', color: '#8b5cf6', label: 'Converted', icon: DollarSign },
+            converted: { bg: 'rgba(8, 145, 178, 0.15)', color: '#0891B2', label: 'Converted', icon: DollarSign },
             expired: { bg: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', label: 'Expired', icon: Clock }
         }
         const s = config[status] || config.draft
@@ -527,8 +527,8 @@ function Quotations() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                     <div style={{
                         width: '44px', height: '44px', borderRadius: '10px',
-                        background: 'rgba(139, 92, 246, 0.12)',
-                        border: '1px solid rgba(139, 92, 246, 0.2)',
+                        background: 'rgba(8, 145, 178, 0.12)',
+                        border: '1px solid rgba(8, 145, 178, 0.2)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center'
                     }} className="quote-ui-title-icon">
                         <FileText size={20} color="var(--purple)" />
@@ -547,7 +547,7 @@ function Quotations() {
                         background: 'var(--purple)', color: '#fff',
                         fontSize: '13px', fontWeight: 500, cursor: 'pointer',
                         display: 'flex', alignItems: 'center', gap: '6px',
-                        boxShadow: '0 2px 8px rgba(139, 92, 246, 0.3)'
+                        boxShadow: '0 2px 8px rgba(8, 145, 178, 0.3)'
                     }}
                     className="quote-ui-primary-btn"
                 >
@@ -562,7 +562,7 @@ function Quotations() {
                     label="Total Value"
                     value={formatCurrency(totals.totalValue)}
                     icon={DollarSign}
-                    color="#8b5cf6"
+                    color="#0891B2"
                     subtext="All quotations"
                     index={0}
                 />
@@ -587,7 +587,7 @@ function Quotations() {
                     label="Converted"
                     value={totals.converted}
                     icon={TrendingUp}
-                    color="#3b82f6"
+                    color="#059669"
                     subtext="To sales"
                     index={3}
                 />
@@ -852,7 +852,7 @@ function Quotations() {
                                                 {formatOptionalDateTime(quote.responded_at)}
                                             </span>
                                         ) : awaitingResponse ? (
-                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: overdueReminder ? '#f59e0b' : '#3b82f6' }}>
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: overdueReminder ? '#f59e0b' : '#059669' }}>
                                                 <Clock size={13} />
                                                 {overdueReminder ? `Awaiting (${getDaysSince(quote.email_sent_at)}d)` : 'Awaiting response'}
                                             </span>
@@ -876,7 +876,7 @@ function Quotations() {
                                                     style={{
                                                         width: '30px', height: '30px', borderRadius: '6px',
                                                         border: '1px solid var(--border-surface)',
-                                                        background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6',
+                                                        background: 'rgba(5, 153, 105, 0.1)', color: '#059669',
                                                         cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
                                                     }}
                                                     title="Send Email"
@@ -890,7 +890,7 @@ function Quotations() {
                                                 style={{
                                                     width: '30px', height: '30px', borderRadius: '6px',
                                                     border: '1px solid var(--border-surface)',
-                                                    background: 'rgba(139, 92, 246, 0.12)', color: 'var(--purple)',
+                                                    background: 'rgba(8, 145, 178, 0.12)', color: 'var(--purple)',
                                                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
                                                 }}
                                                 title="Download PDF"
@@ -1011,7 +1011,7 @@ function Quotations() {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                     <div style={{
                                         width: '40px', height: '40px', borderRadius: '10px',
-                                        background: 'rgba(139, 92, 246, 0.12)',
+                                        background: 'rgba(8, 145, 178, 0.12)',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center'
                                     }}>
                                         <FileText size={18} color="var(--purple)" />
@@ -1099,7 +1099,7 @@ function Quotations() {
                                 )}
 
                                 {isAwaitingResponse(selectedQuotation) && (
-                                    <div style={{ marginTop: '10px', fontSize: '12px', color: isReminderOverdue(selectedQuotation) ? '#f59e0b' : '#3b82f6' }}>
+                                    <div style={{ marginTop: '10px', fontSize: '12px', color: isReminderOverdue(selectedQuotation) ? '#f59e0b' : '#059669' }}>
                                         Awaiting response for {getDaysSince(selectedQuotation.email_sent_at)} day(s).
                                     </div>
                                 )}
@@ -1152,7 +1152,7 @@ function Quotations() {
                                     onClick={() => handleOpenEmailModal(selectedQuotation)}
                                     style={{
                                         height: '40px', padding: '0 14px', borderRadius: '8px',
-                                        border: 'none', background: '#3b82f6', color: '#fff',
+                                        border: 'none', background: '#059669', color: '#fff',
                                         fontSize: '13px', fontWeight: 500, cursor: 'pointer',
                                         display: 'flex', alignItems: 'center', gap: '6px'
                                     }}
@@ -1457,7 +1457,7 @@ function SendQuotationEmailModal({ show, onClose, onSubmit, quotation, emailForm
                             disabled={sending}
                             style={{
                                 height: '38px', padding: '0 14px', borderRadius: '8px',
-                                border: 'none', background: '#3b82f6', color: '#fff',
+                                border: 'none', background: '#059669', color: '#fff',
                                 fontSize: '13px', fontWeight: 500, cursor: 'pointer',
                                 display: 'inline-flex', alignItems: 'center', gap: '6px',
                                 opacity: sending ? 0.7 : 1
@@ -1531,7 +1531,7 @@ function CreateQuotationModal({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{
                             width: '40px', height: '40px', borderRadius: '10px',
-                            background: 'rgba(139, 92, 246, 0.12)',
+                            background: 'rgba(8, 145, 178, 0.12)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center'
                         }}>
                             <FileText size={18} color="var(--purple)" />
@@ -1859,7 +1859,7 @@ function CreateQuotationModal({
                                 height: '40px', padding: '0 20px', borderRadius: '8px',
                                 border: 'none', background: 'var(--purple)', color: '#fff',
                                 fontSize: '13px', fontWeight: 500, cursor: 'pointer',
-                                boxShadow: '0 2px 8px rgba(139, 92, 246, 0.3)',
+                                boxShadow: '0 2px 8px rgba(8, 145, 178, 0.3)',
                                 opacity: submitting ? 0.7 : 1,
                                 display: 'inline-flex',
                                 alignItems: 'center',

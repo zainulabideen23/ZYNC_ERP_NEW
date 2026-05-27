@@ -88,7 +88,7 @@ function Expenses() {
     const totalAmount = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount || 0), 0)
 
     const StatusBadge = ({ method }) => {
-        const colors = { cash: '#10b981', bank_transfer: '#3b82f6', cheque: '#f59e0b' }
+        const colors = { cash: '#10b981', bank_transfer: '#059669', cheque: '#f59e0b' }
         const labels = { cash: 'Cash', bank_transfer: 'Bank', cheque: 'Cheque' }
         return (
             <span style={{
